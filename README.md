@@ -1,7 +1,7 @@
 # LAOS - Laurent Agent Operating System
 
 Personal agent orchestration layer. Composes domain capabilities
-(LATADE, LADESIGN, LAN8N) into declarative projects.
+(LATADE, LADESIGN, LAN8N, LACOUNCIL, LAENGINE) into declarative projects.
 
 ## What this is (and isn't)
 
@@ -19,8 +19,10 @@ Read `AGENTS.md` for the architectural rules. Do not bypass them.
 E:\Projects\
 ├── LAOS\                   ← this repo (orchestrator)
 ├── latade\                 ← data capability  · LATADE
-├── lan8n\                   ← automation capability · LAN8N
-└── ladesign\                ← design capability · LADESIGN
+├── lan8n\                  ← automation capability · LAN8N
+├── ladesign\               ← design capability · LADESIGN
+├── lacouncil\              ← improvement capability · LACOUNCIL
+└── laengine\               ← game dev capability · LAENGINE
 ```
 
 LAOS expects siblings. If you keep capability repos elsewhere, edit the
@@ -48,12 +50,14 @@ opencode
 
 **Domain capabilities:**
 
-| Server          | Capability  | Source                                       | Default | Env |
-| --------------- | ----------- | -------------------------------------------- | ------- | --- |
-| `latade`        | **LATADE**  | `capabilities-stubs/latade-mcp/server.py`    | enabled | - |
-| `lan8n`         | **LAN8N**   | `capabilities-stubs/lan8n-mcp/server.py`     | enabled | - |
-| `n8n-community` | n8n raw API | npm `n8n-mcp` (local n8n on :5678)           | disabled | `N8N_API_KEY` |
-| `ladesign`      | **LADESIGN**| `od mcp serve` (after installing od)         | disabled | - |
+| Server          | Capability  | Source                                                 | Default | Env |
+| --------------- | ----------- | ------------------------------------------------------ | ------- | --- |
+| `latade`        | **LATADE**  | `..\latade\.venv\Scripts\python ..\latade\mcp\server.py` | enabled | - |
+| `lan8n`         | **LAN8N**   | `uv run python capabilities-stubs/lan8n-mcp/server.py` (*stub*) | enabled | - |
+| `lacouncil`     | **LACOUNCIL**| `..\lacouncil\.venv\Scripts\python ..\lacouncil\mcp\server.py` | enabled | `LACOUNCIL_DB_PATH` |
+| `laengine`      | **LAENGINE** | `uv run python ../laengine/src/laengine/mcp/server.py` | enabled | - |
+| `n8n-community` | n8n raw API | npm `n8n-mcp` (local n8n on :5678)                    | disabled | `N8N_API_KEY` |
+| `ladesign`      | **LADESIGN** | `od mcp serve` (requer `od` CLI) + skills em `../ladesign/skills/` | disabled | - |
 
 **Platform capabilities:**
 
@@ -65,11 +69,29 @@ opencode
 
 ### Notes per server
 
-- **latade / LAN8N**: stub servers expose `health`, `list_supported_operations`,
-  and a `placeholder` tool. They give the orchestrator something to
-  call until you build the real MCP server in `../latade/mcp/server.py`
-  and `../lan8n/mcp/server.py`. When you do, swap the `command` array in
-  `opencode.jsonc` to point at them.
+- **LATADE**: server real em `../latade/mcp/server.py`. 7 ferramentas disponíveis:
+  `execute_sql` (DuckDB), `load_csv_to_bronze`, `run_silver_dedup`,
+  `run_gold_aggregation`, `validate_data_safety`, `generate_schema_preview`,
+  `inspect_table`. Pipeline medallion (bronze → silver → gold).
+
+- **LAN8N**: servidor **stub** (placeholder) em `capabilities-stubs/lan8n-mcp/server.py`.
+  O server real ainda não foi implementado em `../lan8n/mcp/server.py`.
+  O stub responde `health` e `list_supported_operations` com status "planned".
+
+- **LACOUNCIL**: server real em `../lacouncil/mcp/server.py`. 10 ferramentas:
+  `health`, `investigate` (5 Whys + Fishbone), `create_proposal`, `get_proposal`,
+  `list_proposals`, `register_vote`, `tally_votes`, `implement_proposal`,
+  `record_project`, `detect_patterns`. Backend DuckDB em `memoria/lacouncil.duckdb`.
+
+- **LAENGINE**: server real em `../laengine/src/laengine/mcp/server.py`.
+  7 ferramentas de simulação esportiva: `generate_seed`, `get_teams`,
+  `get_team_players`, `generate_schedule`, `simulate_next_round`,
+  `simulate_all_rounds`, `get_standings`. Motor Brasfoot.
+
+- **LADESIGN**: o MCP server (`od mcp serve`) está **disabled** porque o CLI `od`
+  não está instalado. Porém, as **skills visuais** em `../ladesign/skills/` são
+  carregadas ativamente via `skills.paths` no `opencode.jsonc`. O
+  `dashboard-designer` pode usar as skills mesmo sem o MCP server ativo.
 
 - **n8n-community** (local n8n self-hosted): kept off until you have
   n8n running. Steps:
@@ -78,10 +100,6 @@ opencode
   3. Settings > n8n API > enable and create an API key.
   4. Paste the key into `.env` as `N8N_API_KEY`.
   5. Set `"enabled": true` for the `n8n-community` MCP in `opencode.jsonc`.
-
-- **LADESIGN** (MCP key `ladesign`): install the LADESIGN app or CLI separately, then
-  run `od mcp install opencode` once. That command rewrites the
-   its MCP entry (or update the `ladesign` entry here) for you.
 
 - **exa**: OAuth-based remote MCP. No key. opencode will open a
   browser the first time the server is called. Manage your account

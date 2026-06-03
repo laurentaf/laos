@@ -66,6 +66,18 @@ integration:
 alerts:
   primary: [lan8n]
 
+# ─── Improvement needs ──────────────────────────────────────
+
+improvement:
+  primary: [lacouncil]
+  optional: [context7]
+
+investigation:
+  primary: [lacouncil]
+
+council:
+  primary: [lacouncil]
+
 # ─── Platform needs (rarely declared directly) ───────────────
 
 documentation-lookup:

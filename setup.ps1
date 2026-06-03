@@ -30,9 +30,11 @@ if (Test-Path -LiteralPath ".env") {
 Write-Host ""
 Write-Host "[3/3] Sibling capability repos..." -ForegroundColor Yellow
 $siblings = @(
-    @{ name = "latade"; path = "..\latade" },
-    @{ name = "LAN8N";    path = "..\lan8n" },
-    @{ name = "LADESIGN"; path = "..\ladesign" }
+    @{ name = "LATADE";    path = "..\latade" },
+    @{ name = "LAN8N";     path = "..\lan8n" },
+    @{ name = "LADESIGN";  path = "..\ladesign" },
+    @{ name = "LACOUNCIL"; path = "..\lacouncil" },
+    @{ name = "LAENGINE";  path = "..\laengine" }
 )
 foreach ($s in $siblings) {
     if (Test-Path -LiteralPath $s.path) {

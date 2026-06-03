@@ -24,24 +24,23 @@
   },
 
   // MCP servers grouped by role:
-  //   - Domain capabilities:   latade, lan8n, LADESIGN
+  //   - Domain capabilities:   latade, lan8n, lacouncil, laengine, ladesign
   //   - Platform capabilities: context7, exa, github
   // Toggle `enabled` per project / per session.
   "mcp": {
     // ─── DOMAIN CAPABILITIES ──────────────────────────────────
 
-    // LATADE — data engineering. Stub server lives in LAOS until the
-    // real LATADE repo (../latade) ships its own mcp/server.py.
-    // Run via the LAOS local venv (created by `uv sync`).
+    // LATADE — data engineering. Real MCP server lives in the LATADE repo.
+    // Uses the latade venv (has duckdb, mcp, and latade sources).
     "latade": {
       "type": "local",
-      "command": ["uv", "run", "python", "capabilities-stubs/latade-mcp/server.py"],
+      "command": ["..\\latade\\.venv\\Scripts\\python", "..\\latade\\mcp\\server.py"],
       "enabled": true,
       "env": {}
     },
 
     // LAN8N — n8n automation. Stub server in LAOS until the
-    // LAN8N repo (../lan8n) ships its own MCP server.
+    // LAN8N repo (../lan8n) ships its own real MCP server.
     "lan8n": {
       "type": "local",
       "command": ["uv", "run", "python", "capabilities-stubs/lan8n-mcp/server.py"],
@@ -61,6 +60,17 @@
       "env": {
         "N8N_API_URL": "{env:N8N_API_URL}",
         "N8N_API_KEY": "{env:N8N_API_KEY}"
+      }
+    },
+
+    // LACOUNCIL — failure investigation + improvement engine.
+    // Called by LAOS when structural gaps are detected.
+    "lacouncil": {
+      "type": "local",
+      "command": ["..\\lacouncil\\.venv\\Scripts\\python", "..\\lacouncil\\mcp\\server.py"],
+      "enabled": true,
+      "env": {
+        "LACOUNCIL_DB_PATH": "{workspaceFolder}\\..\\lacouncil\\memoria\\lacouncil.duckdb"
       }
     },
 
@@ -133,7 +143,8 @@
       "../latade/**": "allow",
       "../lan8n/**": "allow",
       "../ladesign/**": "allow",
-      "../laengine/**": "allow"
+      "../laengine/**": "allow",
+      "../lacouncil/**": "allow"
     }
   }
 }

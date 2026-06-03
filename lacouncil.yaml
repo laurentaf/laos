@@ -1,0 +1,18 @@
+# lacouncil.yaml — Config do orchestrator para melhorias estruturais
+# O LACOUNCIL é a capacidade MCP que executa investigação e propostas.
+# Este arquivo configura como o LAOS interage com ele.
+
+version: 1
+
+enabled: true
+
+# LACOUNCIL é a capacidade de melhoria estrutural (MCP: lacouncil.*)
+lacouncil:
+  mcp_server: lacouncil
+  auto_investigate: true
+  auto_record_projects: true
+
+# Meta-projetos são gerados pelo LACOUNCIL em projects/_meta/
+meta_projects:
+  enabled: true
+  path: "projects/_meta"

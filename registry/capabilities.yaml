@@ -26,22 +26,21 @@ capabilities:
     kind: domain
     mcp_server: latade
     repo: ../latade
-    status: stub
-    promote_to: ../latade/mcp/server.py
+    status: stable
     owns:
-      - sql.oracle
-      - sql.postgres
-      - sql.databricks
+      - sql.duckdb
       - data.engineering
       - data.modeling
       - data.quality
-      - bi.power-bi
       - docs.technical
     notes: |
-      The real ../latade repo exists but does not yet expose an MCP
-      server. When it does, swap the `latade.command` in
-      opencode.jsonc to ["uv","run","python","../latade/mcp/server.py"]
-      and set status: stable here.
+      LATADE MCP server is live at ../latade/mcp/server.py.
+      Exposes 7 tools: execute_sql (DuckDB), load_csv_to_bronze,
+      run_silver_dedup, run_gold_aggregation, validate_data_safety,
+      generate_schema_preview, inspect_table.
+      DuckDB-backed with medallion pipeline (bronze → silver → gold).
+      NOTA: sql.postgres, sql.databricks e bi.power-bi são aspirações
+      futuras — não implementados ainda. O server atual suporta apenas DuckDB.
 
   - id: lan8n
     kind: domain
@@ -59,6 +58,9 @@ capabilities:
       the capability is LAN8N. Holds reusable workflow templates
       (in ../lan8n/templates and ../lan8n/workflows); n8n-community is the
       raw N8N HTTP API surface.
+      ATENÇÃO: AINDA É STUB. O server real em ../lan8n/mcp/server.py
+      não foi implementado. O stub em capabilities-stubs/lan8n-mcp/ é
+      usado como placeholder.
 
   - id: n8n-community
     kind: domain
@@ -88,6 +90,26 @@ capabilities:
       Game development capability for LAOS. Exposes MCP tools for
       sports simulation, team/player generation, match engine,
       and league management. Repository: github.com/laurentaf/laengine.
+
+  - id: lacouncil
+    kind: domain
+    mcp_server: lacouncil
+    repo: ../lacouncil
+    status: stable
+    owns:
+      - improvement.proposals
+      - improvement.voting
+      - improvement.investigation
+      - improvement.patterns
+      - memory.council
+    notes: |
+      Failure investigation + improvement engine for LAOS.
+      MCP server at ../lacouncil/mcp/server.py.
+      Tools: health, investigate (5 Whys + Fishbone), create_proposal,
+      get_proposal, list_proposals, register_vote, tally_votes,
+      implement_proposal, record_project, detect_patterns.
+      Backed by DuckDB in memoria/lacouncil.duckdb (tabelas: propostas,
+      projetos_registrados, verbetes_conhecimento, trust_scores).
 
   - id: ladesign
     kind: domain
