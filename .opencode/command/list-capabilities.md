@@ -9,7 +9,7 @@ ID              KIND      MCP             STATUS    OWNS
 ─────────────── ───────── ─────────────── ───────── ─────────────────────────
 latade          domain    latade          stub      sql.*, data.*, bi.*
 lan8n           domain    lan8n           stub      automation.*, integration.*
-ladesign         domain    open-design     external  design.*, presentation.*, video.*
+ladesign         domain    ladesign        external  design.*, presentation.*, video.*
 context7        platform  context7        external  docs.*
 exa             platform  exa             external  web.*
 github          platform  github          external  github.*

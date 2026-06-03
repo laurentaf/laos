@@ -26,7 +26,7 @@ artifacts (workflows, schedules, alerts) and integration specs.
 ## MCP namespaces you may call
 
 - `lan8n.*` - your primary surface. Reusable workflow patterns,
-  templates, and conventions live here (backed by ../n8n).
+  templates, and conventions live here (backed by ../lan8n).
 - `n8n-community.*` - direct N8N API (workflows, executions,
   credentials). Use when you need to interact with the live local
   instance at http://localhost:5678.
@@ -36,7 +36,7 @@ artifacts (workflows, schedules, alerts) and integration specs.
 ## MCP namespaces you must NOT call
 
 - `latade.*` - data work belongs to data-architect.
-- `open-design.*` - visual artifacts belong to dashboard-designer.
+- `ladesign.*` - visual artifacts belong to dashboard-designer.
 - `github.*` - repo ops stay with the orchestrator.
 
 ## Output rules

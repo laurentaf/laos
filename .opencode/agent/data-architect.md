@@ -33,7 +33,7 @@ artifacts for data work; you do not orchestrate.
 ## MCP namespaces you must NOT call
 
 - `lan8n.*`, `n8n-community.*` - automation belongs to automation-engineer.
-- `open-design.*` - visual design belongs to dashboard-designer.
+- `ladesign.*` - visual design belongs to dashboard-designer.
 - `github.*` - repo operations stay with the orchestrator.
 
 ## Output rules

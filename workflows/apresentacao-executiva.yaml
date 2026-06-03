@@ -38,12 +38,12 @@ stages:
 
   - id: outline
     agent: dashboard-designer
-    capabilities: [open-design]
+    capabilities: [ladesign]
     inputs: [artifacts/brief.md]
     output: artifacts/outline.md
     description: |
       Storyboard: section by section, what each slide must do.
-      Use storytelling skills under LADESIGN (../open-design/skills/).
+      Use storytelling skills under LADESIGN (../ladesign/skills/).
 
   - id: data-pulls
     agent: data-architect
@@ -56,7 +56,7 @@ stages:
 
   - id: deck
     agent: dashboard-designer
-    capabilities: [open-design]
+    capabilities: [ladesign]
     inputs: [artifacts/outline.md, artifacts/data/snapshots/]
     output: artifacts/deck/
     description: |

@@ -49,10 +49,10 @@ pillars — it never owns domain implementation.
 | Repo | Domain | Capability name | MCP server | Role |
 | ---- | ------ | --------------- | ---------- | ---- |
 | `../latade` | Data | **LATADE** | `latade` | SQL, modeling, BI, DQ, docs |
-| `../n8n` | Automation | **LAN8N** | `lan8n` | Workflows, integrations, APIs, alerts |
-| `../open-design` | Design | **LADESIGN** | `open-design` | Dashboards, decks, wireframes, design systems, video |
+| `../lan8n` | Automation | **LAN8N** | `lan8n` | Workflows, integrations, APIs, alerts |
+| `../ladesign` | Design | **LADESIGN** | `ladesign` | Dashboards, decks, wireframes, design systems, video |
 
-> **Naming note:** The folder names (`../n8n`, `../open-design`) pre-date
+> **Naming note:** The folder names (`../lan8n`, `../ladesign`) pre-date
 > the capability naming convention. The capability names — LATADE, LAN8N,
 > LADESIGN — are the canonical identifiers; the folder paths are legacy
 > shortcuts.
@@ -68,7 +68,7 @@ Platform MCPs (cross-cutting, used by any subagent):
 - **orchestrator** (primary, default). Owns the session. Reads
   project.yaml, resolves needs via the registry, dispatches subagents.
 - **data-architect** (subagent). Talks only to `latade.*` MCP tools.
-- **dashboard-designer** (subagent). Talks only to `open-design.*` MCP
+- **dashboard-designer** (subagent). Talks only to `ladesign.*` MCP
   tools and the LADESIGN skill library.
 - **automation-engineer** (subagent). Talks only to `lan8n.*` and
   optionally `n8n-community.*` MCP tools.

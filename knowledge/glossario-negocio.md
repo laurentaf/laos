@@ -27,7 +27,7 @@ Definições profundas vivem em `../latade/`. Aqui só os atalhos:
 
 ## Conceitos de design
 
-Definições profundas em `../open-design/`. Atalhos:
+Definições profundas em `../ladesign/`. Atalhos:
 
 - **DESIGN.md**: contrato de marca (paleta, tipografia, espaçamento,
   voz, anti-padrões). Toda saída visual lê o DESIGN.md ativo.
@@ -38,7 +38,7 @@ Definições profundas em `../open-design/`. Atalhos:
 ## Conceitos de automação
 
 - **Workflow** (n8n): grafo de nós que executa uma automação ponta a
-  ponta. Vive em `../n8n/` ou é deployado via `n8n-community`.
+  ponta. Vive em `../lan8n/` ou é deployado via `n8n-community`.
 - **Trigger**: evento que dispara um workflow (schedule, webhook, etc).
 - **SLA**: prazo máximo aceitável entre disparo e conclusão.
 
@@ -46,5 +46,5 @@ Definições profundas em `../open-design/`. Atalhos:
 
 Antes de adicionar: o termo é mesmo transversal a múltiplos domínios?
 Se só vive em dados, vai para `../latade/`. Se só vive em design, vai
-para `../open-design/docs/`. Se só vive em automação, vai para
-`../n8n/`. Este arquivo é a exceção, não a regra.
+para `../ladesign/docs/`. Se só vive em automação, vai para
+`../lan8n/`. Este arquivo é a exceção, não a regra.

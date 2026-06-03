@@ -51,12 +51,12 @@ stages:
 
   - id: design
     agent: dashboard-designer
-    capabilities: [open-design]
+    capabilities: [ladesign]
     inputs: [artifacts/discovery/requirements.md]
     output: artifacts/design/
     description: |
       Wireframes + visual spec aligned to a DESIGN.md (pick one from
-      LADESIGN (../open-design/design-systems/) or define a new one).
+      LADESIGN (../ladesign/design-systems/) or define a new one).
 
   - id: build
     agent: data-architect
@@ -76,7 +76,7 @@ stages:
     output: artifacts/automation/
     description: |
       Refresh schedule, alerts, distribution. Produce an n8n flow spec
-      (the actual flow JSON lives in ../n8n or is deployed via n8n-community).
+      (the actual flow JSON lives in ../lan8n or is deployed via n8n-community).
 
   - id: review
     agent: delivery-reviewer

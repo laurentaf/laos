@@ -16,7 +16,7 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $laosRoot  = Split-Path -Parent $scriptDir
 
-$siblings = @("latade", "n8n", "open-design")
+$siblings = @("latade", "lan8n", "ladesign")
 
 foreach ($name in $siblings) {
     $path = Join-Path $laosRoot "..\$name"

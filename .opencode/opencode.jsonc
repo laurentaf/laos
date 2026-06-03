@@ -19,7 +19,7 @@
   "skills": {
     "paths": [
       ".opencode/skill",
-      "../open-design/skills"
+      "../ladesign/skills"
     ]
   },
 
@@ -41,7 +41,7 @@
     },
 
     // LAN8N — n8n automation. Stub server in LAOS until the
-    // LAN8N repo (../n8n) ships its own MCP server.
+    // LAN8N repo (../lan8n) ships its own MCP server.
     "lan8n": {
       "type": "local",
       "command": ["uv", "run", "python", "capabilities-stubs/lan8n-mcp/server.py"],
@@ -64,10 +64,11 @@
       }
     },
 
-    // LADESIGN (open-design daemon MCP). Run `od mcp install opencode`
-    // after installing the open-design app/CLI — it will rewrite
-    // this entry. The MCP key stays `open-design` for compatibility.
-    "open-design": {
+    // LADESIGN — design capability (dashboards, decks, wireframes, design systems).
+    // Install the LADESIGN CLI via `od mcp install opencode` and enable.
+    // The previous MCP key was `open-design`; if the install command still
+    // uses that name, manually point it to this entry or recreate it.
+    "ladesign": {
       "type": "local",
       "command": ["od", "mcp", "serve"],
       "enabled": false,
@@ -122,8 +123,8 @@
     "external_directory": {
       "*": "ask",
       "../latade/**": "allow",
-      "../n8n/**": "allow",
-      "../open-design/**": "allow"
+      "../lan8n/**": "allow",
+      "../ladesign/**": "allow"
     }
   }
 }

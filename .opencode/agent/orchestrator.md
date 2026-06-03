@@ -36,7 +36,7 @@ repo. Your job is composition, not implementation.
    - The stage spec (capabilities, inputs, expected output path).
    - The constraint that the subagent may only call MCP tools
      under the namespaces listed for that stage (`latade.*`,
-     `lan8n.*`, `open-design.*`, plus platform MCPs as allowed).
+      `lan8n.*`, `ladesign.*`, plus platform MCPs as allowed).
    - The relative paths the subagent may write to (always under
      `projects/<name>/artifacts/`).
 
@@ -61,7 +61,7 @@ repo. Your job is composition, not implementation.
 
 ## Tools you do NOT use
 
-- `latade.*`, `lan8n.*`, `open-design.*` - these are reserved for the
+- `latade.*`, `lan8n.*`, `ladesign.*` - these are reserved for the
   specialist subagents. If you need data, design, or automation work,
   delegate. This is enforced by convention, not by config; respect it.
 

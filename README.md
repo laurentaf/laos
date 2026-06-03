@@ -19,8 +19,8 @@ Read `AGENTS.md` for the architectural rules. Do not bypass them.
 E:\Projects\
 ├── LAOS\                   ← this repo (orchestrator)
 ├── latade\                 ← data capability  · LATADE
-├── n8n\                    ← automation capability · LAN8N
-└── open-design\            ← design capability · LADESIGN (nexu-io/open-design)
+├── lan8n\                   ← automation capability · LAN8N
+└── ladesign\                ← design capability · LADESIGN
 ```
 
 LAOS expects siblings. If you keep capability repos elsewhere, edit the
@@ -53,7 +53,7 @@ opencode
 | `latade`        | **LATADE**  | `capabilities-stubs/latade-mcp/server.py`    | enabled | - |
 | `lan8n`         | **LAN8N**   | `capabilities-stubs/lan8n-mcp/server.py`     | enabled | - |
 | `n8n-community` | n8n raw API | npm `n8n-mcp` (local n8n on :5678)           | disabled | `N8N_API_KEY` |
-| `open-design`   | **LADESIGN**| `od mcp serve` (after installing od)         | disabled | - |
+| `ladesign`      | **LADESIGN**| `od mcp serve` (after installing od)         | disabled | - |
 
 **Platform capabilities:**
 
@@ -68,7 +68,7 @@ opencode
 - **latade / LAN8N**: stub servers expose `health`, `list_supported_operations`,
   and a `placeholder` tool. They give the orchestrator something to
   call until you build the real MCP server in `../latade/mcp/server.py`
-  and `../n8n/mcp/server.py`. When you do, swap the `command` array in
+  and `../lan8n/mcp/server.py`. When you do, swap the `command` array in
   `opencode.jsonc` to point at them.
 
 - **n8n-community** (local n8n self-hosted): kept off until you have
@@ -79,9 +79,9 @@ opencode
   4. Paste the key into `.env` as `N8N_API_KEY`.
   5. Set `"enabled": true` for the `n8n-community` MCP in `opencode.jsonc`.
 
-- **LADESIGN** (MCP key `open-design`): install the open-design app or CLI separately, then
+- **LADESIGN** (MCP key `ladesign`): install the LADESIGN app or CLI separately, then
   run `od mcp install opencode` once. That command rewrites the
-   its MCP entry (currently named `open-design`) for you.
+   its MCP entry (or update the `ladesign` entry here) for you.
 
 - **exa**: OAuth-based remote MCP. No key. opencode will open a
   browser the first time the server is called. Manage your account

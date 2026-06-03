@@ -31,8 +31,8 @@ Write-Host ""
 Write-Host "[3/3] Sibling capability repos..." -ForegroundColor Yellow
 $siblings = @(
     @{ name = "latade"; path = "..\latade" },
-    @{ name = "n8n";    path = "..\n8n" },
-    @{ name = "open-design"; path = "..\open-design" }
+    @{ name = "LAN8N";    path = "..\lan8n" },
+    @{ name = "LADESIGN"; path = "..\ladesign" }
 )
 foreach ($s in $siblings) {
     if (Test-Path -LiteralPath $s.path) {

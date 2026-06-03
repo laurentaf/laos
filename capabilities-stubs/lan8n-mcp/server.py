@@ -2,7 +2,7 @@
 
 Temporary placeholder that mirrors what the automation-engineer
 subagent needs until the real LAN8N repo ships its own MCP
-(`../n8n/mcp/server.py`).
+(`../lan8n/mcp/server.py`).
 
 Runs via the LAOS venv:
     uv run python capabilities-stubs/lan8n-mcp/server.py
@@ -23,10 +23,10 @@ def health() -> dict:
 @mcp.tool()
 def list_supported_operations() -> list[dict]:
     return [
-        {"op": "list_workflow_templates", "status": "planned", "repo": "../n8n"},
-        {"op": "compose_workflow", "status": "planned", "repo": "../n8n"},
-        {"op": "export_workflow_json", "status": "planned", "repo": "../n8n"},
-        {"op": "schedule_workflow", "status": "planned", "repo": "../n8n"},
+        {"op": "list_workflow_templates", "status": "planned", "repo": "../lan8n"},
+        {"op": "compose_workflow", "status": "planned", "repo": "../lan8n"},
+        {"op": "export_workflow_json", "status": "planned", "repo": "../lan8n"},
+        {"op": "schedule_workflow", "status": "planned", "repo": "../lan8n"},
     ]
 
 
@@ -37,7 +37,7 @@ def placeholder(operation: str, payload: dict | None = None) -> dict:
         "stub": True,
         "operation": operation,
         "echoed_payload": payload or {},
-        "message": "lan8n stub - implement in ../n8n/mcp/server.py",
+        "message": "lan8n stub - implement in ../lan8n/mcp/server.py",
     }
 
 
@@ -49,7 +49,7 @@ def capability() -> dict:
         "mcp_server": "lan8n",
         "status": "stub",
         "owns": ["automation.*", "integration.*"],
-        "real_server": "../n8n/mcp/server.py",
+        "real_server": "../lan8n/mcp/server.py",
     }
 
 

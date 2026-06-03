@@ -46,18 +46,18 @@ capabilities:
   - id: lan8n
     kind: domain
     mcp_server: lan8n
-    repo: ../n8n
+    repo: ../lan8n
     status: stub
-    promote_to: ../n8n/mcp/server.py
+    promote_to: ../lan8n/mcp/server.py
     owns:
       - automation.n8n
       - automation.workflows
       - integration.apis
       - integration.webhooks
     notes: |
-      Display name: LAN8N. The repo folder is ../n8n (shorter),
+      Display name: LAN8N. The repo folder is ../lan8n (shorter),
       the capability is LAN8N. Holds reusable workflow templates
-      (in ../n8n/templates and ../n8n/workflows); n8n-community is the
+      (in ../lan8n/templates and ../lan8n/workflows); n8n-community is the
       raw N8N HTTP API surface.
 
   - id: n8n-community
@@ -75,8 +75,8 @@ capabilities:
 
   - id: ladesign
     kind: domain
-    mcp_server: open-design
-    repo: ../open-design
+    mcp_server: ladesign
+    repo: ../ladesign
     status: external
     owns:
       - design.dashboard
@@ -89,9 +89,8 @@ capabilities:
       - design.images
       - design.storytelling
     notes: |
-      Display name: LADESIGN. MCP key `open-design` kept for
-      compatibility with `od mcp install opencode`. Skills from
-      ../open-design/skills/ are auto-loaded via skills.paths.
+      Display name: LADESIGN. Skills from
+      ../ladesign/skills/ are auto-loaded via skills.paths.
 
   # ─── Platform capabilities ──────────────────────────────────
 
