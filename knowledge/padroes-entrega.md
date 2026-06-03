@@ -12,6 +12,10 @@ arquivo.
       aparece em arquivos versionados. `.env` está em `.gitignore`.
 - [ ] Para cada artefato de dados: existe spec do modelo em `artifacts/data/`
       e ao menos uma regra de qualidade documentada.
+- [ ] Para cada artefato de dados: o pipeline tem **guards para DataFrame vazio**
+      em todas as etapas que accedem índices ou agregam (`.iloc[0]`, `.mean()`,
+      `.min()`, `.max()`, `groupby()`, `to_csv()`). Dados vazios devem produzir
+      mensagem amigável, não `IndexError` nem `ValueError`.
 - [ ] Para cada artefato visual: o DESIGN.md utilizado está referenciado
       em `artifacts/design/source.md`.
 - [ ] Para cada automação: o trigger e o SLA estão documentados.
