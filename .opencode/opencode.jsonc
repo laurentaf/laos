@@ -64,6 +64,14 @@
       }
     },
 
+    // LAENGINE — game development capability (sports simulation, match engine).
+    "laengine": {
+      "type": "local",
+      "command": ["uv", "run", "python", "../laengine/src/laengine/mcp/server.py"],
+      "enabled": true,
+      "env": {}
+    },
+
     // LADESIGN — design capability (dashboards, decks, wireframes, design systems).
     // Install the LADESIGN CLI via `od mcp install opencode` and enable.
     // The previous MCP key was `open-design`; if the install command still
@@ -124,7 +132,8 @@
       "*": "ask",
       "../latade/**": "allow",
       "../lan8n/**": "allow",
-      "../ladesign/**": "allow"
+      "../ladesign/**": "allow",
+      "../laengine/**": "allow"
     }
   }
 }

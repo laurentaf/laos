@@ -1,0 +1,34 @@
+name: brasfoot-poc
+description: |
+  Brasfoot-style football management game POC. 10 Brazilian teams,
+  match simulation with text commentary, squad management, and league table.
+  Single-player desktop game delivered as a web app.
+workflow: null
+external_delivery: false
+
+repo: laurentaf/brasfoot-poc
+
+needs:
+  - game-simulation
+  - game-ui
+  - data
+
+deliverables:
+  - README.md
+  - ui/index.html
+  - main.py
+  - DESIGN.md
+  - artifacts/data/model-spec.md
+  - artifacts/design/source.md
+  - review/checklist.md
+
+inputs:
+  - brief
+
+input_values:
+  brief: |
+    Football management simulation game inspired by Brasfoot.
+    10 teams, round-robin league (turno + returno = 18 rounds),
+    text commentary match engine, squad selection, live league table.
+    Single HTML/JS frontend served by a Python backend.
+    All data is synthetic — no real player data needed.

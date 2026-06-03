@@ -11,6 +11,16 @@
 #   - A need can map to multiple capabilities; the orchestrator picks
 #     based on workflow stage or asks the user.
 
+# ─── Game development needs ──────────────────────────────────
+
+game-simulation:
+  primary: [laengine]
+  optional: [latade]
+
+game-ui:
+  primary: [ladesign, laengine]
+  optional: [context7]
+
 # ─── Domain needs ────────────────────────────────────────────
 
 data:

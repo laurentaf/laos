@@ -73,6 +73,22 @@ capabilities:
       npm n8n-mcp (czlonkowski). Talks to the n8n REST API. Default
       URL: http://localhost:5678/api/v1. Requires N8N_API_KEY in .env.
 
+  - id: laengine
+    kind: domain
+    mcp_server: laengine
+    repo: ../laengine
+    status: stable
+    owns:
+      - game.simulation
+      - game.sports-data
+      - game.match-engine
+      - game.squad-management
+      - game.league-standings
+    notes: |
+      Game development capability for LAOS. Exposes MCP tools for
+      sports simulation, team/player generation, match engine,
+      and league management. Repository: github.com/laurentaf/laengine.
+
   - id: ladesign
     kind: domain
     mcp_server: ladesign
