@@ -1,13 +1,13 @@
 # LAOS - Laurent Agent Operating System
 
 Personal agent orchestration layer. Composes domain capabilities
-(data, design, automation) into declarative projects.
+(LATADE, LADESIGN, LAN8N) into declarative projects.
 
 ## What this is (and isn't)
 
 - **Is**: an orchestrator. Holds project specs, workflow templates, a
   capability registry, and opencode agent definitions.
-- **Is not**: an implementation. No SQL, no dashboards, no n8n flows
+- **Is not**: an implementation. No SQL, no dashboards, no LAN8N flows
   live here. Those live in their respective capability repos and are
   reached exclusively via MCP.
 
@@ -18,9 +18,9 @@ Read `AGENTS.md` for the architectural rules. Do not bypass them.
 ```
 E:\Projects\
 ├── LAOS\                   ← this repo (orchestrator)
-├── latade\                 ← data capability (yours)
-├── n8n\                    ← automation capability (yours)
-└── open-design\            ← design capability (nexu-io/open-design)
+├── latade\                 ← data capability  · LATADE
+├── n8n\                    ← automation capability · LAN8N
+└── open-design\            ← design capability · LADESIGN (nexu-io/open-design)
 ```
 
 LAOS expects siblings. If you keep capability repos elsewhere, edit the
@@ -48,12 +48,12 @@ opencode
 
 **Domain capabilities:**
 
-| Server          | Source                                       | Default | Env |
-| --------------- | -------------------------------------------- | ------- | --- |
-| `latade`        | `capabilities-stubs/latade-mcp/server.py`    | enabled | - |
-| `lan8n`         | `capabilities-stubs/lan8n-mcp/server.py`     | enabled | - |
-| `n8n-community` | npm `n8n-mcp` (local n8n on :5678)           | disabled | `N8N_API_KEY` |
-| `open-design`   | `od mcp serve` (after installing od)         | disabled | - |
+| Server          | Capability  | Source                                       | Default | Env |
+| --------------- | ----------- | -------------------------------------------- | ------- | --- |
+| `latade`        | **LATADE**  | `capabilities-stubs/latade-mcp/server.py`    | enabled | - |
+| `lan8n`         | **LAN8N**   | `capabilities-stubs/lan8n-mcp/server.py`     | enabled | - |
+| `n8n-community` | n8n raw API | npm `n8n-mcp` (local n8n on :5678)           | disabled | `N8N_API_KEY` |
+| `open-design`   | **LADESIGN**| `od mcp serve` (after installing od)         | disabled | - |
 
 **Platform capabilities:**
 
@@ -65,7 +65,7 @@ opencode
 
 ### Notes per server
 
-- **latade / lan8n**: stub servers expose `health`, `list_supported_operations`,
+- **latade / LAN8N**: stub servers expose `health`, `list_supported_operations`,
   and a `placeholder` tool. They give the orchestrator something to
   call until you build the real MCP server in `../latade/mcp/server.py`
   and `../n8n/mcp/server.py`. When you do, swap the `command` array in
@@ -79,9 +79,9 @@ opencode
   4. Paste the key into `.env` as `N8N_API_KEY`.
   5. Set `"enabled": true` for the `n8n-community` MCP in `opencode.jsonc`.
 
-- **open-design**: install the open-design app or CLI separately, then
+- **LADESIGN** (MCP key `open-design`): install the open-design app or CLI separately, then
   run `od mcp install opencode` once. That command rewrites the
-  `open-design` entry for you.
+   its MCP entry (currently named `open-design`) for you.
 
 - **exa**: OAuth-based remote MCP. No key. opencode will open a
   browser the first time the server is called. Manage your account
@@ -121,7 +121,7 @@ checklist itself lives here in `knowledge/padroes-entrega.md`.
 ## Files that should never exist here
 
 - Any `.sql`, `.pbix`, `.dax`, `.dbt` file.
-- Any n8n workflow JSON.
+- Any LAN8N workflow JSON.
 - Any dashboard markup, design system tokens, or component code.
 - Any project artifact, snapshot, or ADR under `projects/<name>/`.
 

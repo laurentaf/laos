@@ -15,7 +15,7 @@
     "knowledge/stack-decisions.md"
   ],
 
-  // Skills come from LAOS itself plus the open-design capability repo.
+  // Skills come from LAOS itself plus the LADESIGN capability repo.
   "skills": {
     "paths": [
       ".opencode/skill",
@@ -24,14 +24,14 @@
   },
 
   // MCP servers grouped by role:
-  //   - Domain capabilities:   latade, lan8n, open-design
+  //   - Domain capabilities:   latade, lan8n, LADESIGN
   //   - Platform capabilities: context7, exa, github
   // Toggle `enabled` per project / per session.
   "mcp": {
     // ─── DOMAIN CAPABILITIES ──────────────────────────────────
 
     // LATADE — data engineering. Stub server lives in LAOS until the
-    // real latade repo (../latade) ships its own mcp/server.py.
+    // real LATADE repo (../latade) ships its own mcp/server.py.
     // Run via the LAOS local venv (created by `uv sync`).
     "latade": {
       "type": "local",
@@ -40,8 +40,8 @@
       "env": {}
     },
 
-    // LAN8N — n8n automation. Stub server in LAOS until ../n8n ships
-    // its own MCP server.
+    // LAN8N — n8n automation. Stub server in LAOS until the
+    // LAN8N repo (../n8n) ships its own MCP server.
     "lan8n": {
       "type": "local",
       "command": ["uv", "run", "python", "capabilities-stubs/lan8n-mcp/server.py"],
@@ -50,9 +50,10 @@
     },
 
     // Community n8n MCP server (czlonkowski/n8n-mcp). Talks to a live
-    // n8n instance. Default URL assumes self-hosted local n8n on
-    // http://localhost:5678. Enable after running `npx n8n`, enabling
-    // the public API in n8n Settings, and putting the API key in .env.
+    // LAN8N (n8n) instance. Default URL assumes self-hosted local n8n
+    // on http://localhost:5678. Enable after running `npx n8n`,
+    // enabling the public API in n8n Settings, and putting the API key
+    // in .env.
     "n8n-community": {
       "type": "local",
       "command": ["npx", "-y", "n8n-mcp"],
@@ -63,8 +64,9 @@
       }
     },
 
-    // Open Design daemon MCP. Run `od mcp install opencode` after
-    // installing the open-design app/CLI - it will rewrite this entry.
+    // LADESIGN (open-design daemon MCP). Run `od mcp install opencode`
+    // after installing the open-design app/CLI — it will rewrite
+    // this entry. The MCP key stays `open-design` for compatibility.
     "open-design": {
       "type": "local",
       "command": ["od", "mcp", "serve"],

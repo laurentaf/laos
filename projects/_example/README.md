@@ -16,7 +16,7 @@ A project has two homes:
    Subagents push to it; `delivery-reviewer` clones it to validate.
 
 LAOS itself never stores domain artifacts. If you see SQL, dashboard
-markup, n8n JSON, design tokens, etc. inside `LAOS/projects/<name>/`,
+markup, LAN8N JSON, design tokens, etc. inside `LAOS/projects/<name>/`,
 it belongs in the child repo instead.
 
 ## How to use

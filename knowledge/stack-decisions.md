@@ -46,7 +46,7 @@ ficam nas capability repos.
 - **Repo ops**: `github` MCP para criar/comentar issues e PRs. Para
   operações locais (`git status`, `git diff`), o `bash` builtin basta.
 
-## n8n local-first
+## LAN8N local-first
 
 - Rodamos n8n self-hosted (`npx n8n` ou Docker) durante MVP.
 - `N8N_API_URL` default = `http://localhost:5678/api/v1`.

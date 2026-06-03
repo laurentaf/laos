@@ -4,7 +4,7 @@
   Fast-forward sibling capability repos so LAOS sees their latest HEAD.
 
 .DESCRIPTION
-  For each of the sibling capability repos (latade, n8n, open-design) runs
+  For each of the sibling capability repos (LATADE, LAN8N, LADESIGN) runs
   `git fetch` then `git pull --ff-only`. Aborts the whole run on the first
   failure. Never force-pushes. Never merges.
 

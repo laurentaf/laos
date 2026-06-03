@@ -41,7 +41,7 @@ repo. Your job is composition, not implementation.
      `projects/<name>/artifacts/`).
 
 5. **Never produce domain artifacts yourself.** If you find yourself
-   writing SQL, dashboard markup, or n8n workflow JSON: stop and
+   writing SQL, dashboard markup, or LAN8N workflow JSON: stop and
    delegate to the correct subagent.
 
 6. **Close every project with `delivery-reviewer`.** It enforces

@@ -1,0 +1,63 @@
+# LAOS Brand — Brand Identity & Narrative
+#
+# Establishes the complete brand system for LAOS:
+# narrative architecture, visual identity, voice & tone,
+# product naming, and launch materials.
+#
+# This is the "brand project" for LAOS itself.
+
+name: laos-brand
+description: >
+  Brand identity, narrative architecture, and launch materials for LAOS
+  (Laurent Agentic Operational System). Covers manifesto, taglines,
+  voice & tone, product architecture naming, design system, keynote
+  deck, and landing page.
+
+workflow: null  # ad-hoc, no pre-existing workflow template fits
+
+external_delivery: false
+
+# Child repo where all artifacts live
+repo: laurentaf/laos-brand
+
+needs:
+  - design
+  - presentation
+
+# Deliverables are paths INSIDE the child repo
+deliverables:
+  # ─── Narrative ────────────────────────────────────────────
+  - narrative/manifesto.md          # Brand manifesto (epic, keynote-ready)
+  - narrative/taglines.md           # Tagline set organized by surface
+  - narrative/voice.md              # Voice & tone guidelines
+  - narrative/story-spine.md        # Three-act narrative arc
+
+  # ─── Product Architecture ─────────────────────────────────
+  - narrative/product-naming.md     # Module names + rationale (Laurent Core, Laós Layer, Talos Mesh, Oracle, Forum)
+
+  # ─── Visual Identity ──────────────────────────────────────
+  - design/design-system.md         # DESIGN.md — tokens, palette, typography, spacing
+  - design/keynote.html             # Opening keynote deck (HTML, navigation, speaker notes)
+  - design/landing-page.html        # Hero landing page / single-page site
+
+  # ─── Decision Records ─────────────────────────────────────
+  - decisions/brand-architecture.md # ADR: why the inversion narrative, why these module names, anti-patterns
+
+inputs:
+  - brief          # Already exists in narrative package (provided to orchestrator)
+  - references     # Competitive landscape (Stripe, Linear, Vercel, Palantir positioning)
+
+input_values:
+  brief: >
+    LAOS (Laurent Agentic Operational System) is a B2B agentic AI
+    orchestration platform. The brand narrative is built on a 3,000-year
+    inversion: the laurel (Laurent) was exclusive to the emperor;
+    LAOS dissolves the crown and distributes sovereignty to the laós
+    (the people/operators). Modules: Laurent Core, Laós Layer, Talos
+    Mesh, Oracle, Forum. Anti-patterns: never "emperor of AI",
+    never "democratize AI", never fear-based.
+  references: >
+    Stripe (clarity as brand), Linear (craft + speed), Vercel
+    (developer-first), Palantir (sovereignty narrative).
+    Avoid: Palantir's opacity, Apple's superiority complex,
+    Salesforce's hype.

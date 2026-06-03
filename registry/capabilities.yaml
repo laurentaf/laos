@@ -10,9 +10,8 @@
 #   - .opencode/command/list-capabilities.md (read)
 #
 # Schema (per item):
-#   id:           stable identifier; also the MCP server name in opencode.jsonc
-#   kind:         domain | platform
-#   mcp_server:   name as it appears under mcp.* in .opencode/opencode.jsonc
+#   id:           stable identifier; used in needs-to-capabilities.yaml routing
+#   mcp_server:   key under mcp.* in .opencode/opencode.jsonc (may differ from id)
 #   repo:         relative or absolute path; null for hosted services
 #   owns:         list of concrete sub-capabilities (free text, used for routing)
 #   status:       stable | stub | external
@@ -47,7 +46,7 @@ capabilities:
   - id: lan8n
     kind: domain
     mcp_server: lan8n
-    repo: ../n8n                # the real folder is named "n8n", not "lan8n"
+    repo: ../n8n
     status: stub
     promote_to: ../n8n/mcp/server.py
     owns:
@@ -56,9 +55,10 @@ capabilities:
       - integration.apis
       - integration.webhooks
     notes: |
-      Companion to the community n8n-mcp server. lan8n holds reusable
-      workflow patterns/templates (in ../n8n/templates and
-      ../n8n/workflows); n8n-community is the raw N8N HTTP API surface.
+      Display name: LAN8N. The repo folder is ../n8n (shorter),
+      the capability is LAN8N. Holds reusable workflow templates
+      (in ../n8n/templates and ../n8n/workflows); n8n-community is the
+      raw N8N HTTP API surface.
 
   - id: n8n-community
     kind: domain
@@ -73,7 +73,7 @@ capabilities:
       npm n8n-mcp (czlonkowski). Talks to the n8n REST API. Default
       URL: http://localhost:5678/api/v1. Requires N8N_API_KEY in .env.
 
-  - id: open-design
+  - id: ladesign
     kind: domain
     mcp_server: open-design
     repo: ../open-design
@@ -87,9 +87,11 @@ capabilities:
       - design.presentations
       - design.hyperframes-video
       - design.images
+      - design.storytelling
     notes: |
-      Run `od mcp install opencode` once to wire up the MCP entry.
-      Skills from ../open-design/skills/ are auto-loaded via skills.paths.
+      Display name: LADESIGN. MCP key `open-design` kept for
+      compatibility with `od mcp install opencode`. Skills from
+      ../open-design/skills/ are auto-loaded via skills.paths.
 
   # ─── Platform capabilities ──────────────────────────────────
 

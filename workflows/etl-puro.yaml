@@ -1,3 +1,13 @@
+# ═══════════════════════════════════════════════════════════════════
+#  COMPOSITION BLUEPRINT — NOT A TEMPLATE TO COPY
+# ═══════════════════════════════════════════════════════════════════
+# This file describes how the LAOS orchestrator composes existing
+# capabilities (LATADE, LADESIGN, LAN8N) for a specific project
+# archetype. Projects do NOT copy this file — the orchestrator reads
+# it to dispatch subagents. Reuse happens by composing capabilities,
+# not by duplicating files.
+# ═══════════════════════════════════════════════════════════════════
+#
 # Workflow: etl-puro
 #
 # Pure data pipeline. No dashboard, no design. Source → model → load → DQ.

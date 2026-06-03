@@ -6,7 +6,7 @@ All domain knowledge lives in capability repositories exposed via MCP.
 ## Hard rules
 
 1. **Never put implementation code in LAOS.** SQL, dashboards, n8n
-   workflows belong in the capability repo (latade, open-design, n8n),
+   workflows belong in the     capability repo (LATADE, LADESIGN, LAN8N),
    exposed through its MCP server. If you find yourself writing them
    here, stop.
 2. **Projects live in their own GitHub repository.** A project is
@@ -41,11 +41,21 @@ LAOS/
 └── AGENTS.md               this file
 ```
 
-Sibling capability repos (referenced via `../`):
+## Capability repositories (the three pillars)
 
-- `../latade` - data (SQL, modeling, BI, DQ). MCP: `latade`.
-- `../n8n` - automation (workflows, integrations). MCP: `lan8n`.
-- `../open-design` - design (dashboards, decks, design systems). MCP: `open-design`.
+Each repo is a **capability**, not a project. LAOS composes these three
+pillars — it never owns domain implementation.
+
+| Repo | Domain | Capability name | MCP server | Role |
+| ---- | ------ | --------------- | ---------- | ---- |
+| `../latade` | Data | **LATADE** | `latade` | SQL, modeling, BI, DQ, docs |
+| `../n8n` | Automation | **LAN8N** | `lan8n` | Workflows, integrations, APIs, alerts |
+| `../open-design` | Design | **LADESIGN** | `open-design` | Dashboards, decks, wireframes, design systems, video |
+
+> **Naming note:** The folder names (`../n8n`, `../open-design`) pre-date
+> the capability naming convention. The capability names — LATADE, LAN8N,
+> LADESIGN — are the canonical identifiers; the folder paths are legacy
+> shortcuts.
 
 Platform MCPs (cross-cutting, used by any subagent):
 
@@ -59,7 +69,7 @@ Platform MCPs (cross-cutting, used by any subagent):
   project.yaml, resolves needs via the registry, dispatches subagents.
 - **data-architect** (subagent). Talks only to `latade.*` MCP tools.
 - **dashboard-designer** (subagent). Talks only to `open-design.*` MCP
-  tools and the open-design skill library.
+  tools and the LADESIGN skill library.
 - **automation-engineer** (subagent). Talks only to `lan8n.*` and
   optionally `n8n-community.*` MCP tools.
 - **delivery-reviewer** (subagent). Read-only. Validates artifacts
@@ -90,7 +100,7 @@ on its own timeline.
 | Lives in LAOS (this repo)        | Lives in the child project repo            |
 | -------------------------------- | ------------------------------------------ |
 | `projects/<name>/project.yaml`   | All artifacts: data models, dashboards,    |
-| (contract: brief, needs,         | n8n flows, design tokens, snapshots, ADRs, |
+| (contract: brief, needs,         | LAN8N flows, design tokens, snapshots, ADRs, |
 | deliverables, child repo URL)    | the project's own README                   |
 | Knowledge entries produced by    | Issue tracker, releases, branches          |
 | the project (promoted after the  |                                          |

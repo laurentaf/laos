@@ -29,21 +29,21 @@ data-quality:
   primary: [latade]
 
 dashboard:
-  primary: [open-design]
+  primary: [ladesign]
   optional: [latade, context7]
 
 design:
-  primary: [open-design]
+  primary: [ladesign]
   optional: [context7]
 
 presentation:
-  primary: [open-design]
+  primary: [ladesign]
 
 video:
-  primary: [open-design]
+  primary: [ladesign]
 
 image:
-  primary: [open-design]
+  primary: [ladesign]
 
 automation:
   primary: [lan8n]
