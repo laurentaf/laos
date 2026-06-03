@@ -55,6 +55,68 @@ ficam nas capability repos.
 - Migrar para n8n cloud só quando houver razão concreta (multi-device,
   triggers webhook expostos publicamente, etc).
 
+## Verificação de venv (ambiente virtual Python)
+
+**Regra:** Todo agente/subagente que executa código Python DEVE verificar se o venv
+correto existe e está syncado antes de rodar qualquer comando.
+
+### Protocolo
+
+1. **Detectar venv do projeto** — Cada projeto tem seu venv:
+   - LAOS: `.venv/` (criado via `uv sync`)
+   - LATADE: `../latade/.venv/`
+   - LACOUNCIL: `../lacouncil/.venv/`
+   - LAENGINE: usa `.venv/` herdado do LAOS via `uv run`
+
+2. **Verificar existência** — Testar `Test-Path <projeto>/.venv/Scripts/python.exe`
+   antes de executar qualquer script Python no projeto.
+
+3. **Verificar sync** — Se o `pyproject.toml` foi modificado após a criação do venv,
+   rodar `uv sync` antes de executar.
+
+4. **Reutilizar vs criar** — Sempre reutilizar o venv existente do projeto. Só criar
+   um novo se o projeto explicitamente pedir um ambiente isolado diferente. Cada
+   capability repo (latade, lacouncil, lan8n, ladesign, laengine) tem seu próprio
+   venv gerenciado por `uv`.
+
+### Onde se aplica
+
+| Projeto | Venv | Gerenciado por | Atalho MCP |
+|---------|------|---------------|------------|
+| LAOS | `.venv/` | `uv sync` no LAOS | `uv run python ...` |
+| LATADE | `../latade/.venv/` | `uv sync` no latade | `..\\latade\\.venv\\Scripts\\python` |
+| LACOUNCIL | `../lacouncil/.venv/` | `uv sync` no lacouncil | `..\\lacouncil\\.venv\\Scripts\\python` |
+| LAENGINE | Herda do LAOS | `uv run` via LAOS | `uv run python ../laengine/...` |
+
+## Alinhamento com Confidence Protocol do LATADE
+
+O LACOUNCIL adota o **Agreement Matrix** definido pelo LATADE
+(`../latade/AGENT_SYSTEM.md` + `../latade/src/core/confidence.py`) para
+calcular confiança em decisões estruturais.
+
+O Conselho usa `lacouncil.calculate_confidence(kb_has_pattern, mcp_agrees)`
+para avaliar cada proposta antes da votação. Scores alimentam os trust_scores
+no DuckDB do LACOUNCIL.
+
+### Mapeamento
+
+| Agreement Matrix | Base Score | Ação LACOUNCIL |
+|---|---|---|
+| KB ✅ + MCP ✅ (HIGH) | 0.95 | Executa sem restrição |
+| KB ✅ + MCP ❌ (CONFLICT) | 0.50 | Investigação obrigatória |
+| KB ✅ + MCP 🤷 (MEDIUM) | 0.75 | Prossegue com cautela |
+| KB ❌ + MCP ✅ (MCP_ONLY) | 0.85 | Prossegue, confia no MCP |
+| KB ❌ + MCP 🤷 (LOW) | 0.50 | Pergunta ao usuário |
+
+### Thresholds por tipo de decisão
+
+| Categoria | Score mínimo | Ação se abaixo |
+|---|---|---|
+| CRITICAL (fundamentos) | 0.98 | RECUSA + explica |
+| IMPORTANT (registry) | 0.95 | PERGUNTA ao usuário |
+| STANDARD (workflows) | 0.90 | PROSSEGUE com disclaimer |
+| ADVISORY (propostas) | 0.80 | PROSSEGUE livremente |
+
 ## Quando criar uma capability nova
 
 Critérios cumulativos:
