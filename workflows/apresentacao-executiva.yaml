@@ -1,0 +1,64 @@
+# Workflow: apresentacao-executiva
+#
+# Executive narrative. Light data, heavy design and storytelling.
+
+name: apresentacao-executiva
+description: |
+  Single-shot deliverable: an executive deck (and optional supporting
+  one-pagers). Pulls minimal data, leans on open-design heavily.
+
+needs:
+  - presentation
+  - design
+
+inputs:
+  - topic
+  - audience
+  - data_inputs
+  - target_format
+
+stages:
+  - id: brief
+    agent: orchestrator
+    capabilities: [exa, context7]
+    output: artifacts/brief.md
+    description: |
+      Sharpen the message. One sentence: what change in audience
+      belief should this presentation cause?
+
+  - id: outline
+    agent: dashboard-designer
+    capabilities: [open-design]
+    inputs: [artifacts/brief.md]
+    output: artifacts/outline.md
+    description: |
+      Storyboard: section by section, what each slide must do.
+      Use storytelling skills under ../open-design/skills/.
+
+  - id: data-pulls
+    agent: data-architect
+    capabilities: [latade]
+    inputs: [artifacts/outline.md]
+    output: artifacts/data/snapshots/
+    description: |
+      Only run if data_inputs is set. Produce frozen snapshots
+      (not live queries) so the deck is reproducible.
+
+  - id: deck
+    agent: dashboard-designer
+    capabilities: [open-design]
+    inputs: [artifacts/outline.md, artifacts/data/snapshots/]
+    output: artifacts/deck/
+    description: |
+      Build via open-design deck skill. Active DESIGN.md selected
+      based on audience (executive -> conservative / brand-grade).
+
+  - id: review
+    agent: delivery-reviewer
+    capabilities: []
+    inputs: [all]
+    output: artifacts/review/checklist.md
+
+deliverables:
+  - artifacts/deck/
+  - artifacts/review/checklist.md

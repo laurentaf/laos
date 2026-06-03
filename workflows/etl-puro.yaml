@@ -1,0 +1,72 @@
+# Workflow: etl-puro
+#
+# Pure data pipeline. No dashboard, no design. Source → model → load → DQ.
+
+name: etl-puro
+description: |
+  ETL/ELT pipeline only. Ends with data quality and orchestration.
+
+needs:
+  - etl
+  - data
+  - data-quality
+  - automation
+
+inputs:
+  - sources
+  - targets
+  - sla
+
+stages:
+  - id: discovery
+    agent: orchestrator
+    capabilities: [context7]
+    output: artifacts/discovery/requirements.md
+
+  - id: source-profile
+    agent: data-architect
+    capabilities: [latade]
+    inputs: [artifacts/discovery/requirements.md]
+    output: artifacts/data/source-profile.md
+    description: Profile sources (row counts, types, nulls, distributions, PII).
+
+  - id: data-model
+    agent: data-architect
+    capabilities: [latade, context7]
+    inputs: [artifacts/data/source-profile.md]
+    output: artifacts/data/model.md
+
+  - id: pipeline
+    agent: data-architect
+    capabilities: [latade]
+    inputs: [artifacts/data/model.md]
+    output: artifacts/pipeline/
+    description: |
+      Pipeline spec (DAG, dependencies, parameters). Implementation
+      stays in ../latade.
+
+  - id: data-quality
+    agent: data-architect
+    capabilities: [latade]
+    inputs: [artifacts/data/model.md, artifacts/pipeline/]
+    output: artifacts/dq/checks.md
+    description: DQ rules - schema contracts, freshness checks, anomaly thresholds.
+
+  - id: orchestration
+    agent: automation-engineer
+    capabilities: [lan8n]
+    inputs: [artifacts/pipeline/]
+    output: artifacts/automation/
+
+  - id: review
+    agent: delivery-reviewer
+    capabilities: []
+    inputs: [all]
+    output: artifacts/review/checklist.md
+
+deliverables:
+  - artifacts/data/model.md
+  - artifacts/pipeline/
+  - artifacts/dq/checks.md
+  - artifacts/automation/
+  - artifacts/review/checklist.md

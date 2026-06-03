@@ -1,0 +1,12 @@
+[project]
+name = "laos"
+version = "0.1.0"
+description = "Laurent Agent Operating System - orchestration layer"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]>=1.0.0",
+    "pyyaml>=6.0",
+]
+
+[tool.uv]
+package = false

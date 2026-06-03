@@ -1,0 +1,136 @@
+# Capability registry
+#
+# Catalog of every capability LAOS can compose. Each capability is
+# exposed through an MCP server (or for platform ones, a hosted MCP).
+#
+# This file is consumed by:
+#   - scripts/list_capabilities.py   (read)
+#   - scripts/bootstrap_project.py   (read)
+#   - .opencode/agent/orchestrator.md  (read)
+#   - .opencode/command/list-capabilities.md (read)
+#
+# Schema (per item):
+#   id:           stable identifier; also the MCP server name in opencode.jsonc
+#   kind:         domain | platform
+#   mcp_server:   name as it appears under mcp.* in .opencode/opencode.jsonc
+#   repo:         relative or absolute path; null for hosted services
+#   owns:         list of concrete sub-capabilities (free text, used for routing)
+#   status:       stable | stub | external
+#   promote_to:   (optional) file path of the real server, for stubs
+#   notes:        free text
+
+capabilities:
+
+  # ─── Domain capabilities ────────────────────────────────────
+
+  - id: latade
+    kind: domain
+    mcp_server: latade
+    repo: ../latade
+    status: stub
+    promote_to: ../latade/mcp/server.py
+    owns:
+      - sql.oracle
+      - sql.postgres
+      - sql.databricks
+      - data.engineering
+      - data.modeling
+      - data.quality
+      - bi.power-bi
+      - docs.technical
+    notes: |
+      The real ../latade repo exists but does not yet expose an MCP
+      server. When it does, swap the `latade.command` in
+      opencode.jsonc to ["uv","run","python","../latade/mcp/server.py"]
+      and set status: stable here.
+
+  - id: lan8n
+    kind: domain
+    mcp_server: lan8n
+    repo: ../n8n                # the real folder is named "n8n", not "lan8n"
+    status: stub
+    promote_to: ../n8n/mcp/server.py
+    owns:
+      - automation.n8n
+      - automation.workflows
+      - integration.apis
+      - integration.webhooks
+    notes: |
+      Companion to the community n8n-mcp server. lan8n holds reusable
+      workflow patterns/templates (in ../n8n/templates and
+      ../n8n/workflows); n8n-community is the raw N8N HTTP API surface.
+
+  - id: n8n-community
+    kind: domain
+    mcp_server: n8n-community
+    repo: null
+    status: external
+    owns:
+      - n8n.api.workflows
+      - n8n.api.executions
+      - n8n.api.credentials
+    notes: |
+      npm n8n-mcp (czlonkowski). Talks to the n8n REST API. Default
+      URL: http://localhost:5678/api/v1. Requires N8N_API_KEY in .env.
+
+  - id: open-design
+    kind: domain
+    mcp_server: open-design
+    repo: ../open-design
+    status: external
+    owns:
+      - design.dashboard
+      - design.ux-ui
+      - design.wireframes
+      - design.systems
+      - design.decks
+      - design.presentations
+      - design.hyperframes-video
+      - design.images
+    notes: |
+      Run `od mcp install opencode` once to wire up the MCP entry.
+      Skills from ../open-design/skills/ are auto-loaded via skills.paths.
+
+  # ─── Platform capabilities ──────────────────────────────────
+
+  - id: context7
+    kind: platform
+    mcp_server: context7
+    repo: null
+    status: external
+    owns:
+      - docs.library-lookup
+      - docs.api-reference
+      - docs.code-examples
+    notes: |
+      Use whenever you need current library docs. Free tier works
+      without a key. CONTEXT7_API_KEY in .env for higher rate limits.
+
+  - id: exa
+    kind: platform
+    mcp_server: exa
+    repo: null
+    status: external
+    owns:
+      - web.search
+      - web.crawl
+      - web.research
+    notes: |
+      Remote MCP at https://mcp.exa.ai/mcp. OAuth on first connection;
+      no API key. Account at https://dashboard.exa.ai.
+
+  - id: github
+    kind: platform
+    mcp_server: github
+    repo: null
+    status: external
+    owns:
+      - github.repos
+      - github.issues
+      - github.pull-requests
+      - github.actions
+      - github.code-search
+      - github.releases
+    notes: |
+      Official remote GitHub MCP server. PAT-authenticated.
+      GITHUB_TOKEN is read from OS environment (not .env).

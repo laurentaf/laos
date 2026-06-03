@@ -1,0 +1,25 @@
+.env
+.env.local
+
+# Local Python venv (managed by uv)
+.venv/
+__pycache__/
+*.pyc
+
+# opencode runtime
+.opencode/cache/
+.opencode/logs/
+.opencode/state/
+
+# Per-project artifacts
+projects/*/artifacts/
+projects/*/.cache/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

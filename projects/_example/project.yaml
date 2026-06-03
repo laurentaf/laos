@@ -1,0 +1,32 @@
+name: _example
+description: Reference project used by the LAOS bootstrap script. Safe to delete.
+workflow: dashboard-completo
+external_delivery: false
+
+# The child repository that holds all artifacts for this project.
+# Convention: laurentaf/<project-name> (or an org). Created via the
+# `github` MCP at project kickoff. The contract stays here in LAOS;
+# everything else lives there.
+repo: laurentaf/_example
+
+needs:
+  - dashboard
+  - data
+  - automation
+
+# Deliverables are paths INSIDE the child repo (relative to its root),
+# not paths inside LAOS.
+deliverables:
+  - discovery/brief.md
+  - data/model.md
+  - design/wireframe.md
+  - design/dashboard.html
+  - automation/workflow.yaml
+  - review/checklist.md
+
+inputs:
+  - brief
+  - data_sources
+  - target_audience
+
+input_values: {}

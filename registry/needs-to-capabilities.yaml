@@ -1,0 +1,69 @@
+# Needs → capabilities routing (DETERMINISTIC)
+#
+# Projects declare abstract `needs` in their project.yaml. The orchestrator
+# resolves each need to one or more concrete capability IDs (defined in
+# capabilities.yaml).
+#
+# Rules:
+#   - The LLM does NOT invent capability selection. It walks this map.
+#   - If a need is not in this map, fail loudly and ask the user to
+#     either add a routing rule or rename the need.
+#   - A need can map to multiple capabilities; the orchestrator picks
+#     based on workflow stage or asks the user.
+
+# ─── Domain needs ────────────────────────────────────────────
+
+data:
+  primary: [latade]
+  optional: [context7]
+
+etl:
+  primary: [latade]
+  optional: [lan8n, context7]
+
+modeling:
+  primary: [latade]
+  optional: [context7]
+
+data-quality:
+  primary: [latade]
+
+dashboard:
+  primary: [open-design]
+  optional: [latade, context7]
+
+design:
+  primary: [open-design]
+  optional: [context7]
+
+presentation:
+  primary: [open-design]
+
+video:
+  primary: [open-design]
+
+image:
+  primary: [open-design]
+
+automation:
+  primary: [lan8n]
+  optional: [n8n-community, context7]
+
+integration:
+  primary: [lan8n]
+  optional: [n8n-community]
+
+alerts:
+  primary: [lan8n]
+
+# ─── Platform needs (rarely declared directly) ───────────────
+
+documentation-lookup:
+  primary: [context7]
+
+research:
+  primary: [exa]
+  optional: [context7]
+
+repo-operations:
+  primary: [github]

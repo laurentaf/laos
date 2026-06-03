@@ -1,0 +1,81 @@
+# Workflow: dashboard-completo
+#
+# End-to-end dashboard delivery: data layer + design + automation.
+# Stages run top-to-bottom. Each stage either calls a subagent (who has
+# access to the listed capabilities via MCP) or invokes a capability
+# directly.
+
+name: dashboard-completo
+description: |
+  End-to-end dashboard delivery: requirements → data model → visual
+  → automation → review.
+
+needs:
+  - dashboard
+  - data
+  - automation
+
+inputs:
+  - brief
+  - data_sources
+  - target_audience
+
+stages:
+  - id: discovery
+    agent: orchestrator
+    capabilities: [context7]
+    output: artifacts/discovery/requirements.md
+    description: |
+      Read brief + data sources. Produce a requirements doc with KPIs,
+      dimensions, refresh cadence, audience, and open questions.
+
+  - id: data-model
+    agent: data-architect
+    capabilities: [latade, context7]
+    inputs: [artifacts/discovery/requirements.md]
+    output: artifacts/data/model.md
+    description: |
+      Propose a logical model (facts/dimensions or marts) sized to the
+      requirements. Do NOT write production SQL here - that belongs in
+      ../latade. Output is the model spec and SQL stubs.
+
+  - id: design
+    agent: dashboard-designer
+    capabilities: [open-design]
+    inputs: [artifacts/discovery/requirements.md]
+    output: artifacts/design/
+    description: |
+      Wireframes + visual spec aligned to a DESIGN.md (pick one from
+      ../open-design/design-systems/ or define a new one).
+
+  - id: build
+    agent: data-architect
+    capabilities: [latade]
+    inputs:
+      - artifacts/data/model.md
+      - artifacts/design/
+    output: artifacts/dashboard/
+    description: |
+      Assemble the dashboard artifact (Power BI / Streamlit / etc).
+      The build itself runs through latade's MCP tools.
+
+  - id: automate
+    agent: automation-engineer
+    capabilities: [lan8n]
+    inputs: [artifacts/dashboard/]
+    output: artifacts/automation/
+    description: |
+      Refresh schedule, alerts, distribution. Produce an n8n flow spec
+      (the actual flow JSON lives in ../n8n or is deployed via n8n-community).
+
+  - id: review
+    agent: delivery-reviewer
+    capabilities: []
+    inputs: [all]
+    output: artifacts/review/checklist.md
+
+deliverables:
+  - artifacts/data/model.md
+  - artifacts/dashboard/
+  - artifacts/automation/
+  - artifacts/review/checklist.md
