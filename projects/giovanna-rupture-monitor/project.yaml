@@ -1,0 +1,42 @@
+# LAOS project contract
+# Gerado pelo orchestrator para o Data Mission — Monitor de Ruptura
+
+project: giovanna-rupture-monitor
+display_name: "Monitor de Ruptura por Região — Lojas Giovanna"
+brief: >
+  Pipeline ETL em 3 estágios que consome dados da API DataMission,
+  calcula ruptura de estoque por região e gera relatório analítico.
+  Projeto de portfólio de engenharia de dados.
+
+source: Data Mission (datamission.com.br/projects/93fa0f19-ae51-4ed9-986b-47457ac2f26a)
+
+needs:
+  - etl
+  - data
+  - data-quality
+  - presentation
+
+capabilities:
+  primary:
+    - latade
+  optional:
+    - ladesign
+    - context7
+
+deliverables:
+  - path: data/raw_data.json
+    description: Dados brutos obtidos da API Data Mission
+  - path: data/rupture_report.csv
+    description: Relatório de ruptura por região
+  - path: main.py
+    description: Pipeline ETL com 3 estágios
+  - path: README.md
+    description: README de portfólio com documentação completa
+  - path: data/quality_rules.md
+    description: Regras de qualidade de dados
+  - path: decisions/ADR-001-rupture-pipeline.md
+    description: Decisão técnica sobre stack e arquitetura
+
+repo: https://github.com/laurentaf/giovanna-rupture-monitor
+status: in_progress
+created_at: 2026-06-03
