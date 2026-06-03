@@ -96,18 +96,23 @@ Platform MCPs (cross-cutting, used by any subagent):
 ## Workflow
 
 ```
-projects/<name>/project.yaml  (contract, lives in LAOS)
-   ↓
+projects/<name>/project.yaml (contract, lives in LAOS)
+↓
 orchestrator reads needs
-   ↓
+↓
 needs → capabilities (registry)
-   ↓
+↓
 workflow template (if matched) OR ad-hoc dispatch
-   ↓
+↓
 subagents push artifacts to the project's child GitHub repo
-   ↓
-delivery-reviewer clones the child repo, validates, signs off
+↓
+delivery-reviewer validates against acceptance criteria + padroes-entrega.md
+↓
+if PASS → orchestrator commits + pushes for external evaluation
+if FAIL → subagent fixes → back to delivery-reviewer
 ```
+
+> **Hard rule:** Never push for external evaluation without delivery-reviewer approval. This is the first P0 check in `knowledge/padroes-entrega.md`.
 
 ### LACOUNCIL (structural improvement) workflow
 

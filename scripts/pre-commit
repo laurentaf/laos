@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# pre-commit — LAOS delivery validation hook (Unix/Git Bash)
+#
+# Usage:
+#   cp scripts/pre-commit .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+
+# Find project.yaml
+find_project_yaml() {
+    local dir="$(pwd)"
+    for i in {1..10}; do
+        if [ -f "$dir/project.yaml" ]; then
+            echo "$dir/project.yaml"
+            return 0
+        fi
+        dir="$(dirname "$dir")"
+    done
+    return 1
+}
+
+PROJECT_YAML=$(find_project_yaml)
+
+if [ -z "$PROJECT_YAML" ]; then
+    echo "SKIP: No project.yaml found"
+    exit 0
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+HOOK_SCRIPT="$REPO_ROOT/scripts/delivery-hook.py"
+
+echo "Validating: $PROJECT_YAML"
+
+python "$HOOK_SCRIPT" --check "$PROJECT_YAML"
+
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "PASS: Validation successful"
+    exit 0
+elif [ $EXIT_CODE -eq 2 ]; then
+    echo "SKIP: No project to validate"
+    exit 0
+else
+    echo "FAIL: Validation failed - commit blocked"
+    echo "Fix the issues above and try again"
+    exit 1
+fi

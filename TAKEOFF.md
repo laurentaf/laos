@@ -138,3 +138,33 @@ A nova sessão vai carregar automaticamente:
 - `knowledge/stack-decisions.md` com venv protocol + LATADE alignment
 - `registry/capabilities.yaml` corrigido
 - `lacouncil.yaml` (novo arquivo de config)
+
+---
+
+## Segunda sessão — 2026-06-03 — LAN8N real MCP + LADESIGN MCP ativado
+
+### O que foi feito
+
+| Item | Status |
+|---|---|
+| **LAN8N MCP server real** (`../n8n/mcp/server.py`) com 10 tools | ✅ CRIADO |
+| **LAN8N pyproject.toml** com `mcp>=1.0.0` | ✅ CRIADO |
+| **LAN8N venv** via `uv sync` | ✅ CRIADO |
+| **LAN8N stub deletado** (`capabilities-stubs/lan8n-mcp/`) | ✅ DELETADO |
+| **`opencode.jsonc`** LAN8N aponta para server real | ✅ ATUALIZADO |
+| **LADESIGN `pnpm install`** (daemon compilado) | ✅ FEITO |
+| **LADESIGN MCP ativado** (`od mcp` via `apps/daemon/dist/cli.js`) | ✅ ATIVADO |
+| **`registry/capabilities.yaml`** LAN8N: stub→stable; LADESIGN: external→stable | ✅ ATUALIZADO |
+
+### LAN8N MCP Tools (10)
+```
+health, list_supported_operations, list_workflow_templates,
+get_workflow_template, compose_workflow, export_workflow_json,
+validate_workflow, create_spec_from_need, list_build_prompts,
+get_build_prompt, run_quality_gate, list_workflow_artifacts
+```
+
+### LADESIGN MCP
+- Server: `node apps/daemon/dist/cli.js mcp` no repositório `../ladesign`
+- Skills carregadas via `skills.paths` (já funcionando)
+- MCP server expõe live-artifact e connector tools

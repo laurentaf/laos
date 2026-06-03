@@ -39,11 +39,11 @@
       "env": {}
     },
 
-    // LAN8N — n8n automation. Stub server in LAOS until the
-    // LAN8N repo (../lan8n) ships its own real MCP server.
+    // LAN8N — n8n automation. Real MCP server lives in the LAN8N repo (../n8n).
+    // Uses the LAN8N venv (has mcp and the repo's own server).
     "lan8n": {
       "type": "local",
-      "command": ["uv", "run", "python", "capabilities-stubs/lan8n-mcp/server.py"],
+      "command": ["..\\n8n\\.venv\\Scripts\\python", "..\\n8n\\mcp\\server.py"],
       "enabled": true,
       "env": {}
     },
@@ -83,14 +83,16 @@
     },
 
     // LADESIGN — design capability (dashboards, decks, wireframes, design systems).
-    // Install the LADESIGN CLI via `od mcp install opencode` and enable.
-    // The previous MCP key was `open-design`; if the install command still
-    // uses that name, manually point it to this entry or recreate it.
+    // MCP server via `od mcp` from the LADESIGN repo.
+    // Prerequisites: `pnpm install` in ../ladesign (builds the daemon CLI).
+    // The server exposes live-artifact and connector tools for design work.
     "ladesign": {
       "type": "local",
-      "command": ["od", "mcp", "serve"],
-      "enabled": false,
-      "env": {}
+      "command": ["node", "E:\\projects\\ladesign\\apps\\daemon\\dist\\cli.js", "mcp"],
+      "enabled": true,
+      "env": {
+        "OD_DAEMON_URL": "http://localhost:7456"
+      }
     },
 
     // ─── PLATFORM CAPABILITIES ────────────────────────────────

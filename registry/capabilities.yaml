@@ -45,22 +45,21 @@ capabilities:
   - id: lan8n
     kind: domain
     mcp_server: lan8n
-    repo: ../lan8n
-    status: stub
-    promote_to: ../lan8n/mcp/server.py
+    repo: ../n8n
+    status: stable
     owns:
       - automation.n8n
       - automation.workflows
       - integration.apis
       - integration.webhooks
     notes: |
-      Display name: LAN8N. The repo folder is ../lan8n (shorter),
-      the capability is LAN8N. Holds reusable workflow templates
-      (in ../lan8n/templates and ../lan8n/workflows); n8n-community is the
-      raw N8N HTTP API surface.
-      ATENÇÃO: AINDA É STUB. O server real em ../lan8n/mcp/server.py
-      não foi implementado. O stub em capabilities-stubs/lan8n-mcp/ é
-      usado como placeholder.
+      Display name: LAN8N. The repo folder is ../n8n, the capability
+      is LAN8N. Real MCP server at ../n8n/mcp/server.py com 10 tools:
+      health, list_supported_operations, list_workflow_templates,
+      get_workflow_template, compose_workflow, export_workflow_json,
+      validate_workflow, create_spec_from_need, list_build_prompts,
+      get_build_prompt, run_quality_gate, list_workflow_artifacts.
+      n8n-community é o raw N8N HTTP API surface (disabled por default).
 
   - id: n8n-community
     kind: domain
@@ -79,7 +78,7 @@ capabilities:
     kind: domain
     mcp_server: laengine
     repo: ../laengine
-    status: stable
+    status: basic
     owns:
       - game.simulation
       - game.sports-data
@@ -90,6 +89,8 @@ capabilities:
       Game development capability for LAOS. Exposes MCP tools for
       sports simulation, team/player generation, match engine,
       and league management. Repository: github.com/laurentaf/laengine.
+      STATUS: BASIC — Constitution incompleta, SDD parcial, KB mínimo.
+      30-day evolution mandatory. Tracking: projects/_meta/capability-evolution/laengine.md
 
   - id: lacouncil
     kind: domain
@@ -115,7 +116,7 @@ capabilities:
     kind: domain
     mcp_server: ladesign
     repo: ../ladesign
-    status: external
+    status: stable
     owns:
       - design.dashboard
       - design.ux-ui
@@ -127,8 +128,10 @@ capabilities:
       - design.images
       - design.storytelling
     notes: |
-      Display name: LADESIGN. Skills from
+      Display name: LADESIGN. MCP server via `od mcp` from the
+      LADESIGN daemon (apps/daemon/dist/cli.js). Skills from
       ../ladesign/skills/ are auto-loaded via skills.paths.
+      Prerequisite: pnpm install in ../ladesign to build the daemon.
 
   # ─── Platform capabilities ──────────────────────────────────
 

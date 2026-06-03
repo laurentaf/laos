@@ -6,6 +6,7 @@ arquivo.
 
 ## P0 - bloqueia entrega
 
+- [ ] `delivery-reviewer` validou contra critérios de aceitação específicos do projeto antes do push. Nenhum push para avaliação externa sem aprovação.
 - [ ] `project.yaml` existe, é válido e declara `needs` + `deliverables`.
 - [ ] Todos os `deliverables` listados existem em `artifacts/`.
 - [ ] Nenhum segredo (API key, token, senha, connection string completa)

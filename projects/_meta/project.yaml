@@ -1,0 +1,71 @@
+# project.yaml — Meta-projeto de Governança LAOS
+#
+# Este projeto não é de domínio. É o projeto que define como
+# LAOS governa projetos de domínio.
+#
+# Artefatos vivem em projects/_meta/ (este repo LAOS)
+# Não tem child repo — é auto-referenciado.
+
+name: laos-governance
+tipo: meta-projeto
+
+brief: |
+  Define a arquitetura híbrida de projetos LAOS por domínio,
+  regime de governança de capabilities (STABLE/BASIC/MISSING),
+  confidence indices para decisões autonomous, e SDD workflow.
+
+needs:
+  - improvement
+  - governance
+  - investigation
+
+capabilities_used:
+  - lacouncil
+  - context7
+
+dominio_primario: improvement
+
+constituicao: ../lacouncil/CONSTITUTION.md
+
+repo: self  # Meta-projeto, não tem child repo
+
+deliverables:
+  - path: lacouncil.yaml
+    type: config
+    description: Config completo com confidence indices, executors, domain constitution
+    validation: delivery-reviewer validou
+
+  - path: projects/_meta/capability-evolution/TEMPLATE.md
+    type: template
+    description: Template para tracking de evolução de capabilities BASIC
+    validation: delivery-reviewer validou
+
+  - path: projects/_meta/out-of-scope/TEMPLATE.md
+    type: template
+    description: Template para needs declaradas out-of-scope
+    validation: delivery-reviewer validou
+
+  - path: projects/_meta/adr/ADR-001-capability-governance.md
+    type: adr
+    description: ADR documentando a decisão arquitetural
+    validation: delivery-reviewer validou
+
+  - path: registry/capabilities.yaml
+    type: registry
+    description: Registry atualizado com laengine status=BASIC
+    validation: delivery-reviewer validou
+
+# Artefatos do SDD para este meta-projeto
+sdd_artifacts:
+  brainstorm: projects/_meta/adr/ADR-001-capability-governance.md  # Já contém contexto
+
+estado: entregue
+
+criado_em: 2026-06-03
+
+# Quem executou
+executor: orchestrator (via LACOUNCIL consensus)
+
+# Validação
+reviewed_by: delivery-reviewer
+review_date: 2026-06-03

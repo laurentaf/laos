@@ -2,17 +2,266 @@
 # O LACOUNCIL é a capacidade MCP que executa investigação e propostas.
 # Este arquivo configura como o LAOS interage com ele.
 
-version: 1
+version: 2
 
 enabled: true
 
-# LACOUNCIL é a capacidade de melhoria estrutural (MCP: lacouncil.*)
+# ─────────────────────────────────────────────────────────────
+# LACOUNCIL — capacidade de melhoria estrutural (MCP: lacouncil.*)
+# ─────────────────────────────────────────────────────────────
 lacouncil:
   mcp_server: lacouncil
   auto_investigate: true
   auto_record_projects: true
 
-# Meta-projetos são gerados pelo LACOUNCIL em projects/_meta/
+# ─────────────────────────────────────────────────────────────
+# META-PROJETOS — melhorias LAOS geram artefatos em projects/_meta/
+# ─────────────────────────────────────────────────────────────
 meta_projects:
   enabled: true
   path: "projects/_meta"
+  subdirs:
+    adr: "projects/_meta/adr"
+    capability_evolve: "projects/_meta/capability-evolution"
+    out_of_scope: "projects/_meta/out-of-scope"
+    templates: "projects/_meta/templates"
+
+# ─────────────────────────────────────────────────────────────
+# CONFIDENCE INDICES — Quando LAOS age sozinho vs pergunta
+# ─────────────────────────────────────────────────────────────
+# LAOS nunca pergunta se confidence >= threshold. Age autonomously.
+# Se confidence < threshold, para e pergunta usuário.
+#
+# Agreement Matrix adaptado de LATADE:
+#   KB_has_pattern × MCP_agrees → Confidence Score
+#
+# HIGH   (0.95): KB tem pattern + MCP confirma     → EXECUTE livremente
+# MEDIUM (0.75): KB tem pattern + MCP silêncio    → EXECUTE com logging
+# CONFLICT (0.50): KB tem pattern + MCP discorda  → INVESTIGATE antes
+# LOW (0.50): KB sem pattern + MCP confirma       → EXECUTE com disclaimer
+# NONE (0.30): KB sem pattern + MCP silêncio     → PERGUNTA usuário
+
+confidence:
+  # Decisões de ORQUESTRAÇÃO (dispatch, routing)
+  orchestration:
+    routing_known_need:        0.95  # Need no registry → vai direto
+    routing_unknown_need:      0.30  # Need fora do registry → pergunta
+    dispatch_stable_cap:       0.95  # Capability STABLE → dispatch automático
+    dispatch_basic_cap:        0.75  # Capability BASIC → aviso + proceed
+    dispatch_missing_cap:      0.00  # NUNCA faz dispatch sem capability
+
+  # Decisões de PROJETO (criação, gates, entrega)
+  project:
+    new_project_known_needs:   0.95  # Needs todas no registry → cria direto
+    new_project_unknown_needs: 0.30  # Need desconhecida → LACOUNCIL.investigate
+    gate_sdd_pass:             0.95  # SDD gates passaram → proceed
+    gate_sdd_fail:             0.00  # SDD gates falharam → não proceed
+    delivery_review_pass:      0.95  # delivery-reviewer aprovou → fecha projeto
+    delivery_review_fail:      0.00  # delivery-reviewer rejeitou → não fecha
+
+  # Decisões de GOVERNANÇA (capabilities, ADRs, out-of-scope)
+  governance:
+    capability_basic_dispatch: 0.75  # Dispatch em cap BASIC → aviso + proceed
+    capability_basic_30d_expire: 0.00 # 30 dias sem evolução → BLOQUEIA dispatch
+    new_capability_approved:    0.90  # Conselho aprovou → cria entry
+    out_of_scope_declared:      0.95  # Conselho votou out-of-scope → registra e informa
+    adr_auto_generate:         0.85  # Decisão estrutural → ADR automático
+
+  # Decisões de EXECUÇÃO (quem faz o quê)
+  execution:
+    owner_is_capability_repo:  0.95  # Owner = repo known → notifica owner
+    owner_is_skill_path:        0.90  # Owner = skill path → notifica + fallinha
+    owner_is_human:             0.75  # Owner = humano → cria issue e espera
+    evolution_30d_no_progress:  0.00  # Não evoluiu em 30 dias → BLOQUEIA projetos
+
+# ─────────────────────────────────────────────────────────────
+# AUTONOMY RULES — Zero-fricção para decisões de alta confiança
+# ─────────────────────────────────────────────────────────────
+autonomy:
+  # NÃO pergunta se confidence >= 0.90 para estas operações:
+  never_ask:
+    - routing_known_need
+    - dispatch_stable_cap
+    - gate_sdd_pass
+    - delivery_review_pass
+    - new_project_known_needs
+    - capability_basic_dispatch  # Só loga, não bloqueia
+    - adr_auto_generate
+    - out_of_scope_declared
+
+  # Sempre pergunta (confidence < 0.90):
+  always_ask:
+    - routing_unknown_need
+    - dispatch_missing_cap
+    - gate_sdd_fail
+    - delivery_review_fail
+    - owner_is_human
+    - evolution_30d_no_progress
+
+  # Executa e loga (0.75 <= confidence < 0.90):
+  execute_and_log:
+    - dispatch_basic_cap
+    - new_capability_approved
+    - owner_is_skill_path
+
+# ─────────────────────────────────────────────────────────────
+# CAPABILITY GOVERNANCE — Status e evolução
+# ─────────────────────────────────────────────────────────────
+capabilities:
+  status:
+    STABLE:
+      - latade
+      - ladesign
+      - lan8n
+      - lacouncil
+    BASIC:
+      - laengine    # Plano de evolução obrigatório (30 dias)
+    EXTERNAL:
+      - context7
+      - exa
+      - github
+      - n8n-community
+
+  evolution:
+    enforce_30d: true
+    track_in: "projects/_meta/capability-evolution"
+    template: "projects/_meta/capability-evolution/TEMPLATE.md"
+    auto_proposal_after_projects: 3  # 3+ projetos em cap BASIC → LACOUNCIL auto-proposal
+
+# ─────────────────────────────────────────────────────────────
+# REGIME DE DOMÍNIO — Qual Constitution cada projeto segue
+# ─────────────────────────────────────────────────────────────
+domain_constitution:
+  # Domínio primário → Constitution a ser aplicada
+  data:        "../latade/CONSTITUTION.md"    # LATADE 9 artigos
+  etl:         "../latade/CONSTITUTION.md"
+  modeling:    "../latade/CONSTITUTION.md"
+  data_quality:"../latade/CONSTITUTION.md"
+
+  dashboard:   "../ladesign/DESIGN.md"        # LADESIGN tokens
+  design:      "../ladesign/DESIGN.md"
+  presentation:"../ladesign/DESIGN.md"
+  image:       "../ladesign/DESIGN.md"
+  video:       "../ladesign/DESIGN.md"
+
+  automation:  "../n8n/CONSTITUTION.md"       # LAN8N native (grafo)
+  integration: "../n8n/CONSTITUTION.md"
+  alerts:      "../n8n/CONSTITUTION.md"
+
+  game_simulation: "../laengine/CONSTITUTION.md"  # LAENGINE match rules
+
+  improvement: "../lacouncil/CONSTITUTION.md"     # LACOUNCIL council.yaml
+  investigation: "../lacouncil/CONSTITUTION.md"
+  council:     "../lacouncil/CONSTITUTION.md"
+
+  # Fallback para needs não listadas → pergunta
+
+# ─────────────────────────────────────────────────────────────
+# SDD WORKFLOW — Gates por fase (inspirado LATADE)
+# ─────────────────────────────────────────────────────────────
+sdd:
+  enabled: true
+  mandatory_for:
+    - data
+    - etl
+    - modeling
+    - data_quality
+
+  phases:
+    brainstorm:
+      gate: "3+ perguntas, 2+ abordagens"
+      output: "artifacts/BRAINSTORM_{name}.md"
+      agent: brainstorm  # NEW: agente de brainstorm
+    define:
+      gate: "Clarity Score >= 12/15"
+      output: "artifacts/DEFINE_{name}.md"
+      agent: planner
+    plan:
+      gate: "Technology, risks, dependencies documentados"
+      output: "artifacts/PLAN_{name}.md"
+      agent: planner
+    tasks:
+      gate: "Task order validada, dependências resolvidas"
+      output: "artifacts/TASKS_{name}.md"
+      agent: planner
+    build:
+      gate: "Quality gates por capability"
+      agent: data-architect | dashboard-designer | automation-engineer
+    ship:
+      gate: "delivery-reviewer sign-off"
+      agent: delivery-reviewer
+
+# ─────────────────────────────────────────────────────────────
+# QUEM EXECUTA — Executor por tipo de tarefa
+# ─────────────────────────────────────────────────────────────
+# Esta tabela responde: "quem vai fazer X?"
+# Prioridade: de cima para baixo. Primeiro match executa.
+
+executors:
+  # Operações de GOVERNO (sempre LACOUNCIL ou delivery-reviewer)
+  investigate:              lacouncil        # LACOUNCIL MCP
+  create_proposal:          lacouncil        # LACOUNCIL MCP
+  vote:                     lacouncil        # LACOUNCIL MCP
+  record_project:           lacouncil        # LACOUNCIL MCP + DuckDB
+  detect_patterns:           lacouncil        # LACOUNCIL MCP
+
+  # Operações de PROJETO (subagentes ou orchestrator)
+  new_project:              orchestrator     # Orchestrator cria .laos-project
+  brainstorm:               brainstorm_agent  # NOVO: agente de brainstorm
+  plan:                     planner_agent     # NOVO: agente de planejamento
+  dispatch:                 subagent         # data-architect, dashboard-designer, etc.
+  delivery_review:          delivery-reviewer # delivery-reviewer (read-only)
+
+  # Operações de CAPABILITY (owner da capability)
+  capability_evolution:
+    if_capability_repo:     capability_repo_owner   # Repo que "é dono" da capability
+    if_skill:               skill_owner              # Skill path em ../ladesign/skills/
+    if_human:               human_issue              # Cria GitHub issue e notifica
+
+  # Operações de REGISTRY (orchestrator edita arquivos)
+  update_capabilities_yaml:    orchestrator  # Edit: registry/capabilities.yaml
+  update_routing_yaml:         orchestrator  # Edit: registry/needs-to-capabilities.yaml
+  create_adr:                  orchestrator  # Create: projects/_meta/adr/
+
+# ─────────────────────────────────────────────────────────────
+# PROJECT MARK — .laos-project schema
+# ─────────────────────────────────────────────────────────────
+project_mark:
+  file: ".laos-project"
+  schema_version: "1.0"
+  required_fields:
+    - version
+    - nome
+    - estado
+    - needs
+    - capabilities_usadas
+    - dominio_primario
+    - constituicao
+    - ultima_atividade
+  optional_fields:
+    - sdd_artifacts
+    - tech_debts
+    - owner
+    - deadline
+    - paused_reason
+
+# ─────────────────────────────────────────────────────────────
+# OUT-OF-SCOPE — Quando um projeto é recusado
+# ─────────────────────────────────────────────────────────────
+out_of_scope:
+  directory: "projects/_meta/out-of-scope"
+  template: "projects/_meta/out-of-scope/TEMPLATE.md"
+  auto_close_after_days: 30  # Issue de priorização fecha após 30 dias sem votes
+
+# ─────────────────────────────────────────────────────────────
+# QUALITY GATES — Para novas capabilities
+# ─────────────────────────────────────────────────────────────
+new_capability_gates:
+  G1: "MCP server funcional (mesmo stub)"
+  G2: "Entry em capabilities.yaml com status (STABLE | BASIC)"
+  G3: "Routing em needs-to-capabilities.yaml"
+  G4: "Constitution.md (9 artigos se domain, equivalente se skill)"
+  G5: "SDD workflow com templates (BRAINSTORM, DEFINE, PLAN, TASKS)"
+  G6: "KB domain mínimo (index.md + 1 pattern)"
+  G7: "delivery-reviewer validou contra knowledge/"
+  G8: "ADR documentando rationale da criação"
