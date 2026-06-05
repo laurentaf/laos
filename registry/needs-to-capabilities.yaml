@@ -32,7 +32,7 @@ etl:
   optional: [lan8n, context7]
 
 modeling:
-  primary: [latade]
+  primary: [latade, laecon]
   optional: [context7]
 
 data-quality:
@@ -65,6 +65,32 @@ integration:
 
 alerts:
   primary: [lan8n]
+
+# ─── Modeling & ML needs (NEW: laecon) ───────────────────────
+
+ml:
+  primary: [laecon]
+  optional: [latade, context7]
+
+data-science:
+  primary: [laecon]
+  optional: [latade, context7]
+
+econometrics:
+  primary: [laecon]
+  optional: [latade, context7]
+
+nps-driver-analysis:
+  primary: [laecon]
+  optional: [latade, ladesign]
+
+causal-inference:
+  primary: [laecon]
+  optional: [latade, context7]
+
+predictive-modeling:
+  primary: [laecon]
+  optional: [latade, context7]
 
 # ─── Improvement needs ──────────────────────────────────────
 

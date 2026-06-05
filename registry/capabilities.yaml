@@ -92,6 +92,41 @@ capabilities:
       STATUS: BASIC — Constitution incompleta, SDD parcial, KB mínimo.
       30-day evolution mandatory. Tracking: projects/_meta/capability-evolution/laengine.md
 
+  - id: laecon
+    kind: domain
+    mcp_server: laecon
+    repo: ../laecon
+    status: basic
+    owns:
+      - econometrics.regression
+      - econometrics.glm
+      - econometrics.ordered
+      - econometrics.grouped
+      - econometrics.assumptions
+      - econometrics.interpretation
+      - econometrics.prediction
+      - econometrics.diagnostic-report
+      - ml.interpretable
+      - data.causal-inference
+      - ml.timeseries
+    notes: |
+      Display name: LAECON. Capability LAOS para econometria + ML
+      interpretável. Posicionamento: econometria é a espinha, ML é o
+      músculo. Likelihood explícita, não black box. Inspirado em
+      Gujarati & Porter (Basic Econometrics 5th ed, 2009) e Larson
+      & Goungetas (Quirk's 2013, NPS driver analysis).
+      STATUS: BASIC — scaffold entregue 2026-06-04. 30 dias para
+      STABLE (deadline 2026-07-04).
+      Tracking: projects/_meta/capability-evolution/laecon.md
+      Meta-projeto: projects/_meta/laecon-capability/project.yaml
+      ADR: projects/_meta/adr/ADR-002-laecon-creation.md
+      Proposta LACOUNCIL: cbe2d8ef-f65c-4d0e-8960-ea99527ab39f
+      (aprovada 4/4 SIM, supermaioria).
+      17 condições vinculantes do Conselho bloqueiam promoção a STABLE
+      em G7. MCP server em ../laecon/mcp/server.py.
+      Convenção _commomdata (E:/projects/_commomdata/) usada como fonte
+      de dados cross-project — ver knowledge/data-conventions.md.
+
   - id: lacouncil
     kind: domain
     mcp_server: lacouncil

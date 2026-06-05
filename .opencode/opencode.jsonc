@@ -24,7 +24,7 @@
   },
 
   // MCP servers grouped by role:
-  //   - Domain capabilities:   latade, lan8n, lacouncil, laengine, ladesign
+  //   - Domain capabilities:   latade, lan8n, lacouncil, laengine, laecon, ladesign
   //   - Platform capabilities: context7, exa, github
   // Toggle `enabled` per project / per session.
   "mcp": {
@@ -78,6 +78,20 @@
     "laengine": {
       "type": "local",
       "command": ["uv", "run", "python", "../laengine/src/laengine/mcp/server.py"],
+      "enabled": true,
+      "env": {}
+    },
+
+    // LAECON — econometrics + interpretable ML.
+    // Capability BASIC (cbe2d8ef, 2026-06-04). MCP server at
+    // ../laecon/laecon/mcp/server.py. Currently 2 implemented tools
+    // (health, list_supported_operations) + 7 stubs. Routed via
+    // needs-to-capabilities.yaml for ml, data-science, econometrics,
+    // nps-driver-analysis, causal-inference, predictive-modeling.
+    // Uses the laecon pyproject deps (uv-managed venv at .venv/).
+    "laecon": {
+      "type": "local",
+      "command": ["uv", "run", "python", "../laecon/laecon/mcp/server.py"],
       "enabled": true,
       "env": {}
     },
@@ -137,6 +151,11 @@
       "git diff*": "allow",
       "git log*": "allow",
       "uv *": "allow",
+      // subagent_boot_check.py é pre-flight obrigatório (AGENTS.md +
+      // stack-decisions.md). Read-only, exit 0/1, sem efeito colateral.
+      // Whitelisted aqui porque a chamada inclui redirecionamento 2>&1
+      // e chain com Write-Output que o pattern "uv *" não casa.
+      "uv run python scripts/subagent_boot_check.py *": "allow",
       "npx *": "allow",
       "rm -rf *": "deny"
     },
@@ -146,7 +165,13 @@
       "../lan8n/**": "allow",
       "../ladesign/**": "allow",
       "../laengine/**": "allow",
-      "../lacouncil/**": "allow"
+      "../lacouncil/**": "allow",
+      "../laecon/**": "allow",
+      // _commomdata (cross-project grounding data). Convention documented
+      // in knowledge/data-conventions.md and knowledge/opencode-permissions.md.
+      // Allows LAOS subagentes (data-architect, automation-engineer) to read
+      // E:/projects/_commomdata/** without "Permissão necessária" prompts.
+      "E:/projects/_commomdata/**": "allow"
     }
   }
 }

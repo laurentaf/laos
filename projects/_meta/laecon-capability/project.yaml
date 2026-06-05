@@ -1,0 +1,342 @@
+# project.yaml — Meta-projeto: criação da capability LAECON
+#
+# Capability nova: econometria + machine learning interpretável,
+# com likelihood explícita (não black box).
+# Posicionamento: econometria é a espinha, ML é o músculo.
+#
+# Este meta-projeto segue o regime de governança aprovado em
+# proposta e9cd6dd8 (Arquitetura Híbrida LAOS + Regime de Capacidades),
+# que instituiu o processo G1-G8 para novas capabilities.
+#
+# Proposta LACOUNCIL: cbe2d8ef-f65c-4d0e-8960-ea99527ab39f
+# Estratégia: supermaioria (IMPORTANT/registry, threshold 0.95)
+# Resultado: APROVADA 2026-06-04 (4/4 SIM, 100%)
+  # 17 condições vinculantes catalogadas em capability-evolution/laecon.md
+#
+# Status inicial: BASIC (paralelo a laengine), com plano de evolução
+# obrigatória de 30 dias para STABLE.
+
+name: laecon-capability
+tipo: meta-projeto
+
+brief: |
+  Criar a capability LAECON (../laecon) para o LAOS, oferecendo modelagem
+  econométrica e machine learning interpretável, com likelihood explícita,
+  validação de pressupostos, efeitos marginais, e suporte a casos de uso
+  como análise de drivers de NPS (ordered/grouped logit). Capacita o
+  usuário (economista formado na Unicamp, com background em estatística,
+  matrizes e econometria) a fazer modelagem preditiva e inferência causal
+  diretamente a partir de dados hospedados em LATADE e em arquivos
+  compartilhados em _commomdata.
+
+needs:
+  - improvement
+  - governance
+  - investigation
+  - research
+
+capabilities_used:
+  - lacouncil
+  - context7
+  - exa
+  - latade   # fonte de dados via DuckDB / medallion
+
+dominio_primario: improvement
+  # O meta-projeto é improvement (criar capability nova), mas a
+  # capability LAECON resultante é domínio data/modeling.
+
+constituicao: ../laecon/CONSTITUTION.md   # skeleton entregue, conteúdo completo em G4
+
+repo: ../laecon                            # scaffold entregue 2026-06-04
+
+# Convenção nova: diretório compartilhado cross-project.
+# _commomdata em E:/projects/_commomdata/ hospeda fontes de grounding
+# reutilizáveis em múltiplos projetos (livros, papers, datasets).
+# Documentado em knowledge/data-conventions.md.
+common_data_root: E:/projects/_commomdata/
+
+# Fontes de grounding declaradas pelo usuário
+fontes_grounding:
+  - path: E:/projects/_commomdata/10_20230923061708_Basic-econometrics-5th-ed-gujarati-and-porter_pdf.pdf
+    tipo: livro
+    uso: base teórica para modelagem econométrica (OLS, GLS, heterocedasticidade,
+         autocorrelação, multicolinearidade, dummies, séries temporais, painéis)
+  - url: https://www.quirks.com/articles/modeling-the-drivers-of-net-promoter-score
+    tipo: artigo
+    uso: caso de uso canônico (driver analysis de NPS com ordered/grouped logit,
+         likelihood explícita como anti-black-box)
+
+# Proposta LACOUNCIL
+lacouncil_proposal: cbe2d8ef-f65c-4d0e-8960-ea99527ab39f
+lacouncil_estrategia: supermaioria
+lacouncil_resultado: aprovada
+lacouncil_data_aprovacao: 2026-06-04
+lacouncil_votos: 4/4 SIM (data-architect, dashboard-designer, automation-engineer, delivery-reviewer)
+
+# 17 condições vinculantes do Conselho (resumo; detalhes em capability-evolution/laecon.md)
+condicoes_vinculantes:
+  data_architect:
+    - DA-1: roadmap com datas para painel, time series, IV/2SLS (M2 painel, M3 time series, M3 IV/2SLS)
+    - DA-2: tree-based models (RF, GBT) SÓ entram com `compute_shap` no mesmo release
+    - DA-3: handoff latade↔laecon vira artigo(s) da Constitution (Art. 4 input/output contracts)
+    - DA-4: detalhamento metodológico extremo (Constitution Art. 10) — 7 perguntas obrigatórias + bibliografia com valores de referência; vinculante desde BASIC
+    - "DA-5: `export_diagnostic_report` tem seção \"Decisões Metodológicas\" com tabelas + bibliografia (Constitution Art. 10 §4)"
+  dashboard_designer:
+    - DD-1: handoff laecon→ladesign com artefatos estruturados (JSON/YAML) para dashboards
+    - DD-2: plots do `export_diagnostic_report` incluem SHAP summary, partial dependence, calibration, probability curves (NPS)
+    - DD-3: pós-STABLE, `export_dashboard_payload` (executive-facing)
+  automation_engineer:
+    - AE-1: model_id reutilizável (model registry + versionamento) — Constitution Art. 6
+    - AE-2: workflow N8N de referência (trigger + SLA + error path + alert routing) — G2/G3
+    - AE-3: output path determinístico para `export_diagnostic_report` — G1/G2
+    - AE-4: credenciais e contratos de I/O na Constitution Art. 4
+  delivery_reviewer:
+    - DR-1: DataFrame empty guards nos MCP tools (P0 padroes-entrega.md)
+    - DR-2: spec de modelo de dados em artifacts/data/ com ≥1 regra de qualidade
+    - DR-3: DESIGN.md referenciado em artifacts/design/source.md SE plots
+    - DR-4: segredos + .env em .gitignore
+    - DR-5: ADR-002 segue formato ADR-001
+
+deliverables:
+  # === Capability repo (nova) ===
+  - path: ../laecon/
+    type: capability_repo
+    description: Repo da capability LAECON com MCP server, KB, pyproject, README
+    validation: G1 (MCP funcional) + G2 (registry entry) + G3 (routing)
+    status: entregue_2026-06-04
+
+  - path: ../laecon/CONSTITUTION.md
+    type: constitution
+    description: Constitution com 9 artigos (skeleton entregue 2026-06-04; conteúdo completo até 2026-06-14, G4)
+    validation: G4 (delivery-reviewer valida formato + conteúdo)
+    status: skeleton_entregue
+
+  - path: ../laecon/laecon/mcp/server.py
+    type: mcp_server
+    description: "MCP server com 9 tools (BASIC: health + list_supported_operations funcionais; 7 stubs retornando not_implemented_yet; DataFrame empty guards preparados para M1 — DR-1)"
+    validation: G1 (MCP funcional via health check)
+    status: entregue_2026-06-04
+
+  - path: ../laecon/kb/
+    type: knowledge_base
+    description: KB inicial com README placeholder (conteúdo em G6, deadline 2026-07-04)
+    validation: G6 (KB domain mínimo)
+    status: placeholder_entregue
+
+  - path: ../laecon/skills/
+    type: skills
+    description: "1 skill inicial: laecon-econometrician-skill (planejada para M1)"
+    validation: skill funcional
+    status: pendente_M1
+
+  - path: ../laecon/README.md
+    type: docs
+    description: README com capabilities, arquitetura, MCP tools, uso como lib
+    validation: presença + exemplo reproduzível
+    status: entregue_2026-06-04
+
+  # === Mudanças estruturais em LAOS ===
+  - path: registry/capabilities.yaml
+    type: registry
+    description: Entry de laecon com status=BASIC, mcp_server=laecon, repo=../laecon,
+                 owns (econometrics.*, ml.interpretable, data.causal-inference, ml.timeseries)
+    validation: G2 + delivery-reviewer (formato + completeness)
+    status: atualizado_2026-06-04
+
+  - path: registry/needs-to-capabilities.yaml
+    type: registry
+    description: "Novas rotas: ml, data-science, econometrics, nps-driver-analysis, causal-inference, predictive-modeling → laecon (com latade opcional para dados e context7 para docs)"
+    validation: G3 + delivery-reviewer
+    status: atualizado_2026-06-04
+
+  - path: projects/_meta/capability-evolution/laecon.md
+    type: tracking
+    description: Tracking BASIC com milestones G4-G6 + 17 condições vinculantes
+                 + roadmap M1-M3 com datas explícitas (DA-1)
+    validation: delivery-reviewer
+    status: atualizado_2026-06-04
+
+  - path: projects/_meta/adr/ADR-002-laecon-creation.md
+    type: adr
+    description: ADR documentando rationale (background do usuário, fontes, overlap
+                 com latade rejeitado, naming escolhido, alternativas rejeitadas,
+                 17 condições vinculantes) — formato ADR-001 (DR-5)
+    validation: G8 + delivery-reviewer
+    status: entregue_2026-06-04
+
+  - path: knowledge/data-conventions.md
+    type: knowledge
+    description: Convenção _commomdata — diretório compartilhado cross-project em
+                 E:/projects/_commomdata/ para fontes de grounding reutilizáveis
+                 (livros, papers, datasets públicos). Citada por projetos que usam.
+    validation: delivery-reviewer (formato transversal)
+    status: entregue_2026-06-04
+
+  - path: ../laecon/pyproject.toml
+    type: deps
+    description: pyproject com [main] (26 deps — numpy, pandas, scipy, statsmodels,
+                 linearmodels, sklearn, xgboost, lightgbm, catboost, shap, lime,
+                 optuna, matplotlib, seaborn + utilities) e 13 extras (dev,
+                 notebooks, causal, timeseries, viz, feature_eng, nlp, validation,
+                 dl, bayesian, symbolic, graphs, full) cobrindo M1-M4+
+    validation: uv sync --extra full exit 0 + libs importam
+    status: instalado_2026-06-04
+    notes: |
+      Pacotes deferidos (M3+) por conflito de pin com pydantic 2.x / altair 5.x:
+      - neuralprophet (pydantic 1.x) — só Python < 3.13
+      - great-expectations (pina altair<5) — conflito com viz extras
+      - causalimpact — redundante com dowhy+econml
+
+  # === Reforma estrutural do delivery-reviewer (PR-1) ===
+  - path: ../LAOS/scripts/preflight_check.py
+    type: preflight_script
+    description: |
+      Pré-flight mecânico Stage 0 do delivery-reviewer. Roda 5 checks
+      que LLM review alone perde: YAML+arithmetic, path existence,
+      secret scan (regex AKIA/sk_live_/ghp_/api_key=/password=),
+      cross-reference integrity (Constitution Art. N + condition IDs
+      DA/DD/AE/DR-N), no implementation code in LAOS. Exit 0 = clean,
+      1 = BLOCKED (com findings). Stdlib only + pyyaml.
+
+      Cobre 5 defeitos mecânicos identificados na autoavaliação
+      estrutural do reviewer (D1 arithmetic, D2 cross-ref, D5
+      pre-flight, e dois auxiliares). Ratio Level-A (3.75× sobre
+      limiar 0.5 do PR-1) — não PhD (6-stage Fagan + 4 roles).
+    validation: |
+      - 10/10 testes pytest em tests/test_preflight_check.py passam
+        (cobrindo: off-by-N arithmetic, YAML inválido, path missing,
+         AWS key caught, env-var template não flagado, Art. 99
+         dangling, DA-99 dangling, .py em projects/, integration
+         com laecon M0 real)
+      - `uv run python scripts/preflight_check.py projects/_meta/laecon-capability`
+        retorna PREFLIGHT_PASS (laecon M0 limpo após correção off-by-2)
+    status: entregue_2026-06-04
+    strengthens_conditions: [DR-1, DR-3, DR-4]
+    # NÃO adiciona nova condição vinculante; fortalece as DR-1/3/4
+    # com detecção mecânica de defeitos que antes viravam advisory.
+
+  - path: ../LAOS/.opencode/agent/delivery-reviewer.md
+    type: agent_spec
+    description: |
+      Especificação do delivery-reviewer reformada (5 stages: Stage 0
+      pré-flight consumido do orchestrator + Stages 1-4 semânticos:
+      P0 walk, critérios do projeto, coverage verification, reflection).
+      63 linhas → ~180 linhas. Resolve defeitos D3 (padroes-entrega.md
+      não citado), D4 (severity ladder ambíguo → "blocking by default"),
+      D6 (reflection ausente), D7 (LACOUNCIL loop ausente). D1, D2,
+      D5 cobertos mecanicamente pelo preflight.
+    validation: |
+      - Stages nomeados e numerados
+      - Verdict default é BLOCKED se Stage 0 falhar
+      - Reflection section (Stage 4) obrigatória
+      - Reference a Fagan 1976 + Gilb 1993
+    status: entregue_2026-06-04
+    strengthens_conditions: [DR-1, DR-2, DR-3, DR-4, DR-5]
+    # Cobre todas as DR, refletindo que o reviewer's role foi expandido.
+
+  - path: ../laecon/CONSTITUTION.md
+    type: constitution_amendment
+    description: |
+      Adicionada §7 ao Art. 10 — "Princípio de Calibração 20/10 vs 50/1
+      (PR-1)". Target = Level-A (padrão global), não PhD, não 4º ano.
+      Calcular `ratio = Δqualidade% / Δtempo%`; limiar 0.5. Anti-PhD:
+      evitar 6-stage Fagan + 4 roles quando 1+1 cobre 95%. Anti-4º:
+      evitar média aritmética como "modelo". Aplicação ao Art. 10:
+      7 perguntas e bibliografia vinculantes (ratio ≈ ∞); reproduzir
+      integrais Gujarati no relatório NÃO vinculante (ratio < 0.1).
+    validation: |
+      - §7 presente em Art. 10 com regra de decisão explícita
+      - Aplicações práticas enumeradas
+      - Referência cruzada a padroes-entrega.md
+    status: entregue_2026-06-04
+    strengthens_principles: [Constitution_Art_3_principle_2_interpretabilidade, Constitution_Art_10_detalhamento]
+    # Cria PR-1 como princípio fundacional da capability (vinculante
+    # desde BASIC), não condição nova do Conselho.
+
+  - path: ../LAOS/knowledge/padroes-entrega.md
+    type: knowledge_transversal
+    description: |
+      Adicionados 2 itens P0 vinculantes:
+      - PR-1 (Princípio de Calibração 20/10 vs 50/1) transversal a LAOS
+      - Pré-flight mecânico (Stage 0) deve passar antes do dispatch
+        do delivery-reviewer
+      Referência canônica de PR-1 em Constitution laecon Art. 10 §7.
+    validation: |
+      - PR-1 com regra de decisão + ratio limiar
+      - Pré-flight com comando exato (`uv run python scripts/preflight_check.py`)
+        + lista dos 5 checks
+    status: entregue_2026-06-04
+    cross_cutting: true
+
+  - path: ../LAOS/tests/test_preflight_check.py
+    type: tests
+    description: |
+      10 testes pytest cobrindo os 5 checks do preflight (≥1 por
+      check + 1 integration test com laecon M0 real). Fixtures com
+      tmp dir + AGENTS.md fake para satisfazer _find_laos_root.
+    validation: |
+      `uv run python -m pytest tests/test_preflight_check.py -v` → 10 passed
+    status: entregue_2026-06-04
+
+  - path: ../LAOS/.opencode/opencode.jsonc
+    type: orchestrator_config
+    description: |
+      Adicionada entry `mcp.laecon` (modelada em laengine) — type=local,
+      command `uv run python ../laecon/laecon/mcp/server.py`, enabled=true.
+      Também adicionado `../laecon/**` ao external_directory allowlist.
+      Comentário do bloco mcp atualizado: "Domain capabilities: latade,
+      lan8n, lacouncil, laengine, laecon, ladesign" (laecon faltava).
+      Resolve finding estrutural do delivery-reviewer: capability
+      registrada em registry/capabilities.yaml e needs-to-capabilities.yaml
+      mas sem entry MCP no orchestrator, o que faria `mcp.laecon.*` falhar
+      em runtime quando uma rota ML/econometria fosse despachada.
+    validation: |
+      - grep '"laecon":' opencode.jsonc → 1 match
+      - grep '../laecon/' opencode.jsonc → 2 matches (mcp + external_directory)
+    status: entregue_2026-06-04
+    strengthens_conditions: [DA-3, AE-4]
+    # DA-3: handoff latade↔laecon (entrada MCP no orchestrator = handoff efetivo)
+    # AE-4: credenciais e contratos de I/O (entry MCP = contrato de invocação)
+
+# SDD workflow (incorporado ao ADR por ser meta-projeto pequeno)
+sdd_artifacts:
+  brainstorm: projects/_meta/adr/ADR-002-laecon-creation.md
+  define: projects/_meta/adr/ADR-002-laecon-creation.md
+  plan: projects/_meta/capability-evolution/laecon.md
+  tasks: projects/_meta/adr/ADR-002-laecon-creation.md
+
+estado: M0_entregue_com_libs_instaladas
+  # M0 (scaffold BASIC) entregue 2026-06-04.
+  # pyproject.toml expandido com principais libs Python da área
+  # (solicitação do usuário: econometria + ML interpretável + principais
+  # bibliotecas). `uv sync --extra full` validado exit 0.
+  # Próximo milestone: G4 (Constitution completa) até 2026-06-14.
+
+criado_em: 2026-06-04
+
+# Quem executa
+executor: orchestrator (via LACOUNCIL consensus)
+
+# Validação
+reviewed_by: pending    # delivery-reviewer após M0 (próximo passo)
+review_date: pending
+
+# Capability status (tracking BASIC)
+capability_status:
+  name: laecon
+  initial_status: BASIC
+  current_status: BASIC
+  target_status: STABLE
+  deadline_basica_to_stable: 2026-07-04
+  gates:
+    G1: completed_2026-06-04
+    G2: completed_2026-06-04
+    G3: completed_2026-06-04
+    G4: in_progress_2026-06-04__target_2026-06-14
+    G5: pending__target_2026-06-24
+    G6: pending__target_2026-07-04
+    G7: pending__target_2026-07-04
+    G8: completed_2026-06-04  # ADR-002 entregue, formato ADR-001 aceito (DR-5)
+  conditions_total: 17
+  conditions_completed: 0
+  conditions_blocking_stable: 17

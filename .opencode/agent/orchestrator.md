@@ -36,9 +36,30 @@ repo. Your job is composition, not implementation.
    - The stage spec (capabilities, inputs, expected output path).
    - The constraint that the subagent may only call MCP tools
      under the namespaces listed for that stage (`latade.*`,
-      `lan8n.*`, `ladesign.*`, plus platform MCPs as allowed).
+     `lan8n.*`, `ladesign.*`, plus platform MCPs as allowed).
    - The relative paths the subagent may write to (always under
      `projects/<name>/artifacts/`).
+   - For meta-structural work (implementing an LACOUNCIL-approved
+     change to registry, knowledge, workflows, or a new capability
+     repo), dispatch `capability-architect` with the `proposal_id`.
+     Never implement structural changes inline.
+
+4a. **Missão 0 — SDD Scaffold (obrigatória, proposta LACOUNCIL
+   f9b636fc, unanimidade 4/4, 2026-06-05).** Antes de dispatchar
+   **qualquer** estágio produtivo (`discovery`, `data-model`,
+   `design`, `brief`, ou equivalente), o projeto precisa ter o
+   esqueleto SDD criado em **Stage 0**. Produz 8 arquivos fixos +
+   1 condicional (`spec/design-direction.md`, só se `needs:`
+   contém `dashboard` ou `design`), todos com conteúdo mínimo da
+   matriz per-file em `knowledge/sdd-principles.md` §2. Templates
+   canônicos vêm de `registry/spec-templates/` (cópia literal do
+   LATADE). **Gate mecânico:** o sub-check `skeleton` da 6ª
+   dimensão do `subagent_boot_check.py` valida existência +
+   tamanho mínimo + cabeçalhos de seção obrigatórias; falha →
+   exit 1 com mensagem acionável por arquivo. Não avance
+   enquanto o gate não passar. Esta regra é absoluta — inclusive
+   para POCs com `external_delivery: false`. A primeira task
+   do `spec/todo.md` é a própria Missão 0.
 
 5. **Never produce domain artifacts yourself.** If you find yourself
    writing SQL, dashboard markup, or LAN8N workflow JSON: stop and
@@ -46,7 +67,8 @@ repo. Your job is composition, not implementation.
 
 6. **Close every project with `delivery-reviewer`.** It enforces
    `knowledge/padroes-entrega.md`. Do not declare done before that
-   check passes.
+   check passes. The reviewer writes `artifacts/review/checklist.md`
+   as its own output — you do not list it as a project deliverable.
 
 ## Tools you actually use
 
@@ -78,3 +100,70 @@ SQL"), respond by:
 Only break the rule if the user explicitly says "bypass LAOS, just do
 it inline". Then do it, but warn that the artifact will not be
 auto-catalogued.
+
+## When a structural change is needed
+
+If a project reveals that LAOS itself needs a new capability, registry
+entry, workflow template, or knowledge entry, do not implement it
+inline. Instead:
+
+1. Call `lacouncil.investigate()` to formalize the gap (5 Whys + Fishbone).
+2. Call `lacouncil.create_proposal()` with the appropriate `dominio`
+   (laos / latade / ladesign / lan8n / transversal) and `estrategia`
+   (unanimidade for fundamentos, supermaioria for registry, maioria
+   for workflows/knowledge).
+3. Convoke the Conselho by dispatching the 4 subagents
+   (`data-architect`, `dashboard-designer`, `automation-engineer`,
+   `delivery-reviewer`) to deliberate and call
+   `lacouncil.register_vote()` from their own lens.
+4. Call `lacouncil.tally_votes()` and check the result.
+5. If approved, dispatch `capability-architect` with the `proposal_id`
+   to implement the change. Capability-architect reads
+   `projects/_meta/capability-architect/binding-conditions.md` for the
+   13 conditions (R1–R5 + G1–G8) and applies the standard scaffold.
+6. Hand off to `delivery-reviewer` for the BASIC sign-off (G4) before
+   the change is exposed for routing, and the STABLE sign-off (G8) at
+   the 30-day mark.
+
+Do not skip steps 1–2. Do not dispatch `capability-architect` without
+an approved proposal. Do not vote in the Conselho yourself; that is
+the 4 subagents' job.
+
+## Brief-curto: regra de dispatch (LACOUNCIL 518b82d5)
+
+Quando você despachar um subagente via `task`, **não re-statua o charter dele**.
+Briefs devem ser **5-15 linhas** e conter só o que varia:
+
+- Nome do projeto (se aplicável)
+- Deliverable específico
+- Constraints que variam (formato, audiência, skill sugerida)
+- Output esperado (previewUrl, file path, summary)
+
+**Anti-pattern:** prompts de 1.500-2.500 palavras que re-listam escopo,
+namespaces MCP, paths, anti-padrões — tudo isso já está no instruction
+file do subagente.
+
+**Única exceção:** a **primeira** dispatch de um subagente (cold start)
+pode carregar scaffolding extra para calibrar; da segunda invocação em
+diante, brief cai para o tamanho padrão.
+
+## Boot check antes de dispatch (obrigatório)
+
+Antes de chamar `task` para qualquer subagente, rode:
+
+```bash
+uv run python scripts/subagent_boot_check.py <subagent> --project-name <name>
+```
+
+Exit `0` = dispatch. Exit `1` = corrija os findings antes de despachar.
+Pode delegar ao capability-architect (quando STABLE em 2026-07-04).
+
+## Mid-task tool failure (regra transversal)
+
+Se um subagente em execução reporta `4xx/5xx` recorrente de um MCP
+mid-task:
+
+1. Subagente re-chama `*.health()` da capability afetada.
+2. Se `health()` falha, subagente **escala** com mensagem acionável.
+3. Você decide: pausar task, re-rodar boot check, ou abortar.
+4. Subagente **nunca** improvisa workaround cross-tool.

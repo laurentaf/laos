@@ -92,6 +92,15 @@ Platform MCPs (cross-cutting, used by any subagent):
   optionally `n8n-community.*` MCP tools.
 - **delivery-reviewer** (subagent). Read-only. Validates artifacts
   against `knowledge/padroes-entrega.md`.
+- **capability-architect** (subagent, BASIC → STABLE 2026-07-04).
+  Implements LACOUNCIL-approved structural changes only — new capability
+  repos, registry entries, opencode.jsonc entries, knowledge entries,
+  workflows, and meta-projects. Does NOT do project work, propose changes,
+  or vote in the Conselho. Separation of duties: orchestrator proposes +
+  Conselho delibera + capability-architect implements + delivery-reviewer
+  validates. See `projects/_meta/capability-architect/binding-conditions.md`
+  for the 13 binding conditions (R1–R5 + G1–G8). Created via
+  `ADR-003` and LACOUNCIL proposal `2f42afe6-71d5-4ef8-a88a-1339d72ec501`.
 
 ## Workflow
 

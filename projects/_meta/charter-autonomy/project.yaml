@@ -1,0 +1,180 @@
+# project.yaml — Meta-projeto: Charter-based subagent autonomy + tool readiness at boot
+#
+# Implementa a proposta LACOUNCIL 518b82d5-1f04-4342-9b3f-6897e3e14623
+# (4/4 SIM, 100%, supermaioria, 9 emendas consolidadas).
+#
+# Separa 4 coisas que hoje estão misturadas no dispatch do orchestrator:
+# 1. Charter (persistente em .opencode/agent/<name>.md)
+# 2. Tool readiness (verificado uma vez no boot, scripts/subagent_boot_check.py)
+# 3. Task brief (curto, 5-15 linhas, sem re-statuir o charter)
+# 4. Authorization (cross-charter, raro; LACOUNCIL territory para estrutural)
+#
+# Proposta LACOUNCIL: 518b82d5-1f04-4342-9b3f-6897e3e14623
+# Estratégia: supermaioria (subagent config, junto com registry)
+# Resultado: APROVADA 2026-06-04 (4/4 SIM, 100%)
+
+name: charter-autonomy
+tipo: meta-projeto
+
+brief: |
+  Refatorar a relação orchestrator↔subagente em 4 camadas explícitas:
+  charter persistente, tool readiness verificado uma vez no boot (venv +
+  daemon + MCP health + paths + env), task brief curto, authorization
+  rara. Resolve: (a) dispatch verbose re-statutindo o charter, (b) venv
+  check per-action redundante, (c) MCP quebrado descoberto mid-task
+  gerando workarounds.
+
+needs:
+  - improvement
+  - governance
+
+capabilities_used:
+  - lacouncil
+  - context7
+
+dominio_primario: improvement
+
+repo: self
+
+lacouncil_proposal: 518b82d5-1f04-4342-9b3f-6897e3e14623
+lacouncil_estrategia: supermaioria
+lacouncil_resultado: aprovada
+lacouncil_data_aprovacao: 2026-06-04
+lacouncil_votos: 4/4 SIM (data-architect, dashboard-designer, automation-engineer, delivery-reviewer)
+
+# 9 emendas dos 4 votantes
+amendments_consolidadas:
+  data_architect:
+    - "DA-E1: mid-session, subagente re-chama *.health() no primeiro 4xx/5xx e escala mensagem acionável"
+    - "DA-E2: boot valida output paths do projeto (artifacts/{data,pipeline,dq}/) + env vars (ex.: LATADE_DB_PATH)"
+    - "DA-E3: capability-architect (BASIC → 2026-07-04) é dependência; até STABLE, orchestrator mantém o boot check"
+    - "DA-E4: boot verifica MCPs primários; opcionais são lazy no primeiro call"
+  dashboard_designer:
+    - "DD-E5: mid-task tool failure escala ao orchestrator; anti-pattern é improvisar workaround com outra tool"
+    - "DD-E6: boot check cobre LADESIGN daemon (pnpm install + daemon health), não só venv Python"
+    - "DD-E9: primeira dispatch de cada subagente pode ter scaffolding extra; segunda em diante brief cai para 5-15 linhas"
+  automation_engineer:
+    - "AE (em voto): charter do automation-engineer declara explicitamente que credenciais nunca inlined (já existente, fortalecido)"
+  delivery_reviewer:
+    - "DR-E7: cada instruction file tem seção fixa 'Artefatos obrigatórios' mapeada aos P0 do padroes-entrega.md"
+    - "DR-E8: padrão reverso — 3+ entregas faltando o mesmo artefato P0 = charter incompleto, abrir issue"
+
+condicoes_vinculantes:
+  M0_entrega:
+    - "C1: 5 instruction files atualizados com Charter + Artefatos obrigatórios"
+    - "C2: scripts/subagent_boot_check.py funciona (5 checks: venv, daemon, MCP health, paths, env)"
+    - "C3: knowledge/stack-decisions.md substitui regra per-action por boot-check"
+    - "C4: orchestrator instruction file atualiza regra de brief curto"
+    - "C5: ADR-004 entregue"
+    - "C6: lacouncil.record_project() chamado (memória estrutural)"
+  transient_ate_capability_architect_stable:
+    - "Boot check é mantido pelo orchestrator via LACOUNCIL até capability-architect atingir STABLE em 2026-07-04 (DA-E3)"
+
+deliverables:
+  - path: projects/_meta/charter-autonomy/project.yaml
+    type: meta_project_contract
+    description: Este arquivo.
+    validation: formato paralelo a capability-architect/project.yaml
+    status: pendente
+
+  - path: projects/_meta/adr/ADR-004-charter-autonomy.md
+    type: adr
+    description: ADR documentando rationale, 9 emendas, alternativas, consequências.
+    validation: formato ADR-003
+    status: pendente
+
+  - path: .opencode/agent/orchestrator.md
+    type: agent_definition
+    description: Adiciona §"Brief-curto" + §"Boot check antes de dispatch" + §"Mid-task tool failure".
+    validation: M0-C4
+    status: entregue_2026-06-04
+
+  - path: .opencode/agent/data-architect.md
+    type: agent_definition
+    description: Adiciona §"Charter" + §"Artefatos obrigatórios" (DR-E7) + §"Mid-task tool failure".
+    validation: M0-C1
+    status: entregue_2026-06-04
+
+  - path: .opencode/agent/dashboard-designer.md
+    type: agent_definition
+    description: idem data-architect.
+    validation: M0-C1
+    status: entregue_2026-06-04
+
+  - path: .opencode/agent/automation-engineer.md
+    type: agent_definition
+    description: idem data-architect.
+    validation: M0-C1
+    status: entregue_2026-06-04
+
+  - path: .opencode/agent/delivery-reviewer.md
+    type: agent_definition
+    description: Adiciona §"Pattern detection" (DR-E8) + cross-ref a Artefatos obrigatórios dos outros subagents.
+    validation: M0-C1
+    status: entregue_2026-06-04
+
+  - path: scripts/subagent_boot_check.py
+    type: boot_check_script
+    description: |
+      Script Python que valida 5 dimensões: venv, daemon, MCP primário,
+      paths, env. Exit 0 = clean, 1 = BLOCKED com mensagem acionável.
+    validation: M0-C2
+    status: entregue_2026-06-04
+
+  - path: knowledge/stack-decisions.md
+    type: knowledge
+    description: Substitui parágrafo "Verificação de venv" por "Boot check de subagente".
+    validation: M0-C3
+    status: entregue_2026-06-04
+
+  - action: lacouncil.record_project
+    type: registry
+    description: Registra este meta-projeto na memória DuckDB do LACOUNCIL.
+    validation: M0-C6
+    project_id: 06f6d39b-164f-4d58-b14d-b06fb3f06846
+    status: entregue_2026-06-04
+
+sdd_artifacts:
+  brainstorm: projects/_meta/adr/ADR-004-charter-autonomy.md
+  define: projects/_meta/adr/ADR-004-charter-autonomy.md
+  plan: projects/_meta/charter-autonomy/project.yaml
+  tasks: projects/_meta/adr/ADR-004-charter-autonomy.md
+
+estado: M0_entregue_2026-06-04
+
+# Validação
+reviewed_by: delivery-reviewer
+review_date: 2026-06-04
+review_verdict: DELIVERABLE
+review_passes: 1
+review_summary: |
+  10/10 P0 aplicáveis (4 N/A por categoria não-trigger);
+  9 amendments E1-E9 verificadas em 2+ instruction files + script + knowledge;
+  5 dimensões × 5 subagentes consistentes (script ↔ stack-decisions);
+  Paralelo a capability-architect (binding-conditions pattern);
+  Calibração Level-A: ratio 0.67 ≥ limiar 0.5 (PR-1).
+review_findings:
+  - severity: informational
+    note: lacouncil.record_project_id declarado (06f6d39b-...); review não lê DuckDB.
+  - severity: nice-to-have
+    note: AGENTS.md (top-level) não referenciado; orchestrator charter atualizado mas invisível no guide topo-de-repo. Opcional.
+  - severity: informational
+    note: lacouncil_votos declara "4/4 SIM" sem referência a register_vote individual. Adequado para MVP.
+
+criado_em: 2026-06-04
+
+executor: orchestrator (LAOS primary agent; capability-architect BASIC)
+
+dependencies:
+  capability_architect:
+    status: BASIC
+    deadline_to_stable: 2026-07-04
+    impact: "Até STABLE, orchestrator mantém scripts/subagent_boot_check.py (DA-E3)"
+
+precedents:
+  - capability-architect: projects/_meta/capability-architect/project.yaml
+  - laecon-capability: projects/_meta/laecon-capability/project.yaml
+
+related_proposals:
+  - 2f42afe6-71d5-4ef8-a88a-1339d72ec501   # capability-architect (precedente de meta-projeto)
+  - cbe2d8ef-f65c-4d0e-8960-ea99527ab39f   # laecon (precedente de amendments)
