@@ -31,9 +31,44 @@ inputs:
   - target_audience
 
 stages:
+  - id: sdd-scaffold
+    stage_number: 0
+    name: "Stage 0 — SDD Scaffold (Missão 0)"
+    agent: orchestrator
+    capabilities: [github]
+    inputs: [project.yaml, brief, capabilities_used]
+    output:
+      - spec/constitution.md
+      - spec/todo.md
+      - spec/adr/_template.md
+      - spec/adr/README.md
+      - spec/harness/_template.md
+      - spec/specs/000-bootstrap/spec.md
+      - contract.md
+      - README.md
+      - spec/design-direction.md  # condicional: only if needs: contains dashboard|design
+    description: |
+      Missão 0 do projeto (proposta LACOUNCIL f9b636fc, unanimidade 4/4).
+      Produz o esqueleto SDD ANTES de qualquer artefato técnico. 8
+      arquivos fixos + 1 condicional, todos com conteúdo mínimo da
+      matriz per-file em `knowledge/sdd-principles.md` §2. Templates
+      canônicos vêm de `registry/spec-templates/` (cópia literal do
+      LATADE). Gate mecânico no `subagent_boot_check.py` 6ª dimensão
+      (sub-check `skeleton`).
+    gate:
+      mechanism: subagent_boot_check.py 6th-dimension sub-check `skeleton`
+      blocks_transition: true
+      action_on_fail: |
+        Não avançar para discovery até todos os 9 arquivos atenderem
+        tamanho mínimo + cabeçalhos obrigatórios. Mensagem do gate é
+        acionável (aponta o arquivo e o gap específico).
+
   - id: discovery
     agent: orchestrator
     capabilities: [context7]
+    inputs:
+      - spec/todo.md
+      - spec/specs/000-bootstrap/spec.md
     output: artifacts/discovery/requirements.md
     description: |
       Read brief + data sources. Produce a requirements doc with KPIs,
@@ -42,17 +77,22 @@ stages:
   - id: data-model
     agent: data-architect
     capabilities: [latade, context7]
-    inputs: [artifacts/discovery/requirements.md]
+    inputs: [artifacts/discovery/requirements.md, spec/todo.md]
     output: artifacts/data/model.md
     description: |
       Propose a logical model (facts/dimensions or marts) sized to the
       requirements. Do NOT write production SQL here - that belongs in
       ../latade. Output is the model spec and SQL stubs.
+      **Gatilho temporal do ADR-mínimo-1:** ao concluir este estágio
+      (primeiro decisório), o projeto precisa de ≥ 1 ADR real em
+      `spec/adr/001-*.md` (ver `padroes-entrega.md` §Decisões).
 
   - id: design
     agent: dashboard-designer
     capabilities: [ladesign]
-    inputs: [artifacts/discovery/requirements.md]
+    inputs:
+      - artifacts/discovery/requirements.md
+      - spec/design-direction.md  # condicional (criado em Stage 0)
     output: artifacts/design/
     description: |
       Wireframes + visual spec aligned to a DESIGN.md (pick one from
@@ -83,9 +123,26 @@ stages:
     capabilities: []
     inputs: [all]
     output: artifacts/review/checklist.md
+    note: |
+      artifacts/review/checklist.md é OUTPUT do delivery-reviewer
+      (NÃO entregável do projeto). Ownership:
+      .opencode/agent/delivery-reviewer.md §"Sign-off checklist".
 
 deliverables:
+  # 9 fixos do SDD scaffold (Stage 0)
+  - spec/constitution.md
+  - spec/todo.md
+  - spec/adr/_template.md
+  - spec/adr/README.md
+  - spec/harness/_template.md
+  - spec/specs/000-bootstrap/spec.md
+  - contract.md
+  - README.md
+  # Condicional: só se needs: contém dashboard|design
+  - spec/design-direction.md
+  # Artefatos de produção (stages 1+)
   - artifacts/data/model.md
   - artifacts/dashboard/
   - artifacts/automation/
+  # Output do reviewer (não é entregável do projeto, mas referenciado)
   - artifacts/review/checklist.md

@@ -28,15 +28,50 @@ inputs:
   - sla
 
 stages:
+  - id: sdd-scaffold
+    stage_number: 0
+    name: "Stage 0 — SDD Scaffold (Missão 0)"
+    agent: orchestrator
+    capabilities: [github]
+    inputs: [project.yaml, brief, capabilities_used]
+    output:
+      - spec/constitution.md
+      - spec/todo.md
+      - spec/adr/_template.md
+      - spec/adr/README.md
+      - spec/harness/_template.md
+      - spec/specs/000-bootstrap/spec.md
+      - contract.md
+      - README.md
+      - spec/design-direction.md  # condicional: only if needs: contains dashboard|design
+    description: |
+      Missão 0 do projeto (proposta LACOUNCIL f9b636fc, unanimidade 4/4).
+      Produz o esqueleto SDD ANTES de qualquer artefato técnico. 8
+      arquivos fixos + 1 condicional, todos com conteúdo mínimo da
+      matriz per-file em `knowledge/sdd-principles.md` §2. Templates
+      canônicos vêm de `registry/spec-templates/` (cópia literal do
+      LATADE). Gate mecânico no `subagent_boot_check.py` 6ª dimensão
+      (sub-check `skeleton`).
+    gate:
+      mechanism: subagent_boot_check.py 6th-dimension sub-check `skeleton`
+      blocks_transition: true
+      action_on_fail: |
+        Não avançar para discovery até todos os 9 arquivos atenderem
+        tamanho mínimo + cabeçalhos obrigatórios. Mensagem do gate é
+        acionável (aponta o arquivo e o gap específico).
+
   - id: discovery
     agent: orchestrator
     capabilities: [context7]
+    inputs:
+      - spec/todo.md
+      - spec/specs/000-bootstrap/spec.md
     output: artifacts/discovery/requirements.md
 
   - id: source-profile
     agent: data-architect
     capabilities: [latade]
-    inputs: [artifacts/discovery/requirements.md]
+    inputs: [artifacts/discovery/requirements.md, spec/todo.md]
     output: artifacts/data/source-profile.md
     description: Profile sources (row counts, types, nulls, distributions, PII).
 
@@ -45,6 +80,10 @@ stages:
     capabilities: [latade, context7]
     inputs: [artifacts/data/source-profile.md]
     output: artifacts/data/model.md
+    note: |
+      **Gatilho temporal do ADR-mínimo-1:** ao concluir este estágio
+      (primeiro decisório), o projeto precisa de ≥ 1 ADR real em
+      `spec/adr/001-*.md` (ver `padroes-entrega.md` §Decisões).
 
   - id: pipeline
     agent: data-architect
@@ -73,10 +112,27 @@ stages:
     capabilities: []
     inputs: [all]
     output: artifacts/review/checklist.md
+    note: |
+      artifacts/review/checklist.md é OUTPUT do delivery-reviewer
+      (NÃO entregável do projeto). Ownership:
+      .opencode/agent/delivery-reviewer.md §"Sign-off checklist".
 
 deliverables:
+  # 9 fixos do SDD scaffold (Stage 0)
+  - spec/constitution.md
+  - spec/todo.md
+  - spec/adr/_template.md
+  - spec/adr/README.md
+  - spec/harness/_template.md
+  - spec/specs/000-bootstrap/spec.md
+  - contract.md
+  - README.md
+  # Condicional: só se needs: contém dashboard|design (não se aplica a este workflow)
+  # spec/design-direction.md
+  # Artefatos de produção (stages 1+)
   - artifacts/data/model.md
   - artifacts/pipeline/
   - artifacts/dq/checks.md
   - artifacts/automation/
+  # Output do reviewer (não é entregável do projeto, mas referenciado)
   - artifacts/review/checklist.md

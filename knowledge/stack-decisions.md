@@ -55,38 +55,48 @@ ficam nas capability repos.
 - Migrar para n8n cloud só quando houver razão concreta (multi-device,
   triggers webhook expostos publicamente, etc).
 
-## Verificação de venv (ambiente virtual Python)
+## Boot check de subagente (subagent_boot_check.py)
 
-**Regra:** Todo agente/subagente que executa código Python DEVE verificar se o venv
-correto existe e está syncado antes de rodar qualquer comando.
+**Regra:** Antes de despachar qualquer subagente, o orchestrator DEVE
+rodar `uv run python scripts/subagent_boot_check.py <subagent> --project-name <name>`.
+Substitui a regra anterior de "verificar venv antes de cada comando Python".
+A checagem acontece **uma vez no boot**, não per-action.
 
-### Protocolo
+### O que o boot check valida (5 dimensões)
 
-1. **Detectar venv do projeto** — Cada projeto tem seu venv:
-   - LAOS: `.venv/` (criado via `uv sync`)
-   - LATADE: `../latade/.venv/`
-   - LACOUNCIL: `../lacouncil/.venv/`
-   - LAENGINE: usa `.venv/` herdado do LAOS via `uv run`
+1. **venv** — venv presente + syncado (pyproject não é mais novo que .venv). Cobre LAOS, latade, lacouncil, lan8n, ladesign, laengine, laecon.
+2. **daemon** — para capabilities Node-based (LADESIGN), `node_modules` + `pnpm install` OK.
+3. **MCP primário** — entry existe em `.opencode/opencode.jsonc` para cada MCP primário. Opcionais são lazy.
+4. **paths** — `projects/<name>/artifacts/<subclass>/` criável para cada subclasse que o subagente produz.
+5. **env** — env vars requeridas presentes (LATADE_DB_PATH, GITHUB_TOKEN, N8N_API_URL) ou com default documentado.
 
-2. **Verificar existência** — Testar `Test-Path <projeto>/.venv/Scripts/python.exe`
-   antes de executar qualquer script Python no projeto.
+### Exit codes
 
-3. **Verificar sync** — Se o `pyproject.toml` foi modificado após a criação do venv,
-   rodar `uv sync` antes de executar.
+- `0` — PASS, subagente pronto para dispatch.
+- `1` — BLOCKED, com mensagens acionáveis por check (qual venv sync, qual `pnpm install`, qual env var setar).
 
-4. **Reutilizar vs criar** — Sempre reutilizar o venv existente do projeto. Só criar
-   um novo se o projeto explicitamente pedir um ambiente isolado diferente. Cada
-   capability repo (latade, lacouncil, lan8n, ladesign, laengine) tem seu próprio
-   venv gerenciado por `uv`.
+### Quando rodar
+
+- Antes de cada `task` dispatch do orchestrator.
+- Após mudança em `pyproject.toml` de qualquer capability.
+- Após mudança em `.opencode/opencode.jsonc` (MCP config).
+- **Não** rodar per-action dentro do subagente (esse overhead acabou).
+
+### Mid-task tool failure
+
+Se um subagente recebe `4xx/5xx` mid-task: re-chama `*.health()`; se
+falhar, **escala ao orchestrator** com mensagem acionável; **NÃO**
+improvisar workaround com outra tool.
 
 ### Onde se aplica
 
-| Projeto | Venv | Gerenciado por | Atalho MCP |
-|---------|------|---------------|------------|
-| LAOS | `.venv/` | `uv sync` no LAOS | `uv run python ...` |
-| LATADE | `../latade/.venv/` | `uv sync` no latade | `..\\latade\\.venv\\Scripts\\python` |
-| LACOUNCIL | `../lacouncil/.venv/` | `uv sync` no lacouncil | `..\\lacouncil\\.venv\\Scripts\\python` |
-| LAENGINE | Herda do LAOS | `uv run` via LAOS | `uv run python ../laengine/...` |
+| Subagente | venvs | daemon | MCPs primários | Saída |
+|---|---|---|---|---|
+| `data-architect` | laos, latade, lacouncil | — | latade | artifacts/{data,pipeline,dq}/ |
+| `dashboard-designer` | laos, ladesign | ladesign (Node) | ladesign | artifacts/{design,deck}/ |
+| `automation-engineer` | laos, lan8n | — | lan8n | artifacts/automation/ |
+| `delivery-reviewer` | laos, lacouncil, latade | — | (none) | (read-only) |
+| `orchestrator` | laos + 6 capabilities | ladesign | lacouncil | projects/_meta/ |
 
 ## Alinhamento com Confidence Protocol do LATADE
 
