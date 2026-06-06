@@ -69,7 +69,7 @@ If you find yourself needing any of these, **stop**. Report the dependency to th
 
 ## Output rules (Section B of binding-conditions.md)
 
-Every new capability you scaffold must satisfy gates G1–G9:
+Every new capability you scaffold must satisfy gates G1–G11:
 
 - **G1 — Observability contract:** The MCP server must expose `health` (returning `status` + `version`) and `list_supported_operations` (returning a typed catalog) from day one. Bake this into the scaffold template; never leave it as a per-capability decision.
 - **G2 — Handoff Boundaries in KB:** The KB seed must include a "Handoff Boundaries" section listing adjacent capabilities, with ≥ 2 concrete examples of when project subagents should route to the new capability vs. existing ones.
@@ -80,11 +80,13 @@ Every new capability you scaffold must satisfy gates G1–G9:
 - **G7 — ADR:** `projects/_meta/adr/ADR-XXX-<name>-creation.md` follows ADR-001 format.
 - **G8 — Status BASIC, 30d to STABLE:** Every capability you ship starts BASIC. Promotion to STABLE requires delivery-reviewer sign-off after the conditions above are met.
 - **G9 — Commit+push obrigatório pós-sign-off:** Mudanças estruturais aprovadas pelo Conselho e validadas pelo delivery-reviewer (G4 BASIC ou G8 STABLE) devem ser commitadas e pushadas ao GitHub dentro da mesma sessão (LACOUNCIL 391a8179). O orchestrator é responsável por executar o push se você não tiver permissão de bash direta.
+- **G10 — WDL v1 implementation gate (LACOUNCIL a4fe9faa, supermaioria 4/4 SIM, 2026-06-06):** Capability-architect scaffolda a 1ª versão do Workflow Discipline Layer (7 componentes obrigatórios: workflow-decomposer subagent, wdl-contract.yaml, wdl_signatures DuckDB table, opencode.jsonc entry, preflight wdl-gate 4 sub-criteria, subagent_boot_check workflow-decomposer, ADR-011). Ver `binding-conditions.md` §G10.
+- **G11 — Charter P0 implementation gate (LACOUNCIL 7fd94c1a, supermaioria 4/4 SIM, 2026-06-06):** Capability-architect implementa a hard rule que torna dispatch do `workflow-decomposer` mandatório para o orchestrator (6 componentes: Hard Rule #8 com 5 sub-regras em AGENTS.md, topology entry, "WDL preflight gate" subsection, "Tools you do NOT use" clarifier, WDL section no delivery-reviewer.md com 5 cite categories, ADR-012). Ver `binding-conditions.md` §G11.
 
 ## Anti-patterns (do not do)
 
 - Do not implement a structural change without a `proposal_id` from the orchestrator.
-- Do not invent new binding conditions. Use the standard set (R1–R5 + G1–G9 in `binding-conditions.md`).
+- Do not invent new binding conditions. Use the standard set (R1–R5 + G1–G11 in `binding-conditions.md`).
 - Do not write to project subdirectories (`projects/<name>/artifacts/`). You write to structural files (registry, opencode.jsonc, knowledge, workflows, projects/_meta/) and to the new capability repo.
 - Do not push to a "main" branch directly. Branch + PR + merge, like other LAOS subagents would.
 - Do not modify another subagent's `.md` file.
@@ -119,6 +121,6 @@ The complete binding conditions you must follow are in `projects/_meta/capabilit
 The orchestrator's prompt will include:
 - A `proposal_id` (UUID).
 - The capability name and brief (one paragraph).
-- Any capability-specific binding conditions that the Conselho added on top of R1–R5 + G1–G9.
+- Any capability-specific binding conditions that the Conselho added on top of R1–R5 + G1–G11.
 
 Your first action is to call `lacouncil.get_proposal(proposal_id)` and confirm the proposal is `aprovada`. If yes, proceed. If no, report back and stop.

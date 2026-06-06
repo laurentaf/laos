@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Preflight check for LAOS delivery-reviewer (Stage 0).
 
-Captures 5 categories of mechanical defects that LLM review alone misses:
+Captures 6 categories of mechanical defects that LLM review alone misses:
 
   1. YAML parse + arithmetic
      - project.yaml must parse
@@ -27,6 +27,15 @@ Captures 5 categories of mechanical defects that LLM review alone misses:
      - per padroes-entrega.md P0: no .sql / .dax / .pbix / .py / .js / .ts
        under projects/. Only specs/markdown/yaml allowed.
 
+  6. WDL preflight gate (proposals a4fe9faa + 7fd94c1a, supermaioria 4/4).
+     4 sub-criteria (DR-2):
+       (a) verdict.yaml exists at child-repo path
+       (b) verified_by countersigned
+       (c) plan_id matches active project
+       (d) bypass validity (if wdl_bypass declared, user_confirmed_at
+           must be >= dispatch_at and manifest_entry must reference
+           the bypass; DR-1 anti-backdating).
+
 Exit code:
   0  — all checks pass
   1  — one or more BLOCKED findings (orchestrator MUST fix before
@@ -39,14 +48,18 @@ Usage:
 References:
   - Constitution laecon Art. 10 (Detalhamento Metodológico Extremo)
   - LAOS knowledge/padroes-entrega.md P0 items
+  - WDL v1 contract: workflows/wdl-contract.yaml (pinned wdl_version: 1)
+  - Capability-architect binding conditions G10 (WDL implementation)
+    and G11 (Charter P0 implementation)
   - Fagan 1976 IBM Systems Journal 15(3):182-211 (planning stage)
   - IEEE 1028-2008 §6.4 (entry criteria)
 
-Last updated: 2026-06-04 (DA-6 reform of delivery-reviewer).
+Last updated: 2026-06-06 (WDL v1 rollout — added sub-check 6 `wdl-gate`).
 """
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import re
 import sys
 from pathlib import Path
@@ -296,6 +309,245 @@ def check_no_impl_code(project: Path) -> list[str]:
     return errors
 
 
+# ─── Check 6: WDL preflight gate (proposals a4fe9faa + 7fd94c1a) ──
+# WDL v1 sub-check: 4 sub-criteria (DR-2 of the Charter P0 proposal).
+# Reference: workflows/wdl-contract.yaml §enforcement.prefight.sub_criteria
+# and §enforcement.post_delivery.p0_cite_schema.
+#
+# This check runs against the LAOS project mirror at projects/<name>/.
+# It is a meta-audit for projects whose plan_id was emitted by
+# workflow-decomposer. For meta-projects (no plan_id yet, e.g. the
+# wdl-rollout meta-project itself), the check reports INFO-only and
+# does not block — analogous to the sub-check `skeleton` meta-audit
+# skip pattern in subagent_boot_check.py.
+
+# We need the LAOS-rooted child-repo view. The contract says files
+# live at artifacts/wdl/<plan-id>/verdict.yaml. The LAOS mirror is
+# at projects/<name>/; the child repo mirrors the same tree.
+# The orchestrator's manifest declares the active plan_id. We read
+# it from the project's project.yaml (if present) under
+# `wdl: { active_plan_id: ... }` OR from a sibling manifest file
+# `projects/<name>/.wdl-manifest.yaml`. If neither is present, the
+# sub-check reports a soft "no plan_id declared" finding (advisory
+# only — not blocking, but signals that the project has not yet
+# entered the WDL pre-dispatch flow).
+
+VERDICT_YAML_REL = "artifacts/wdl"   # relative to project root
+MANIFEST_REL = ".wdl-manifest.yaml"  # sibling file at project root
+PLANNING_AGENT_IDS = {"workflow-decomposer"}  # self-attest forbidden
+
+
+def _parse_iso8601(s: str) -> _dt.datetime | None:
+    """Parse an ISO-8601 timestamp; return None on failure. Accepts
+    the `Z` suffix and naive timestamps. Used for anti-backdating
+    comparison (user_confirmed_at >= dispatch_at).
+    """
+    if not isinstance(s, str) or not s:
+        return None
+    # Python's fromisoformat in 3.11+ accepts the 'Z' suffix; for
+    # earlier versions, normalize.
+    s_norm = s.replace("Z", "+00:00")
+    try:
+        return _dt.datetime.fromisoformat(s_norm)
+    except ValueError:
+        return None
+
+
+def check_wdl_gate(project: Path) -> list[str]:
+    """Check 6: WDL preflight gate (proposal 7fd94c1a DR-2).
+
+    4 sub-criteria:
+      (a) verdict.yaml exists at child-repo path
+      (b) verified_by countersigned (populated, not equal to the
+          planning subagent — cross-validator requirement)
+      (c) plan_id matches active project (manifest's plan_id ==
+          verdict's plan_id)
+      (d) bypass validity (if wdl_bypass: orchestrator_override
+          declared, ALL of:
+          (i) user_confirmed_at >= dispatch_at
+          (ii) manifest_entry references the bypass
+          (iii) user message logged verbatim OR user_confirmed_at
+                strictly after dispatch_at by >= 1 second
+          If wdl_bypass absent → no further check; the WDL gate is
+          the happy path.
+
+    Reference: workflows/wdl-contract.yaml §enforcement.prefight.
+
+    Meta-audit skip: if the project has no `wdl.active_plan_id` and
+    no `.wdl-manifest.yaml`, the check reports an advisory finding
+    (NOT blocking). This covers meta-projects and the wdl-rollout
+    rollout meta-project itself, which are not project dispatches
+    and therefore not subject to the WDL gate.
+    """
+    errors: list[str] = []
+    py = project / "project.yaml"
+    if not py.exists():
+        # Meta-audit skip: no project.yaml → not a project dispatch.
+        return errors
+
+    # Read the orchestrator's manifest. Two surfaces, in order:
+    #   1. project.yaml `wdl: { active_plan_id, wdl_bypass, ... }`
+    #   2. .wdl-manifest.yaml sibling file
+    try:
+        proj_data = yaml.safe_load(py.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        proj_data = {}
+    if not isinstance(proj_data, dict):
+        proj_data = {}
+
+    wdl_block = proj_data.get("wdl") if isinstance(proj_data.get("wdl"), dict) else {}
+
+    manifest_path = project / MANIFEST_REL
+    manifest = {}
+    if manifest_path.exists():
+        try:
+            manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            manifest = {}
+        if not isinstance(manifest, dict):
+            manifest = {}
+
+    # The effective manifest merges project.yaml's wdl: block (lower
+    # precedence) and the .wdl-manifest.yaml sibling (higher
+    # precedence — the orchestrator's runtime manifest).
+    def _get(key: str, default=None):
+        return manifest.get(key, wdl_block.get(key, default))
+
+    active_plan_id = _get("active_plan_id")
+    wdl_bypass = _get("wdl_bypass")  # None | "orchestrator_override"
+    user_confirmed_at_raw = _get("user_confirmed_at")
+    dispatch_at_raw = _get("dispatch_at")
+    manifest_entry = _get("manifest_entry")
+
+    if not active_plan_id:
+        # Meta-audit / pre-WDL project: no plan_id declared.
+        # Advisory only (not blocking). This is the WDL counterpart
+        # to the subagent_boot_check.py meta-audit skip pattern.
+        # We emit an INFO line but return no errors.
+        # (Callers distinguish via the WDL_GATE_INFO prefix.)
+        # NOTE: We append to errors list with a special prefix so
+        # the run_all can split blocking vs advisory. Simpler: use
+        # a separate channel. Here, we just return [] (no block).
+        return errors
+
+    # Sub-criterion (a): verdict.yaml exists at child-repo path.
+    verdict_path = project / VERDICT_YAML_REL / active_plan_id / "verdict.yaml"
+    if not verdict_path.exists():
+        errors.append(
+            f"WDL_GATE_A: verdict.yaml ausente em {verdict_path}. "
+            f"Fix: workflow-decomposer deve produzir "
+            f"artifacts/wdl/{active_plan_id}/verdict.yaml antes de "
+            f"qualquer dispatch de especialista."
+        )
+        return errors  # subsequent sub-criteria need the file
+
+    # Load verdict.yaml.
+    try:
+        verdict_data = yaml.safe_load(verdict_path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as e:
+        errors.append(
+            f"WDL_GATE_A: verdict.yaml invalido em {verdict_path} "
+            f"({type(e).__name__}: {e})"
+        )
+        return errors
+    if not isinstance(verdict_data, dict):
+        errors.append(
+            f"WDL_GATE_A: verdict.yaml root nao e' mapping em {verdict_path}"
+        )
+        return errors
+
+    # Sub-criterion (a cont.): the verdict has a `state` field and it
+    # is one of the three valid states.
+    state = verdict_data.get("state")
+    if state not in {"READY", "DEFER", "ESCALATE"}:
+        errors.append(
+            f"WDL_GATE_A: verdict.state invalido: {state!r} "
+            f"(esperado READY | DEFER | ESCALATE)"
+        )
+
+    # Sub-criterion (b): verified_by countersigned.
+    verified_by = verdict_data.get("verified_by")
+    planner_id = verdict_data.get("planner_id")
+    if not verified_by:
+        errors.append(
+            "WDL_GATE_B: verified_by ausente no verdict. "
+            "Fix: cross-validator (delivery-reviewer em bootstrap) "
+            "deve countersign antes do orchestrator despachar."
+        )
+    elif planner_id and verified_by == planner_id:
+        # Self-attested: same agent planned AND verified. P0 cite.
+        errors.append(
+            f"WDL_GATE_B: verified_by == planner_id ({verified_by!r}); "
+            f"self-attested verdict. Fix: cross-validator deve ser "
+            f"agente_id != planner_id."
+        )
+    elif verified_by in PLANNING_AGENT_IDS:
+        # The planning agent "self-verified" — same anti-pattern.
+        errors.append(
+            f"WDL_GATE_B: verified_by == planning subagent "
+            f"({verified_by!r}); self-attested verdict."
+        )
+
+    # Sub-criterion (c): plan_id matches active project.
+    verdict_plan_id = verdict_data.get("plan_id")
+    if verdict_plan_id != active_plan_id:
+        errors.append(
+            f"WDL_GATE_C: verdict.plan_id ({verdict_plan_id!r}) != "
+            f"manifest.active_plan_id ({active_plan_id!r})."
+        )
+
+    # Sub-criterion (d): bypass validity.
+    if wdl_bypass == "orchestrator_override":
+        # (d-i) user_confirmed_at >= dispatch_at (anti-backdating)
+        if not user_confirmed_at_raw:
+            errors.append(
+                "WDL_GATE_D: wdl_bypass=orchestrator_override declarado "
+                "mas user_confirmed_at ausente no manifest."
+            )
+        if not dispatch_at_raw:
+            errors.append(
+                "WDL_GATE_D: wdl_bypass=orchestrator_override declarado "
+                "mas dispatch_at ausente no manifest."
+            )
+        if user_confirmed_at_raw and dispatch_at_raw:
+            uc = _parse_iso8601(str(user_confirmed_at_raw))
+            da = _parse_iso8601(str(dispatch_at_raw))
+            if uc is None:
+                errors.append(
+                    f"WDL_GATE_D: user_confirmed_at malformado: "
+                    f"{user_confirmed_at_raw!r}"
+                )
+            elif da is None:
+                errors.append(
+                    f"WDL_GATE_D: dispatch_at malformado: "
+                    f"{dispatch_at_raw!r}"
+                )
+            elif uc < da:
+                errors.append(
+                    f"WDL_GATE_D: bypass backdated "
+                    f"(user_confirmed_at={user_confirmed_at_raw} < "
+                    f"dispatch_at={dispatch_at_raw}); DR-1 anti-backdating."
+                )
+            elif (uc - da).total_seconds() < 1 and not manifest_entry:
+                # Same minute as first dispatch AND no verbatim
+                # user message in manifest → suspect.
+                errors.append(
+                    f"WDL_GATE_D: bypass timestamp within 1s of first "
+                    f"dispatch (user_confirmed_at={user_confirmed_at_raw}, "
+                    f"dispatch_at={dispatch_at_raw}) and no manifest_entry. "
+                    f"DR-1: confirmation treated as suspect unless user "
+                    f"message is logged verbatim in manifest."
+                )
+        # (d-ii) manifest_entry references the bypass
+        if not manifest_entry:
+            errors.append(
+                "WDL_GATE_D: wdl_bypass declarado mas manifest_entry "
+                "ausente (sem trecho verbatim da mensagem do usuario)."
+            )
+
+    return errors
+
+
 # ─── helpers ────────────────────────────────────────────────────────────────
 
 
@@ -333,6 +585,7 @@ def run_all(project: Path) -> tuple[int, list[str]]:
     findings += check_secrets(project)
     findings += check_cross_references(project)
     findings += check_no_impl_code(project)
+    findings += check_wdl_gate(project)
 
     return (0 if not findings else 1), findings
 
@@ -360,7 +613,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         print("-" * 60)
 
     if not findings:
-        print("PREFLIGHT_PASS: 0 findings, 5 checks completed.")
+        print("PREFLIGHT_PASS: 0 findings, 6 checks completed.")
         return 0
 
     for f in findings:

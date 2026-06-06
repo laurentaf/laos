@@ -1,0 +1,630 @@
+# ═══════════════════════════════════════════════════════════════════
+#  WDL v1 — Workflow Discipline Layer Contract
+# ═══════════════════════════════════════════════════════════════════
+# Operating contract for the workflow-decomposer subagent.
+# Pinned to wdl_version: 1 (no migration in WDL v1).
+# Authoritative reference for the WDL preflight gate.
+#
+# Origem:
+#   - LACOUNCIL proposal a4fe9faa-4d50-4668-845a-ef64f1d41c36
+#     (Workflow Discipline Layer — workflow-decomposer subagent
+#     + 3-Q granularity gate, supermaioria 4/4 SIM, 2026-06-06)
+#   - Sibling charter: 7fd94c1a-d21d-49cc-a0e6-07c07c716e73
+#     (Orchestrator charter amendment — P0 hard rule for
+#     workflow-decomposer invocation, supermaioria 4/4 SIM, 2026-06-06)
+#
+# 14 Implementation Conditions (from Conselho Phase 4) are embedded
+# as P0-blocking clauses inside the `enforcement` section. Any of
+# these missing at G4 sign-off flips the verdict to NOT DELIVERABLE
+# per delivery-reviewer's binding vote on the WDL proposal.
+# ═══════════════════════════════════════════════════════════════════
+
+wdl_version: 1
+name: wdl-v1
+title: "Workflow Discipline Layer v1 — workflow-decomposer + 3-Q granularity gate"
+
+# ─── 1. triggers ─────────────────────────────────────────────────────
+# When the orchestrator MUST dispatch workflow-decomposer.
+# Inserted into AGENTS.md §"Your loop" between step 2 and step 3
+# (between needs resolution and workflow template selection).
+triggers:
+  primary:
+    - description: |
+        Top of every project loop. Before ANY specialist dispatch
+        (data-architect, dashboard-designer, automation-engineer,
+        capability-architect, or any future project subagent), the
+        orchestrator must dispatch workflow-decomposer and obtain
+        a verified `verdict.yaml` with `state: READY`.
+      applies_at: "step_2a_of_orchestrator_loop"
+      proposal_ref: a4fe9faa-4d50-4668-845a-ef64f1d41c36
+
+    - description: |
+        After every DEFER resolution cycle. When the orchestrator
+        surfaces the `block_reason` to the user (or to the
+        capability owner), it must re-dispatch workflow-decomposer
+        on the next loop iteration.
+      applies_at: "post_defer_resolution"
+
+    - description: |
+        After every ESCALATE handoff closes. When the LACOUNCIL
+        Conselho votes on an `ESCALATE` and the outcome changes
+        the routing (new capability approved, registry updated),
+        the orchestrator re-dispatches workflow-decomposer
+        before resuming specialist dispatch.
+      applies_at: "post_escalate_closure"
+
+  exempt:
+    - description: |
+        Orchestrator's own direct `lacouncil.*` invocations for
+        structural improvement work (LACOUNCIL proposals,
+        structural investigations, trust-score reads). These are
+        NOT project work; they are the governance layer's own
+        operations.
+      scope:
+        tool_allowlist:
+          - lacouncil.investigate
+          - lacouncil.create_proposal
+          - lacouncil.detect_patterns
+          - lacouncil.get_proposal
+          - lacouncil.list_proposals
+          - lacouncil.get_trust_scores
+          - lacouncil.tally_votes
+          - lacouncil.register_vote
+          - lacouncil.record_project
+        forbidden_in_exemption: |
+          Any tool outside the allowlist above — even other
+          `lacouncil.*` tools — is NOT exempt. Any non-allowlisted
+          `lacouncil.*` call, or any tool from a non-orchestrator-
+          direct subagent, requires the WDL gate.
+      rationale: |
+        G-VERDICT-7 (DR condition 4). Exemption scope is enumerable
+        and testable in preflight. Narrative exemptions are forbidden.
+
+# ─── 2. verdicts ─────────────────────────────────────────────────────
+# Tri-state. Merged from β (tri-state) + δ (exemption observability)
+# + α (capability gap visibility).
+verdicts:
+  states:
+    - name: READY
+      readiness_subtypes:
+        - full: "3/3 on 3-Q; no gaps; no exemption."
+        - partial: "2/3 on 3-Q; documented caveats; capability_gaps: []"
+        - gaps_acknowledged: |
+            Known gaps with TTL (`max_delivery_cycles: 2`).
+            Orchestrator routes via lacouncil.detect_patterns
+            after 2 cycles and auto-promotes to ESCALATE if
+            gaps remain.
+      required_fields:
+        - state
+        - plan_id
+        - quality_score
+        - verified_by
+        - signature
+        - session_id
+        - generated_at
+        - contract_version
+      signature_algorithm: "sha256-canonical-json"
+
+    - name: DEFER
+      block_reasons_enum:
+        - insufficient_decomposition
+        - missing_capability_routing
+        - ambiguous_triggers
+        - circular_dependency
+        - decomposition_timeout
+      required_fields:
+        - state
+        - plan_id
+        - block_reason
+        - suggested_resolution
+        - verified_by
+        - signature
+        - session_id
+      default_resolution_path: |
+        Orchestrator surfaces the block_reason to the user (or
+        to the relevant capability owner) and re-dispatches
+        workflow-decomposer in the next loop iteration.
+
+    - name: ESCALATE
+      escalation_targets:
+        - lacouncil
+      escalation_subtypes:
+        - capability_gap
+        - structural
+        - ambiguous
+      required_fields:
+        - state
+        - plan_id
+        - escalation_target
+        - escalation_subtype
+        - escalation_payload
+        - capability_gaps (when subtype=capability_gap)
+        - verified_by
+        - signature
+        - session_id
+      escalation_payload_shape: |
+        For `capability_gap`: routes to capability-architect →
+        LACOUNCIL create_proposal.
+        For `structural`: routes directly to LACOUNCIL
+        create_proposal (no capability-architect step; this is
+        a governance question, not an implementation question).
+        For `ambiguous`: routes to the user (last resort; the
+        decomposer must have already exhausted composition
+        heuristics before declaring input genuinely unclear).
+
+# ─── 3. granularity ─────────────────────────────────────────────────
+# Google AI 3-Q rubric. Scored 0-3. Drives `readiness` and
+# `block_reason`. Anti-pattern clause from DD condition 2 lives here.
+granularity:
+  three_q:
+    - id: clear_input
+      question: "Is the input bounded — data, context, scope?"
+      failure_mode: "Research X with no scope."
+      score_0_to_3: true
+
+    - id: validatable_success
+      question: "Can a reviewer pass/fail the output?"
+      failure_mode: "Improve quality. / Make it better."
+      score_0_to_3: true
+
+    - id: single_type_of_reasoning
+      question: "Is this ONE of {research, extract, synthesize, review} — not mixed?"
+      failure_mode: "Research AND analyze."
+      score_0_to_3: true
+
+  readiness_floor: 2
+  full_readiness_floor: 3
+
+  anti_pattern_clause: |
+    **A linear pipeline (data → design → ship) is one project
+    lifecycle, not three tasks. The 2/3 floor must not be used to
+    multiply project phases.**
+
+    This clause is DD condition 2. The `temporal` decomposition
+    signal is the weakest of the 4 signals; do not invoke
+    granularity inflation to make a linear project look like
+    three READY verdicts. The full lifecycle scores 3/3 on 3-Q
+    ONCE, not three times.
+
+# ─── 4. decomposition ───────────────────────────────────────────────
+# 4 ordered signals. Any signal fires → decompose. Two+ fire →
+# lacouncil.detect_patterns (DA condition 7 cross-link).
+decomposition:
+  signals:
+    - id: conjunction
+      detection: "'and' / 'or' / comma-verbs in need"
+      priority: 1
+      weakest: false
+
+    - id: plural_criteria
+      detection: "≥ 2 success metrics in the need"
+      priority: 2
+      weakest: false
+
+    - id: multi_owns
+      detection: |
+        Need spans ≥ 2 capabilities per deliverable.
+        Example: "build an n8n workflow AND a dashboard" is
+        2 tasks (lan8n + ladesign), not 1.
+      priority: 3
+      weakest: false
+      cross_capability_calibration: |
+        When `multi_owns` fires across capabilities, the plan
+        MUST split the request by owning capability BEFORE
+        scoring the 3-Q. Each split inherits its own capability
+        routing. The temporal calibration note in
+        `workflow-decomposer.md` G-VERDICT-10 exists because
+        cross-capability `multi_owns` is the signal that catches
+        the most exposed failure mode in the automation lens
+        (AE condition 14 — implementer concern, documented in
+        the agent charter, not blocking at sign-off).
+
+    - id: temporal
+      detection: "≥ 2 stages or implied sequence"
+      priority: 4
+      weakest: true
+      anti_pattern_reinforced: |
+        See `granularity.anti_pattern_clause`. The temporal
+        signal must NOT be used to multiply project phases.
+
+  any_signal_fires: decompose
+  two_or_more_fire: lacouncil.detect_patterns
+  composite_ambiguity_resolution: |
+    Before user escalation, the planner runs decomposition
+    heuristics. Only ask the user when ambiguity is genuinely
+    unclear INPUT (per user decision 4 on the WDL proposal).
+    Composite ambiguity is the planner's job to resolve.
+
+# ─── 5. escalation ──────────────────────────────────────────────────
+# LACOUNCIL handoff schema. Routes by subtype.
+escalation:
+  handoff_schema:
+    - subtype: capability_gap
+      route:
+        - workflow-decomposer emits `ESCALATE` in verdict.yaml
+        - orchestrator dispatches `capability-architect` with the
+          escalation_payload (per ADR-003 R5: separation of duties)
+        - capability-architect authors LACOUNCIL proposal
+        - LACOUNCIL Conselho votes
+        - if approved → capability-architect implements
+      sla: |
+        G-VERDICT-9 (AE condition 13). Capability gap surfaced in
+        a verdict MUST be delivered (via `capability_gaps` in the
+        plan) within the same `plan-id` cycle, NOT deferred to a
+        separate release.
+
+    - subtype: structural
+      route:
+        - workflow-decomposer emits `ESCALATE` in verdict.yaml
+        - orchestrator dispatches orchestrator-direct
+          `lacouncil.create_proposal` (orchestrator is exempt
+          from the WDL gate for this tool; see `triggers.exempt`)
+        - LACOUNCIL Conselho votes
+        - if approved → orchestrator or capability-architect
+          implements per the proposal text
+
+    - subtype: ambiguous
+      route:
+        - workflow-decomposer emits `ESCALATE` in verdict.yaml
+        - orchestrator surfaces the ambiguity to the user
+        - user clarification is logged to the manifest with
+          timestamp
+        - orchestrator re-dispatches workflow-decomposer with
+          the clarified brief
+
+# ─── 6. enforcement ─────────────────────────────────────────────────
+# P0 hard rule. Dual enforcement (pre-dispatch trust penalty +
+# post-delivery delivery-reviewer P0 cite).
+# 14 Implementation Conditions (8 from WDL + 6 from sibling
+# proposal 7fd94c1a) are embedded as P0-blocking clauses.
+# Any clause missing at G4 sign-off → NOT DELIVERABLE.
+enforcement:
+  pre_dispatch:
+    mechanism: orchestrator_trust_score_penalty
+    penalties:
+      per_skip: -0.1
+      per_plan_max: -0.3
+      per_session_max: -0.5
+    where_penalty_lands: orchestrator
+    rationale: |
+      Penalty lands on the orchestrator, NOT the dispatched
+      specialist (DA condition 5 protection). When the
+      specialist is dispatched, they receive a verified plan;
+      their work is bounded. The orchestrator owns the gate.
+
+  post_delivery:
+    mechanism: delivery_reviewer_p0_cite
+    cite_triggers:
+      - missing_verdict
+      - expired_exemption
+      - post_dated_bypass
+      - self_attested_verdict (no verified_by)
+      - missing_capability_gaps_when_gaps_acknowledged
+    p0_cite_schema:
+      - id: missing_verdict
+        description: "verdict.yaml absent at child-repo path"
+        exit_code: P0_VERDICT_MISSING
+      - id: expired_exemption
+        description: |
+          exemption block present but `exemption.expires_at` is
+          in the past at sign-off time
+        exit_code: P0_EXEMPTION_EXPIRED
+      - id: post_dated_bypass
+        description: |
+          `user_confirmed_at` timestamp is BEFORE `dispatch_at`
+          in the manifest; or backdated to within the same
+          minute as first dispatch without verbatim user message
+          in the manifest (DR-1 anti-backdating)
+        exit_code: P0_BYPASS_BACKDATED
+      - id: self_attested_verdict
+        description: |
+          `verified_by` field absent or matches the planning
+          subagent (no cross-validator)
+        exit_code: P0_SELF_ATTESTED
+      - id: missing_capability_gaps
+        description: |
+          `readiness: gaps_acknowledged` declared but
+          `capability_gaps` is empty (G-VERDICT-4 violation)
+        exit_code: P0_GAPS_NOT_NAMED
+
+  prefight:
+    mechanism: scripts/preflight_check.py wdl-gate sub-check
+    sub_criteria:
+      - id: verdict_exists
+        description: "verdict.yaml exists at child-repo path"
+        reference: DR condition 2 (a)
+
+      - id: verified_by_countersigned
+        description: |
+          `verified_by` populated AND not equal to the planning
+          subagent (cross-validator requirement)
+        reference: DR condition 2 (b)
+
+      - id: plan_id_matches_active_project
+        description: |
+          `verdict.plan_id` matches the active project's plan-id
+          in the orchestrator manifest
+        reference: DR condition 2 (c)
+
+      - id: bypass_validity
+        description: |
+          If `wdl_bypass: orchestrator_override` declared in the
+          manifest, ALL of:
+          (i) `user_confirmed_at >= dispatch_at`
+              (anti-backdating, G-VERDICT-6 + DR-1)
+          (ii) `manifest_entry` references the bypass explicitly
+          (iii) the user message is logged verbatim OR
+                `user_confirmed_at` is strictly AFTER `dispatch_at`
+                by at least 1 second
+          If `wdl_bypass` is absent → no further check (default
+          to compliant; the WDL gate is the happy path).
+        reference: DR condition 2 (d)
+
+  timeout:
+    default_seconds: 300
+    on_overrun:
+      forced_state: BLOCKED
+      block_reason: decomposition_timeout
+      orchestrator_action: surface_to_user
+
+  bypass:
+    mechanism: manifest_overlay
+    required_fields:
+      - wdl_bypass: orchestrator_override
+      - user_confirmed_at: "<ISO-8601 timestamp>"
+      - dispatch_at: "<ISO-8601 timestamp>"
+      - plan_id: "<active plan-id>"
+      - manifest_entry: "<excerpt of the user message that authorized bypass>"
+    pre_dispatch_check: |
+      scripts/preflight_check.py sub-check `wdl-gate` validates
+      `user_confirmed_at >= dispatch_at` strictly. A confirmation
+      timestamp within the same minute as the first dispatch is
+      treated as suspect unless the orchestrator logs the user
+      message verbatim in the manifest (DR-1 anti-backdating).
+    trust_penalty: pre_dispatch_penalties_apply
+
+# ─── 7. signing ──────────────────────────────────────────────────────
+# SHA-256 canonical JSON, content-addressable.
+signing:
+  algorithm: sha256-canonical-json
+  canonicalization:
+    - sorted_keys
+    - no_whitespace
+    - utf8_encoding
+    - exclude_signature_field_self_reference
+  files_signed:
+    - artifacts/wdl/<plan-id>/plan.json
+    - artifacts/wdl/<plan-id>/verdict.yaml
+  signature_field:
+    algorithm: sha256-canonical-json
+    value: <hex 64 chars>
+  lts_table: memoria/lacouncil.duckdb.wdl_signatures
+  lts_columns:
+    - plan_id
+    - sha256
+    - contract_version
+    - planner_id
+    - signed_at
+    - verified_by
+  lts_migration_idempotent: true
+
+# ─── 8. versioning ───────────────────────────────────────────────────
+# wdl_version: 1 — pinned. No migration in v1. v2 (if needed) will
+# require a new LACOUNCIL proposal; breaking changes to the verdict
+# shape or the gate sub-criteria are not allowed in v1.
+versioning:
+  wdl_version: 1
+  contract_version: "1.0.0"
+  breaking_changes_policy: |
+    Breaking changes to verdict shape, gate sub-criteria, or
+    exemption allowlist require a new LACOUNCIL proposal
+    (supermaioria strategy). Patch-level changes (typo fixes,
+    additional optional fields) may ship in a v1.x with a
+    changelog entry in `wdl-contract.yaml` header.
+  deprecation_policy: |
+    WDL v1 is the only contract version supported by the
+    preflight `wdl-gate` sub-check. v2 (if introduced) will
+    live alongside v1 for one release cycle before v1 is
+    deprecated; both must coexist for one release.
+  session_id: |
+    Per resolved-DEFER cycle. The orchestrator's `lacouncil.session_id`
+    at the time of dispatch IS the session for that WDL invocation.
+    Trust-score penalties cap per session, so the cap resets when
+    a new session_id is allocated (DA condition 7 — definition of
+    "session" required before enforcement; this is the chosen
+    definition: per resolved-DEFER cycle).
+
+# ─── 9. exemptions ──────────────────────────────────────────────────
+# Whitelist only. Observable in verdict. DR condition 4
+# (enumerable scope) is the binding rule.
+exemptions:
+  allowlist:
+    - id: orchestrator_direct_lacouncil
+      description: |
+        Orchestrator's own `lacouncil.*` invocations for
+        structural improvement work. Tool name must be in
+        the explicit allowlist; no narrative exemption.
+      tool_allowlist:
+        - lacouncil.investigate
+        - lacouncil.create_proposal
+        - lacouncil.detect_patterns
+        - lacouncil.get_proposal
+        - lacouncil.list_proposals
+        - lacouncil.get_trust_scores
+        - lacouncil.tally_votes
+        - lacouncil.register_vote
+        - lacouncil.record_project
+      observed_in_verdict: |
+        When the orchestrator invokes a non-allowlisted
+        `lacouncil.*` tool (e.g., a new `lacouncil.*` tool
+        added in a future release), the dispatch is treated
+        as project work and the WDL gate is required.
+        This prevents the exemption from being used as a
+        backdoor for project work that happens to use
+        lacouncil for tracking.
+
+  simple_task_exemption:
+    description: |
+      When ALL of the following hold, the decomposer emits a
+      1-line READY with `exemption: { applied, reason,
+      signals_evaluated }`:
+      (a) Single dispatchable need (no conjunction, no plural
+          criteria, no multi_owns, no temporal split).
+      (b) No decomposition signal fires.
+      (c) 3/3 on 3-Q (full readiness).
+    required_block: |
+      exemption:
+        applied: true
+        reason: <human-readable justification>
+        signals_evaluated:
+          - conjunction: false
+          - plural_criteria: false
+          - multi_owns: false
+          - temporal: false
+    audit: |
+      DA + DD condition 1. Exemption is observable, not a
+      bypass of the signature/audit trail. The
+      `signals_evaluated` list is auditable at sign-off.
+
+# ─── 14 Implementation Conditions (P0-binding) ──────────────────────
+# Hard non-negotiables from Conselho Phase 4. Embedded here so the
+# contract IS the audit surface. delivery-reviewer walks this list
+# at G4 sign-off; any missing flips the verdict to NOT DELIVERABLE.
+implementation_conditions:
+  - id: WDL-IC-1
+    source: "WDL proposal (DA + DD)"
+    clause: |
+      `simple_task_exemption` MUST emit a signed `verdict.yaml`
+      with `exemption: { applied, reason, signals_evaluated }`
+      block. Exemption is observable.
+    enforced_via: "verdict.yaml schema + delivery-reviewer P0 cite"
+
+  - id: WDL-IC-2
+    source: "WDL proposal (DR)"
+    clause: |
+      `verified_by: <agente_id>` field MANDATORY on every
+      `verdict.yaml`. Self-attested verdicts are the same
+      anti-pattern as the 63-line predecessor reviewer.
+      delivery-reviewer (or designated cross-validator)
+      countersigns before orchestrator can act. Bootstrap:
+      delivery-reviewer self-verifies.
+    enforced_via: "preflight wdl-gate sub-check (b) + delivery-reviewer P0 cite"
+
+  - id: WDL-IC-3
+    source: "WDL proposal (DR)"
+    clause: |
+      `gaps_acknowledged` has TTL `max_delivery_cycles: 2`;
+      auto-promote to ESCALATE via `lacouncil.detect_patterns`
+      after 2 cycles.
+    enforced_via: "orchestrator loop + lacouncil.detect_patterns trigger"
+
+  - id: WDL-IC-4
+    source: "WDL proposal (DD)"
+    clause: |
+      Capability gaps visible to affected owner in plan:
+      `capability_gaps: [{ description, affects, owner_notified,
+      severity }]`.
+    enforced_via: "verdict.yaml schema + delivery-reviewer P0 cite"
+
+  - id: WDL-IC-5
+    source: "WDL proposal (DR)"
+    clause: |
+      Orchestrator charter P0 hard rule is its OWN proposal
+      (`7fd94c1a`), NOT bundled with WDL. Capability-architect
+      implements them in the same release but votes are
+      separate (separation of duties, AGENTS.md Hard Rule #5).
+    enforced_via: "AGENTS.md Hard Rule #8 + this contract header"
+
+  - id: WDL-IC-6
+    source: "WDL proposal (DD)"
+    clause: |
+      Temporal signal explicitly labeled as weakest in contract
+      prose. Anti-pattern clause: "A linear pipeline (data →
+      design → ship) is one project lifecycle, not three tasks.
+      The 2/3 floor must not be used to multiply project phases."
+    enforced_via: "granularity.anti_pattern_clause + decomposition.signals[id=temporal].weakest=true"
+
+  - id: WDL-IC-7
+    source: "WDL proposal (DA)"
+    clause: |
+      Define "session" in P0 rule before enforcement. Choice:
+      per-resolved-DEFER cycle (each `lacouncil.session_id` is
+      a session). Trust-score penalties cap per session.
+    enforced_via: "versioning.session_id + G-VERDICT-6"
+
+  - id: WDL-IC-8
+    source: "Charter P0 proposal (DR-1)"
+    clause: |
+      Bypass anti-backdating. Preflight tests manifest ordering
+      (`user_confirmed_at >= dispatch_at`); P0 cite if violated.
+      A confirmation timestamp within the same minute as the
+      first dispatch is treated as suspect unless the
+      orchestrator logs the user message verbatim in the
+      manifest.
+    enforced_via: "preflight wdl-gate sub-check (d)"
+
+  - id: WDL-IC-9
+    source: "Charter P0 proposal (DR-2)"
+    clause: |
+      Preflight `wdl-gate` sub-check spec: 4 sub-criteria
+      (a)-(d) covering verdict.yaml existence, verified_by
+      countersign, plan_id matching active project, bypass
+      validity.
+    enforced_via: "enforcement.prefight.sub_criteria"
+
+  - id: WDL-IC-10
+    source: "Charter P0 proposal (DR-3)"
+    clause: |
+      Sign-off checklist `artifacts/review/checklist.md` WDL
+      section MUST quote `exit_code` from preflight wdl-gate.
+    enforced_via: ".opencode/agent/delivery-reviewer.md §'WDL preflight gate'"
+
+  - id: WDL-IC-11
+    source: "Charter P0 proposal (DR-4)"
+    clause: |
+      Exemption scope enumerable: lacouncil.* tool allowlist
+      (9 tools). No narrative exemptions.
+    enforced_via: "triggers.exempt.scope.tool_allowlist"
+
+  - id: WDL-IC-12
+    source: "Charter P0 proposal (DD)"
+    clause: |
+      Dispatch payload to specialists includes verdict.yaml
+      path so receiving agents can ground work:
+      `dispatch_payload_includes: [verdict.yaml, plan_id,
+      verified_by]`.
+    enforced_via: "orchestrator dispatch contract (AGENTS.md §'WDL preflight gate')"
+
+  - id: WDL-IC-13
+    source: "Charter P0 proposal (AE)"
+    clause: |
+      Capability-gap SLA in `wdl-contract.yaml` enforcement:
+      surfaced within same plan-id cycle, not deferred to
+      separate release.
+    enforced_via: "escalation.handoff_schema[subtype=capability_gap].sla"
+
+  - id: WDL-IC-14
+    source: "Charter P0 proposal (AE)"
+    clause: |
+      Charter calibration for automation's `multi_owns` and
+      conjunction-across-capabilities. Implementer concern;
+      documented in `workflow-decomposer.md`
+      G-VERDICT-10, NOT blocking at sign-off.
+    enforced_via: "decomposition.signals[id=multi_owns].cross_capability_calibration"
+
+# ─── Cross-references ────────────────────────────────────────────────
+cross_references:
+  proposals:
+    - id: a4fe9faa-4d50-4668-845a-ef64f1d41c36
+      title: "Workflow Discipline Layer (WDL): workflow-decomposer subagent + 3-Q granularity gate"
+      strategy: supermaioria
+      status: implementada
+    - id: 7fd94c1a-d21d-49cc-a0e6-07c07c716e73
+      title: "Orchestrator charter amendment: P0 hard rule for workflow-decomposer invocation"
+      strategy: supermaioria
+      status: aprovada
+  adrs:
+    - ADR-011-wdl-workflow-decomposer
+    - ADR-012-orchestrator-wdl-preflight-p0
+  binding_conditions: projects/_meta/capability-architect/binding-conditions.md
+  regime: A  # LACOUNCIL 391a8179 — structural changes commit+push within session

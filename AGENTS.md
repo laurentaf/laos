@@ -11,6 +11,37 @@ LAOS is an **orchestration layer** with an independent structural improvement te
 5. **Structural changes require consensus.** Modifications to registry, workflows, knowledge, fundamentos, or subagent config go through the Conselho (via LACOUNCIL MCP). Unanimity for fundamentos, supermajority for registry, majority for knowledge.
 6. **Every structural change is logged.** LACOUNCIL records all proposals, votes, and diffs in its DuckDB (`memoria/lacouncil.duckdb`).
 7. **Patterns repeated 3+ times trigger action.** If the same issue appears in 3+ projects, LAOS calls LACOUNCIL to investigate and propose a fix — promote to knowledge/ or update registry.
+8. **WDL preflight gate is mandatory before specialist dispatch.**
+   The orchestrator MUST dispatch `workflow-decomposer` and obtain
+   a verified `verdict.yaml` (state: `READY`) before dispatching
+   any project subagent (data-architect, dashboard-designer,
+   automation-engineer, capability-architect, or any future
+   specialist). Source: LACOUNCIL `a4fe9faa-4d50-4668-845a-ef64f1d41c36`
+   (WDL v1) + `7fd94c1a-d21d-49cc-a0e6-07c07c716e73` (Charter P0),
+   both supermaioria 4/4 SIM, 2026-06-06. Sub-rules:
+   - **8.1 (mandatory).** Specialist dispatch is conditional on
+     `verdict.yaml` with `state: READY`. Without it, no dispatch.
+   - **8.2 (penalty).** Bypass = trust-score penalty on the
+     orchestrator: `-0.1` per individual bypass, `-0.3` max per
+     plan-id, `-0.5` max per session (per-resolved-DEFER cycle,
+     defined in `workflows/wdl-contract.yaml` §versioning.session_id).
+     Penalty is non-erasable within the session.
+   - **8.3 (cost).** Bypass requires manifest overlay
+     (`artifacts/wdl/<plan-id>/bypass-manifest.yaml`) +
+     user confirmation + cost (the trust-score penalty above).
+     No bypass is free.
+   - **8.4 (exemption scope).** Exemptions apply only to the
+     orchestrator's own direct `lacouncil.*` invocations for
+     structural improvement work (LACOUNCIL proposals, structural
+     investigations, trust-score reads). Exemption scope is the
+     allowlist of 9 `lacouncil.*` tools declared in
+     `workflows/wdl-contract.yaml` §triggers.exempt.scope.tool_allowlist.
+     No narrative exemptions. Any tool outside the allowlist, or
+     any non-orchestrator-direct subagent, requires the WDL gate.
+   - **8.5 (reviewer cites exit_code).** The `delivery-reviewer`
+     MUST quote the `exit_code` from the preflight `wdl-gate` in
+     its G4 sign-off. The 5 cite categories are enumerated in
+     `.opencode/agent/delivery-reviewer.md` §"WDL preflight gate".
 
 ## Repository layout
 
@@ -57,11 +88,13 @@ Platform MCPs (cross-cutting, used by any subagent):
 ## Agent topology
 
 - **orchestrator** (primary, default). Owns the session. Reads project.yaml, resolves needs via the registry, dispatches subagents. When acting as structural improver, also manages improvements via LACOUNCIL, consults the Conselho, and maintains DuckDB memory through LACOUNCIL MCP. The orchestrator may also manage meta-projects in projects/_meta/.
+  **Tools the orchestrator uses directly:** `lacouncil.*` is reserved for structural improvement work only (LACOUNCIL proposals, structural investigations, trust-score reads, project memory). For project work (specialist dispatch, plan analysis, capability gap diagnosis), the orchestrator dispatches `workflow-decomposer` — it does NOT call `lacouncil.*` directly for project planning, decomposition, or verification. This split is the WDL exemption scope (Hard Rule 8.4).
 - **data-architect** (subagent). Talks only to `latade.*` MCP tools.
 - **dashboard-designer** (subagent). Talks only to `ladesign.*` MCP tools and the LADESIGN skill library.
 - **automation-engineer** (subagent). Talks only to `lan8n.*` and optionally `n8n-community.*` MCP tools.
 - **delivery-reviewer** (subagent). Read-only. Validates artifacts against `knowledge/padroes-entrega.md`.
-- **capability-architect** (subagent, BASIC → STABLE 2026-07-04). Implements LACOUNCIL-approved structural changes only — new capability repos, registry entries, opencode.jsonc entries, knowledge entries, workflows, and meta-projects. Does NOT do project work, propose changes, or vote in the Conselho. Separation of duties: orchestrator proposes + Conselho delibera + capability-architect implements + delivery-reviewer validates. See `projects/_meta/capability-architect/binding-conditions.md` for the 14 binding conditions (R1–R5 + G1–G9). Created via `ADR-003` and LACOUNCIL proposal `2f42afe6-71d5-4ef8-a88a-1339d72ec501`.
+- **capability-architect** (subagent, BASIC → STABLE 2026-07-04). Implements LACOUNCIL-approved structural changes only — new capability repos, registry entries, opencode.jsonc entries, knowledge entries, workflows, and meta-projects. Does NOT do project work, propose changes, or vote in the Conselho. Separation of duties: orchestrator proposes + Conselho delibera + capability-architect implements + delivery-reviewer validates. See `projects/_meta/capability-architect/binding-conditions.md` for the 16 binding conditions (R1–R5 + G1–G11; G10 + G11 added in the WDL v1 rollout, 2026-06-06). Created via `ADR-003` and LACOUNCIL proposal `2f42afe6-71d5-4ef8-a88a-1339d72ec501`.
+- **workflow-decomposer** (subagent, BASIC → STABLE 2026-07-06). WDL v1 read-only PM layer that sits between the orchestrator and any specialist dispatch. Calls **only** `lacouncil.*` MCP tools (wall: WDL-R1). Emits three signed files per plan-id: `artifacts/wdl/<plan-id>/{analysis.md, plan.json, verdict.yaml}`. Verdict tri-state: `READY | DEFER | ESCALATE`. Stateless across plans. Cannot vote in the Conselho, cannot propose, cannot modify registry/AGENTS.md/knowledge/workflows. Self-attested verdicts fail G4 sign-off. Operating contract: `workflows/wdl-contract.yaml` (pinned `wdl_version: 1`). Charter: `.opencode/agent/workflow-decomposer.md`. Created via LACOUNCIL `a4fe9faa-4d50-4668-845a-ef64f1d41c36` + `7fd94c1a-d21d-49cc-a0e6-07c07c716e73` (both supermaioria 4/4 SIM, 2026-06-06).
 
 ## Workflow
 
@@ -83,6 +116,54 @@ if FAIL → subagent fixes → back to delivery-reviewer
 ```
 
 > **Hard rule:** Never push for external evaluation without delivery-reviewer approval. This is the first P0 check in `knowledge/padroes-entrega.md`.
+
+### Your loop
+
+The orchestrator's session loop, numbered for surface of enforcement:
+
+1. **Read** `projects/<name>/project.yaml` and any brief context.
+2. **Resolve** needs via `registry/needs-to-capabilities.yaml`.
+3. **Plan template** — if a workflow template matches, plan via template; else ad-hoc.
+4. **Dispatch** specialist (data-architect, dashboard-designer, automation-engineer, capability-architect, or any future subagent).
+5. **Validate** via `delivery-reviewer`.
+6. **Push** per Git sync regime (Regime A or Regime B; never both).
+
+#### Step 2a — WDL preflight gate (between step 2 and step 3)
+
+WDL v1 (`a4fe9faa` + `7fd94c1a`) inserts a read-only PM step between
+needs resolution and workflow template selection. **Mandatory** for
+project work; **exempt** for the orchestrator's own `lacouncil.*`
+structural improvement calls (Hard Rule 8.4).
+
+```yaml
+# Dispatch payload to workflow-decomposer:
+plan_id: <uuid>           # unique per plan; orchestrator generates
+project: <name>           # the project being decomposed
+needs: [...]              # resolved from step 2
+brief_context: ...        # user prompt + project.yaml + relevant files
+prior_verdicts: []        # any prior DEFER/ESCALATE verdicts
+exemption:                # only if simple_task_exemption applies
+  applied: bool
+  reason: string
+  signals_evaluated: [...]
+```
+
+The workflow-decomposer returns a signed verdict (tri-state) at
+`artifacts/wdl/<plan-id>/verdict.yaml`. Specialist dispatch in step 4
+**requires** a `state: READY` verdict with `verified_by: <agente_id>`
+populated (Hard Rule 8.1; preflight `check_wdl_gate` (b)).
+
+**`dispatch_payload_includes`** (Hard Rule 8.4 clarification): the
+specialist dispatch payload must carry `[verdict.yaml, plan_id,
+verified_by]` forward from the workflow-decomposer output. The
+specialist subagent uses these to scope its own work and to log
+which plan produced the dispatch.
+
+**Bypass** (Hard Rule 8.3): if the orchestrator proceeds without a
+READY verdict, it must (a) record `bypass-manifest.yaml` with
+`reason`, `alternative_dispatch_path`, `user_confirmed_at`,
+`dispatch_at`; (b) obtain user confirmation; (c) pay the trust-score
+penalty (`-0.1/-0.3/-0.5` per 8.2).
 
 ### LACOUNCIL (structural improvement) workflow
 
@@ -139,6 +220,33 @@ Changes approved by the Conselho and validated by delivery-reviewer (G4 BASIC or
 ### Regime B — Domain project artifacts (gated push)
 
 Domain artifacts (data models, dashboards, n8n workflows, design deliverables) follow the existing rule: push only after delivery-reviewer approval **and** user confirmation. This is P0 in `knowledge/padroes-entrega.md`.
+
+### How to distinguish
+
+If the change was motivated by a LACOUNCIL proposal → Regime A.
+If the change is project deliverable output → Regime B.
+When in doubt, ask the user.
+
+## Git sync regime (LACOUNCIL 391a8179)
+
+Two distinct regimes govern when LAOS changes reach GitHub:
+
+### Regime A — Structural changes (mandatory push)
+
+Changes approved by the Conselho and validated by delivery-reviewer
+(G4 BASIC or G8 STABLE sign-off) **must** be committed and pushed to
+GitHub within the same session. This covers changes made by the
+capability-architect **or** by the orchestrator directly (e.g., editing
+`AGENTS.md`, `knowledge/`, `registry/`) when implementing a LACOUNCIL
+proposal. The authority chain is complete: Conselho approved →
+reviewer validated → no additional gate needed.
+
+### Regime B — Domain project artifacts (gated push)
+
+Domain artifacts (data models, dashboards, n8n workflows, design
+deliverables) follow the existing rule: push only after
+delivery-reviewer approval **and** user confirmation. This is P0 in
+`knowledge/padroes-entrega.md`.
 
 ### How to distinguish
 

@@ -1,0 +1,314 @@
+# project.yaml — Meta-projeto: WDL v1 rollout
+#
+# Capability nova: workflow-decomposer (subagent read-only analyzer
+# + PM layer entre needs resolution e specialist dispatch). Inclui
+# tambem o Charter P0 hard rule do orchestrator (proposal 7fd94c1a)
+# que torna o dispatch de workflow-decomposer obrigatorio.
+#
+# Este meta-projeto entrega 16 deliverables em 3 partes:
+#   Part 1 — WDL v1 (proposal a4fe9faa): agent file, contract,
+#            DuckDB table, opencode.jsonc, scripts, ADR-011, G10.
+#   Part 2 — Charter P0 (proposal 7fd94c1a): AGENTS.md delta, ADR-012,
+#            G11, delivery-reviewer WDL section.
+#   Part 3 — Self-verification: boot check + preflight exit 0.
+#
+# Regime: A (LACOUNCIL 391a8179 — structural changes commit+push within
+# session after G4 sign-off). G4 sign-off is delivery-reviewer's job;
+# capability-architect does NOT self-verify.
+#
+# SDD workflow: incorporated into project structure (8 fixed + 1
+# conditional per knowledge/sdd-principles.md §2). The conditional
+# `spec/design-direction.md` is NOT required because `needs:` does
+# not contain `dashboard` or `design`.
+
+name: wdl-rollout
+tipo: meta-projeto
+
+brief: |
+  Entregar a primeira versao do WDL (Workflow Discipline Layer) —
+  um subagente read-only `workflow-decomposer` que emite um
+  verdict assinado antes de qualquer dispatch de especialista — e
+  adicionar ao AGENTS.md do orchestrator o Hard Rule #8 que torna
+  o dispatch de workflow-decomposer obrigatorio. Combinacao das
+  propostas LACOUNCIL a4fe9faa (WDL v1) e 7fd94c1a (Charter P0),
+  ambas supermaioria 4/4 SIM, 2026-06-06. 14 condicoes vinculantes
+  da fase 4 do Conselho (8 WDL + 6 Charter P0) ficam embedded como
+  P0-blocking clauses no `wdl-contract.yaml` (pinned wdl_version: 1)
+  e nos scripts que operacionalizam o gate.
+
+needs:
+  - improvement
+  - governance
+  - investigation
+
+capabilities_used:
+  - lacouncil
+  - context7          # library lookups during scaffold (FastMCP, DuckDB)
+  - github            # not used in this rollout; reserved for follow-ups
+
+dominio_primario: improvement
+# O meta-projeto e improvement (criar subagente novo + amend charter),
+# mas o subagente workflow-decomposer resultante e' transversal (atua
+# sobre o eixo de governanca/PM do LAOS, nao sobre um dominio de dados/
+# design/automation).
+
+repo: self
+# Meta-projeto, nao tem child repo. O agent file vive em
+# .opencode/agent/workflow-decomposer.md; o contrato em
+# workflows/wdl-contract.yaml; os meta-artifacts em
+# projects/_meta/wdl-rollout/. A alteracao estrutural
+# AGENTS.md vive no proprio LAOS (tambem sem child repo).
+
+# Propostas LACOUNCIL
+lacouncil_proposals:
+  - id: a4fe9faa-4d50-4668-845a-ef64f1d41c36
+    titulo: "Workflow Discipline Layer (WDL): workflow-decomposer subagent + 3-Q granularity gate"
+    estrategia: supermaioria
+    resultado: implementada
+    data_aprovacao: 2026-06-06
+    votos: 4/4 SIM
+  - id: 7fd94c1a-d21d-49cc-a0e6-07c07c716e73
+    titulo: "Orchestrator charter amendment: P0 hard rule for workflow-decomposer invocation"
+    estrategia: supermaioria
+    resultado: aprovada
+    data_aprovacao: 2026-06-06
+    votos: 4/4 SIM
+
+# 14 condicoes vinculantes (8 WDL + 6 Charter P0). Cada condicao e'
+# mapeada para o deliverable que a satisfaz. O preflight
+# `check_yaml_arithmetic` soma len() de cada lista em
+# `condicoes_vinculantes.*`; o total declarado e' 14 e o
+# blocking_stable e' 14 (cold start, BASIC window 30d).
+condicoes_vinculantes:
+  WDL_proposal_a4fe9faa:
+    - WDL-IC-1: "simple_task_exemption MUST emit signed verdict.yaml with exemption: {applied, reason, signals_evaluated} block (DA + DD)"
+    - WDL-IC-2: "verified_by: <agente_id> MANDATORY on every verdict.yaml (DR condition 1)"
+    - WDL-IC-3: "gaps_acknowledged has TTL max_delivery_cycles: 2; auto-promote to ESCALATE via lacouncil.detect_patterns (DR condition 2)"
+    - WDL-IC-4: "capability_gaps visible to affected owner in plan: capability_gaps: [{description, affects, owner_notified, severity}] (DD condition 3)"
+    - WDL-IC-5: "Orchestrator charter P0 hard rule is its OWN proposal (7fd94c1a), NOT bundled (DR condition 3)"
+    - WDL-IC-6: "Temporal signal explicitly labeled as weakest in contract prose; anti-pattern clause about linear pipeline (DD condition 2)"
+    - WDL-IC-7: "Define 'session' in P0 rule before enforcement (DA condition 7)"
+    - WDL-IC-8: "Bypass anti-backdating; preflight tests manifest ordering (DR-1)"
+  Charter_P0_proposal_7fd94c1a:
+    - WDL-IC-9:  "Preflight wdl-gate sub-check spec: 4 sub-criteria (a)-(d) (DR-2)"
+    - WDL-IC-10: "Sign-off checklist artifacts/review/checklist.md WDL section MUST quote exit_code from preflight wdl-gate (DR-3)"
+    - WDL-IC-11: "Exemption scope enumerable: lacouncil.* tool allowlist (DR-4)"
+    - WDL-IC-12: "Dispatch payload to specialists includes verdict.yaml path (DD cross-convergent with DR-2b)"
+    - WDL-IC-13: "Capability-gap SLA: surfaced within same plan-id cycle, not deferred to separate release (AE)"
+    - WDL-IC-14: "Charter calibration for automation's multi_owns and conjunction-across-capabilities; implementer concern in workflow-decomposer.md (AE)"
+  conditions_total: 14
+  conditions_completed: 0
+  conditions_blocking_stable: 14
+
+deliverables:
+  # === Part 1 — WDL v1 ===
+  - path: .opencode/agent/workflow-decomposer.md
+    type: agent_definition
+    description: >
+      Agent file do workflow-decomposer. Frontmatter (description, mode,
+      permission, external_directory allowlist), scope (MCP wall
+      lacouncil.* only), 7 WDL-R restrictions, G-VERDICT-1..10
+      output rules, anti-patterns, failure modes. Cold start.
+    validation: G4 delivery-reviewer (MCP wall test + scope test)
+    status: entregue_2026-06-06
+    satisfies: [WDL-IC-1, WDL-IC-2, WDL-IC-4, WDL-IC-14]
+
+  - path: workflows/wdl-contract.yaml
+    type: pm_contract
+    description: >
+      Contrato operacional WDL v1. 9 secoes (triggers, verdicts,
+      granularity, decomposition, escalation, enforcement, signing,
+      versioning, exemptions). 14 implementation conditions embedded
+      as P0-blocking clauses. Pinned wdl_version: 1. Sibling to
+      dashboard-completo.yaml / etl-puro.yaml / apresentacao-executiva.yaml.
+    validation: G4 + 14-cond traceability matrix
+    status: entregue_2026-06-06
+    satisfies: [WDL-IC-1, WDL-IC-3, WDL-IC-4, WDL-IC-6, WDL-IC-7, WDL-IC-11, WDL-IC-12, WDL-IC-13]
+
+  - path: scripts/migrate_lacouncil_wdl_signatures.py
+    type: migration_script
+    description: >
+      Idempotente. Cria tabela wdl_signatures(plan_id, sha256,
+      contract_version, planner_id, signed_at, verified_by) no
+      LACOUNCIL DuckDB. CREATE TABLE IF NOT EXISTS + indexes
+      idempotentes. Schema mismatch detection (DESCRIBE + expected
+      columns).
+    validation: re-run produces identical "OK" line; row count preserved
+    status: entregue_2026-06-06
+
+  - path: ../lacouncil/memoria/lacouncil.duckdb
+    type: duckdb_schema
+    description: >
+      Tabela wdl_signatures adicionada in-place no DuckDB do
+      lacouncil (path correto: ../lacouncil/memoria/lacouncil.duckdb,
+      NAO em LAOS/memoria/). DB NAO foi modificado alem disso
+      (per scope). Migration aplicada via
+      scripts/migrate_lacouncil_wdl_signatures.py usando o venv
+      do lacouncil (que tem duckdb).
+    validation: row count > 0 so apos primeira signature real;
+                schema matches expected columns.
+    status: entregue_2026-06-06
+
+  - path: .opencode/opencode.jsonc
+    type: orchestrator_config
+    description: >
+      Adicionada entry `mcp.workflow-decomposer` com type=reference
+      (reusa o server lacouncil; nao spawna novo processo). MCP wall
+      enforced pelo charter. Comentario explicita o regime.
+    validation: grep '"workflow-decomposer":' opencode.jsonc == 1 match
+    status: entregue_2026-06-06
+
+  - path: scripts/preflight_check.py
+    type: preflight_script
+    description: >
+      Adicionado sub-check 6 `wdl-gate` com 4 sub-criteria
+      (a)-(d) per DR-2. Sub-criteria:
+      (a) verdict.yaml exists at child-repo path
+      (b) verified_by countersigned (cross-validator != planner_id)
+      (c) plan_id matches active project
+      (d) bypass validity (user_confirmed_at >= dispatch_at +
+          manifest_entry if wdl_bypass=orchestrator_override).
+      Meta-audit skip when project has no wdl.active_plan_id.
+    validation: preflight 6/6 checks run; 4 sub-criteria exercised
+    status: entregue_2026-06-06
+    satisfies: [WDL-IC-8, WDL-IC-9]
+
+  - path: scripts/subagent_boot_check.py
+    type: boot_check_script
+    description: >
+      Adicionada entry workflow-decomposer ao SUBAGENT_CHARTERS
+      com 7-dim schema (venv, daemon, MCP primary, paths, env,
+      external_directory, child-repo-skeleton). output_subclasses:
+      ["wdl"] cria projects/<name>/artifacts/wdl/ como mirror path
+      do child-repo artifacts/wdl/<plan-id>/.
+    validation: 7-dim schema matches
+    status: entregue_2026-06-06
+
+  - path: projects/_meta/adr/ADR-011-wdl-workflow-decomposer.md
+    type: adr
+    description: >
+      ADR documentando rationale WDL. Contexto (failure mode:
+      orchestrator pula decomposicao), Decisao (3-file artifact set
+      + 3-Q rubric + 4-signal decomposition), Alternativas (consolidar
+      no orchestrator, ou usar LLM call para decomposicao), Consequencias
+      (P0 rule + 14 conditions + regime A push). Formato ADR-001.
+    validation: G7 + delivery-reviewer
+    status: entregue_2026-06-06
+    satisfies: [G7]
+
+  - path: projects/_meta/capability-architect/binding-conditions.md
+    type: binding_conditions
+    description: >
+      Adicionada G10 (WDL implementation: preflight gate + sign-off
+      cite + LACOUNCIL signature table) e G11 (Charter P0 implementation:
+      orchestrator loop + hard rule + tools-clause). Total conditions
+      R1-R5 + G1-G11 = 16 (was 14).
+    validation: arithmetic in capability-architect/project.yaml
+    status: entregue_2026-06-06
+    satisfies: [G10, G11]
+
+  - path: projects/_meta/capability-architect/project.yaml
+    type: meta_project_yaml
+    description: >
+      conditions_total: 14 -> 16; conditions_blocking_stable: 14 -> 16;
+      renomeado quality_gates_G1_G9 -> quality_gates_G1_G11; adicionados
+      G10 e G11 ao bloco. Mantem preflight check_yaml_arithmetic happy.
+    validation: "uv run python scripts/preflight_check.py projects/_meta/capability-architect PASS"
+    status: entregue_2026-06-06
+
+  # === Part 2 — Charter P0 ===
+  - path: AGENTS.md
+    type: orchestrator_charter
+    description: >
+      (a) Hard rules section: adicionado Hard Rule #8 "WDL preflight
+      gate (P0). Orchestrator must invoke workflow-decomposer before
+      specialist dispatch. See §'Your loop' WDL preflight gate."
+      (b) Agent topology section: adicionado bullet do workflow-decomposer
+      com role description (read-only analyzer, lacouncil.* only).
+      (c) §"Your loop": inserido subsecao "WDL preflight gate (P0)"
+      entre step 2 (resolve needs) e step 3 (pick workflow). Quote
+      do P0 rule text + cite to wdl-contract.yaml. Define "session"
+      per resolved-DEFER cycle (DA condition 7).
+      (d) §"Tools you do NOT use": clarificacao de que o orchestrator
+      MUST NOT bypass workflow-decomposer.
+    validation: 4 sub-edits; cites wdl-contract.yaml; cites
+                 proposal 7fd94c1a
+    status: entregue_2026-06-06
+    satisfies: [WDL-IC-5, WDL-IC-7, WDL-IC-12]
+
+  - path: projects/_meta/adr/ADR-012-orchestrator-wdl-preflight-p0.md
+    type: adr
+    description: >
+      ADR documentando rationale Charter P0. Contexto (WDL sem
+      charter rule = mechanism optional), Decisao (Hard Rule #8 +
+      workflow-decomposer MUST precede any specialist dispatch),
+      Alternativas (advisory rule, soft prompt, ou hard rule sem
+      trust penalty), Consequencias (trust penalty on orchestrator;
+      bypass = manifest overlay + user confirmation + cost). Formato
+      ADR-001.
+    validation: G7 + delivery-reviewer
+    status: entregue_2026-06-06
+    satisfies: [G7]
+
+  - path: .opencode/agent/delivery-reviewer.md
+    type: reviewer_charter
+    description: >
+      Adicionada secao "WDL preflight gate" que quotes exit_code
+      from preflight wdl-gate (DR-3). P0 cite schema: missing verdict,
+      expired exemption, post-dated bypass, self-attested verdict,
+      missing capability_gaps when gaps_acknowledged.
+    validation: reviewer walks WDL-IC-10 at sign-off
+    status: entregue_2026-06-06
+    satisfies: [WDL-IC-10]
+
+# SDD workflow (incorporated no meta-projeto; cf. ADR-012)
+sdd_artifacts:
+  brainstorm: projects/_meta/adr/ADR-011-wdl-workflow-decomposer.md
+  define:     projects/_meta/adr/ADR-011-wdl-workflow-decomposer.md
+  plan:       projects/_meta/adr/ADR-011-wdl-workflow-decomposer.md
+  tasks:      projects/_meta/adr/ADR-012-orchestrator-wdl-preflight-p0.md
+
+estado: M0_entregue_local
+  # M0 (scaffold + 16 deliverables) entregue em working tree 2026-06-06.
+  # G4 BASIC sign-off e' responsabilidade do delivery-reviewer; este
+  # meta-projeto NAO se auto-verifica nesse gate (per regime de
+  # separation of duties). Apos G4 sign-off, orchestrator commita e
+  # pusha ao GitHub (Regime A) dentro da mesma sessao.
+
+criado_em: 2026-06-06
+
+# Quem executa
+executor: capability-architect (este rollout) + orchestrator (Regime A push pos-sign-off)
+
+# Validacao
+reviewed_by: pending
+review_date: pending
+review_verdict: pending    # delivery-reviewer G4 BASIC sign-off
+
+# Capability status (tracking BASIC cold start)
+capability_status:
+  name: workflow-decomposer
+  type: meta_subagent       # subagent, nao domain capability
+  initial_status: BASIC
+  current_status: BASIC
+  target_status: STABLE
+  deadline_basic_to_stable: 2026-07-06   # +30d from 2026-06-06
+  conditions_total: 14
+  conditions_completed: 0
+  conditions_blocking_stable: 14
+
+# Cross-references
+precedents:
+  - capability-architect: projects/_meta/capability-architect/project.yaml
+  - laecon-capability: projects/_meta/laecon-capability/project.yaml
+related_proposals:
+  - a4fe9faa-4d50-4668-845a-ef64f1d41c36
+  - 7fd94c1a-d21d-49cc-a0e6-07c07c716e73
+  - 391a8179-5a16-4b69-a3a3-d4ca1b20c2c3  # Regime A/B
+related_adrs:
+  - ADR-009-git-sync-regime-ab
+  - ADR-008-sdd-scaffold-missao-0
+  - ADR-007-ladesign-mcp-optional
+  - ADR-006-mcp-boot-smoke-test
+  - ADR-005-modeling-routing-laecon
+  - ADR-003-capability-architect-creation

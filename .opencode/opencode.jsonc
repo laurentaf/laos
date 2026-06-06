@@ -109,6 +109,30 @@
       }
     },
 
+    // WORKFLOW-DECOMPOSER — WDL v1 plan analyzer (proposal a4fe9faa, supermaioria).
+    // Subagent is dispatched by the orchestrator before ANY specialist dispatch.
+    // Status: BASIC (cold start, +30d to STABLE). Operates on the SAME lacouncil
+    // MCP server (no new server to spawn); the wall is enforced by the subagent
+    // charter, not by the MCP config. We declare an entry here so the boot check
+    // (3rd dimension) sees the subagent has a resolvable MCP dependency. The
+    // dispatcher can pass `mcp_server: lacouncil` in its dispatch payload, and
+    // the subagent's charter scopes its tool calls to the lacouncil.* namespace
+    // only. See .opencode/agent/workflow-decomposer.md for the MCP wall
+    // (WDL-R1: latade.*, ladesign.*, lan8n.*, laecon.*, n8n-community.* all
+    // denied) and workflows/wdl-contract.yaml for the operating contract.
+    "workflow-decomposer": {
+      "type": "reference",
+      "mcp_server": "lacouncil",
+      "enabled": true,
+      "env": {}
+      // type=reference (not "local"): the subagent reuses the lacouncil MCP
+      // server's stdio process; it does NOT spawn a new one. This avoids
+      // resource waste (one Python process per session) and ensures the
+      // subagent's read-only MCP access shares the orchestrator's session
+      // state. The MCP wall is enforced by the subagent's instruction file
+      // (workflow-decomposer.md §"MCP namespaces you must NOT call").
+    },
+
     // ─── PLATFORM CAPABILITIES ────────────────────────────────
 
     // Context7 - up-to-date library/API docs.

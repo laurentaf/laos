@@ -45,6 +45,31 @@ precedes inspection).
   output under `## Stage 0: BLOCKED` and STOP. Verdict:
   `NOT DELIVERABLE - preflight blocked`.
 
+#### WDL preflight gate (mandatory for project sign-off)
+
+WDL v1 (proposal `a4fe9faa-4d50-4668-845a-ef64f1d41c36`) inserts a
+`check_wdl_gate` sub-check into the preflight. **You MUST quote the
+`exit_code` from that sub-check in your G4 sign-off** (Hard Rule 8.5).
+The preflight output includes a `wdl_gate.exit_code` field that you
+copy verbatim.
+
+The 5 cite categories are:
+
+| Cite | When fired | Sign-off verdict |
+|------|------------|------------------|
+| `missing_verdict` | `verdict.yaml` does not exist at `artifacts/wdl/<plan-id>/` for the dispatch's plan-id | NOT DELIVERABLE — orchestrator must re-dispatch workflow-decomposer |
+| `expired_exemption` | `exemption.applied: true` but `exemption.reason` does not match the 9-tool lacouncil.* allowlist (WDL-IC-11) | NOT DELIVERABLE — exemption is narrative, not structural |
+| `post_dated_bypass` | `bypass-manifest.yaml` exists with `user_confirmed_at` after `dispatch_at` (anti-backdating failure, WDL-IC-8) | NOT DELIVERABLE — manifest is post-dated; trust-score penalty still applies |
+| `self_attested_verdict` | `verdict.yaml.verified_by` is empty, == `planner_id`, or in `{workflow-decomposer}` (WDL-IC-2) | NOT DELIVERABLE — verdict is self-attested; reviewer's predecessor (63 lines) was a structural violation vector for this |
+| `missing_capability_gaps` | `verdict.yaml.state == READY` but `capability_gaps` is missing or empty AND a WDL decomposition signal fired (WDL-IC-4) | NOT DELIVERABLE — capability gap is hidden; orchestrator must re-dispatch or ESCALATE |
+
+If `check_wdl_gate.exit_code == 0`, mark
+`## Stage 0: PASS (wdl_gate exit_code=0)` and proceed.
+If `check_wdl_gate.exit_code != 0`, copy the cite category and
+message verbatim into your output under `## Stage 0: BLOCKED
+(wdl_gate exit_code=N)` and STOP. Verdict:
+`NOT DELIVERABLE - wdl_gate blocked`.
+
 ### Stage 1: P0 walk (blocking)
 
 Walk every P0 item in `knowledge/padroes-entrega.md`. For each

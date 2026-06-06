@@ -1,11 +1,17 @@
 # Binding Conditions — capability-architect
 
 **Status:** ACTIVE
-**Date:** 2026-06-04
-**Source proposal:** `2f42afe6-71d5-4ef8-a88a-1339d72ec501` (LACOUNCIL, supermaioria, 4/4 SIM, 100%)
-**Consolidated from:** Original 7 binding conditions + 4 council amendments (data-architect, dashboard-designer, automation-engineer, delivery-reviewer)
+**Date:** 2026-06-04 (initial) / 2026-06-06 (G10 + G11 added)
+**Source proposals:**
+- `2f42afe6-71d5-4ef8-a88a-1339d72ec501` (LACOUNCIL, supermaioria, 4/4 SIM, 100%) — capability-architect creation
+- `a4fe9faa-4d50-4668-845a-ef64f1d41c36` (LACOUNCIL, supermaioria, 4/4 SIM, 2026-06-06) — WDL v1
+- `7fd94c1a-d21d-49cc-a0e6-07c07c716e73` (LACOUNCIL, supermaioria, 4/4 SIM, 2026-06-06) — Charter P0
+
+**Consolidated from:** Original 7 binding conditions + 4 council amendments (data-architect, dashboard-designer, automation-engineer, delivery-reviewer) + 2 WDL amendments (a4fe9faa + 7fd94c1a)
 
 These conditions are non-negotiable. They govern what `capability-architect` may do, what it must produce, and what is forbidden. They block promotion from BASIC to STABLE in G7 if unmet.
+
+**Total: 16 conditions (5 restrições R1–R5 + 11 quality gates G1–G11).**
 
 ---
 
@@ -25,7 +31,7 @@ These define what `capability-architect` **may NOT** do. Violating any of them i
 
 ## Section B — Quality gates (obrigatórios por capability nova)
 
-These define what `capability-architect` **must produce** for every new capability it scaffolds. G1–G8 abaixo se aplicam a **cada** capability nova implementada, não a este meta-projeto.
+These define what `capability-architect` **must produce** for every new capability it scaffolds. G1–G11 abaixo se aplicam a **cada** capability nova implementada, não a este meta-projeto. G1–G9 são o conjunto histórico (criação do capability-architect); G10–G11 são os gates de implementação do WDL v1 (propostas a4fe9faa + 7fd94c1a, 2026-06-06).
 
 | Gate | Description | Validation | Source amendment |
 |------|-------------|------------|------------------|
@@ -37,6 +43,9 @@ These define what `capability-architect` **must produce** for every new capabili
 | **G6** | **Capability-evolution tracking file.** `projects/_meta/capability-evolution/<name>.md` criado com a timeline BASIC→STABLE, gates G1-G8, condições vinculantes, e roadmap de milestones. Formato segue `capability-evolution/TEMPLATE.md` + precedente LAECON. | Arquivo existe e segue o template. | Proposta original |
 | **G7** | **ADR documentando rationale.** `projects/_meta/adr/ADR-XXX-<name>-creation.md` com Contexto, Decisão, Alternativas, Consequências, Status, Date, Decisor. Formato segue ADR-001. | delivery-reviewer valida formato. | Proposta original |
 | **G8** | **Status inicial BASIC, 30d para STABLE.** Toda capability nova nasce BASIC. A promoção a STABLE exige: (a) todas as condições vinculantes da proposta LACOUNCIL atendidas, (b) ≥ 1 projeto real usou a capability, (c) delivery-reviewer STABLE sign-off, (d) Constitution/KB não-placeholder, (e) `padroes-entrega.md` compliance. Prazo: 30 dias da primeira dispatch. | delivery-reviewer + LACOUNCIL tally. | Proposta original (paralelo ao regime LAECON) |
+| **G9** | **Git sync obrigatório pós-sign-off.** Após delivery-reviewer emitir DELIVERABLE (G4 BASIC ou G8 STABLE), o orchestrator deve commitar e pushar as mudanças ao GitHub dentro da mesma sessão. A cadeia de autoridade está completa (Conselho aprovou + reviewer validou); gate adicional não é necessário. Regime A (LACOUNCIL 391a8179). | Commit+push executado; `git log` no remote confirma. | **LACOUNCIL 391a8179** (4/4 SIM, maioria, 2026-06-05) |
+| **G10** | **WDL v1 implementation gate.** Capability-architect scaffolda a 1ª versão do Workflow Discipline Layer conforme proposta `a4fe9faa-4d50-4668-845a-ef64f1d41c36`. Componentes obrigatórios: (i) subagent `workflow-decomposer` com MCP wall `lacouncil.*` only; (ii) `workflows/wdl-contract.yaml` pinned `wdl_version: 1` com 8 WDL-IC (1–8) embedded como P0-blocking clauses; (iii) tabela `wdl_signatures` em `memoria/lacouncil.duckdb` via migration idempotente; (iv) entry `workflow-decomposer` em `.opencode/opencode.jsonc`; (v) sub-check `wdl-gate` em `scripts/preflight_check.py` com 4 sub-criteria (a)-(d); (vi) entry `workflow-decomposer` em `scripts/subagent_boot_check.py` (7-dim schema); (vii) ADR-011 publicado. Sign-off do delivery-reviewer **deve** citar o `exit_code` do preflight wdl-gate. | (i)-(vii) entregues; preflight exit 0; reviewer cita exit_code. | **LACOUNCIL a4fe9faa** (supermaioria 4/4 SIM, 2026-06-06) |
+| **G11** | **Charter P0 implementation gate.** Capability-architect implementa a hard rule que torna dispatch do `workflow-decomposer` mandatório para o orchestrator, conforme proposta `7fd94c1a-d21d-49cc-a0e6-07c07c716e73`. Componentes obrigatórios: (i) Hard Rule #8 em `AGENTS.md` com 5 sub-regras (8.1 preflight mandatory / 8.2 trust-score penalty / 8.3 bypass cost / 8.4 exemption allowlist / 8.5 reviewer cites exit_code); (ii) topology entry do `workflow-decomposer`; (iii) subsection "WDL preflight gate" em `AGENTS.md` §"Your loop" entre step 2 e step 3 com `dispatch_payload_includes: [verdict.yaml, plan_id, verified_by]`; (iv) clarifier em `AGENTS.md` §"Tools you do NOT use" sobre `lacouncil.*` apenas para structural improvement (não project work); (v) WDL section em `.opencode/agent/delivery-reviewer.md` com 5 cite categories (missing_verdict, expired_exemption, post_dated_bypass, self_attested_verdict, missing_capability_gaps); (vi) ADR-012 publicado. | (i)-(vi) entregues; AGENTS.md diff válido; reviewer valida 5 cite categories. | **LACOUNCIL 7fd94c1a** (supermaioria 4/4 SIM, 2026-06-06) |
 
 ---
 

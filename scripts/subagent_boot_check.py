@@ -129,6 +129,40 @@ SUBAGENT_CHARTERS = {
             "../ladesign/**",
         ],
     },
+    # workflow-decomposer (WDL v1, proposal a4fe9faa, BASIC cold start 2026-06-06).
+    # Subagent dispatched BEFORE any specialist dispatch on a project loop.
+    # Reuses the lacouncil MCP server (type=reference in opencode.jsonc), so
+    # the "mcp_primary" is the lacouncil dependency — but the wall is
+    # enforced by the charter, not the MCP config. 7-dim schema per
+    # proposal a4fe9faa §"Subagent Charter":
+    #   1. venv                — laos + lacouncil (read-only consumer)
+    #   2. daemon              — none (no Node daemon; pure Python subagent)
+    #   3. MCP primary         — lacouncil (read-only tool surface)
+    #   4. paths               — artifacts/wdl/<plan-id>/ (child-repo path;
+    #                            created by orchestrator, validated here)
+    #   5. env                 — none required (lacouncil MCP carries its
+    #                            own env via opencode.jsonc)
+    #   6. external_directory  — ../lacouncil/** allow (per charter
+    #                            frontmatter; E:/projects/** is `ask`
+    #                            not `allow`, so external_directory gate
+    #                            does NOT block but does NOT require coverage)
+    #   7. child-repo-skeleton — wdl-rollout is a meta-project; sub-check
+    #                            `skeleton` runs against the LAOS-mirror at
+    #                            projects/_meta/wdl-rollout/. For per-project
+    #                            dispatches, the orchestrator's project.yaml
+    #                            + artifacts/wdl/<plan-id>/ is the
+    #                            operative surface.
+    "workflow-decomposer": {
+        "venv": ["laos", "lacouncil"],
+        "daemon": [],
+        "mcp_primary": ["lacouncil"],
+        "mcp_optional": [],
+        "output_subclasses": ["wdl"],
+        "env": [],
+        "external_directory_required_paths": [
+            "../lacouncil/**",                # WDL's only data source
+        ],
+    },
 }
 
 VENV_DIRS = {
