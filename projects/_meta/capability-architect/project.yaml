@@ -19,15 +19,14 @@
 
 name: capability-architect
 tipo: meta-projeto
-
 brief: |
-  Adicionar um subagente `capability-architect` à topologia do LAOS, com
-  escopo estrito: implementar mudanças estruturais APROVADAS pelo Conselho
-  via LACOUNCIL (novas capabilities, novas entradas de registry, novos
-  workflows, novos knowledge entries, novos meta-projetos). NÃO propõe
-  mudanças (papel do orchestrator+LACOUNCIL), NÃO faz trabalho de projeto
-  (papel dos especialistas de domínio), NÃO vota no Conselho (separation
-  of duties: Conselho delibera, capability-architect implementa).
+  Adicionar um subagente `capability-architect` à topologia do LAOS,
+  com escopo estrito: implementar mudanças estruturais APROVADAS pelo
+  Conselho via LACOUNCIL (novas capabilities, novas entradas de registry,
+  novos workflows, novos knowledge entries, novos meta-projetos).
+  NÃO propõe mudanças (papel do orchestrator+LACOUNCIL), NÃO faz trabalho
+  de projeto (papel dos especialistas de domínio), NÃO vota no Conselho
+  (separation of duties: Conselho delibera, capability-architect implementa).
 
 needs:
   - improvement
@@ -41,14 +40,14 @@ capabilities_used:
   - github
 
 dominio_primario: improvement
-  # O meta-projeto é improvement (criar subagente novo), mas o
-  # capability-architect resultante atua sobre o eixo estrutural
-  # do LAOS (registry, knowledge, workflows, capability repos).
+# O meta-projeto é improvement (criar subagente novo), mas o
+# capability-architect resultante atua sobre o eixo estrutural
+# do LAOS (registry, knowledge, workflows, capability repos).
 
 repo: self
-  # Meta-projeto, não tem child repo. O agent file vive em
-  # .opencode/agent/capability-architect.md; os meta-artifacts em
-  # projects/_meta/capability-architect/.
+# Meta-projeto, não tem child repo. O agent file vive em
+# .opencode/agent/capability-architect.md; os meta-artifacts em
+# projects/_meta/capability-architect/.
 
 # Proposta LACOUNCIL
 lacouncil_proposal: 2f42afe6-71d5-4ef8-a88a-1339d72ec501
@@ -72,7 +71,7 @@ amendments_consolidadas:
 # Detalhes em projects/_meta/capability-architect/binding-conditions.md
 # Field name kept as `condicoes_vinculantes` (canonical) so the preflight
 # `check_yaml_arithmetic` (scripts/preflight_check.py:61-107) can sum
-# restrictions_R1_R5 (5) + quality_gates_G1_G8 (8) == 13 == conditions_total.
+# restrictions_R1_R5 (5) + quality_gates_G1_G9 (9) == 14 == conditions_total.
 # The full canonical source-of-truth list is in `binding-conditions.md`.
 condicoes_vinculantes:
   restrictions_R1_R5:
@@ -81,7 +80,7 @@ condicoes_vinculantes:
     - R3: não vota no Conselho
     - R4: não propõe mudanças
     - R5: não altera prompt de outro agente
-  quality_gates_G1_G8:
+  quality_gates_G1_G9:
     - G1: observability contract (health + list_supported_operations) em todo MCP server
     - G2: KB inicial com Handoff Boundaries
     - G3: domain-specialist review do KB + contracts
@@ -90,14 +89,13 @@ condicoes_vinculantes:
     - G6: capability-evolution tracking file
     - G7: ADR documentando rationale
     - G8: status BASIC inicial, 30d para STABLE
+    - G9: commit+push obrigatório pós-sign-off para mudanças estruturais (LACOUNCIL 391a8179)
 
 deliverables:
   # === Agent file ===
   - path: .opencode/agent/capability-architect.md
     type: agent_definition
-    description: Agent file com frontmatter (description, mode, permission), scope,
-                 MCP namespaces, output rules (G1-G8), anti-patterns, separation
-                 of duties (R1-R5). Segue formato dos outros subagents.
+    description: Agent file com frontmatter (description, mode, permission), scope, MCP namespaces, output rules (G1-G9), anti-patterns, separation of duties (R1-R5). Segue formato dos outros subagents.
     validation: M0-1 (delivery-reviewer)
     status: pendente
 
@@ -110,37 +108,32 @@ deliverables:
 
   - path: projects/_meta/capability-architect/binding-conditions.md
     type: binding_conditions
-    description: 4 emendas do Conselho + 5 restrições estruturais + 8 quality gates
-                 consolidados em R1-R5 + G1-G8. Fonte de verdade para o agent.
+    description: 4 emendas do Conselho + 5 restrições estruturais + 9 quality gates consolidados em R1-R5 + G1-G9. Fonte de verdade para o agent.
     validation: M0-3 (formato + completeness)
     status: pendente
 
   - path: projects/_meta/capability-architect/capability-evolution.md
     type: tracking
-    description: Tracking BASIC com milestones M0-M1, gates G1-G8 do meta-projeto,
-                 condições vinculantes R1-R5 + G1-G8 (resumo), risk register.
+    description: Tracking BASIC com milestones M0-M1, gates G1-G9 do meta-projeto, condições vinculantes R1-R5 + G1-G9 (resumo), risk register.
     validation: M0-4
     status: pendente
 
   - path: projects/_meta/adr/ADR-003-capability-architect-creation.md
     type: adr
-    description: ADR documentando rationale (gap, 4 amendments, alternativas,
-                 consequências, separation of duties). Formato ADR-001.
+    description: ADR documentando rationale (gap, 4 amendments, alternativas, consequências, separation of duties). Formato ADR-001.
     validation: M0-5 + delivery-reviewer (G7)
     status: pendente
 
   # === Mudanças estruturais em LAOS ===
   - path: AGENTS.md
     type: docs
-    description: Topologia de agentes atualizada (5 → 6 agentes) com bullet
-                 do capability-architect.
+    description: Topologia de agentes atualizada (5 → 6 agentes) com bullet do capability-architect.
     validation: M0-6
     status: pendente
 
   - path: .opencode/agent/orchestrator.md
     type: agent_definition
-    description: Adicionar capability-architect como dispatch target pós-aprovação
-                 de proposta LACOUNCIL estrutural.
+    description: Adicionar capability-architect como dispatch target pós-aprovação de proposta LACOUNCIL estrutural.
     validation: M0-7
     status: pendente
 
@@ -150,8 +143,8 @@ deliverables:
     description: >
       Chamada de record_project() registrando este meta-projeto em BASIC.
       Project_id retornado = 30c9521a-8a50-40f3-9b6f-eb9f01722af8.
-      NOT a file path — this is an MCP action; M0-8 evidence lives
-      in the LACOUNCIL DuckDB and the BC file.
+      NOT a file path — this is an MCP action; M0-8 evidence lives in
+      the LACOUNCIL DuckDB and the BC file.
     validation: M0-8
     status: entregue_2026-06-04
 
@@ -163,19 +156,19 @@ sdd_artifacts:
   tasks: projects/_meta/adr/ADR-003-capability-architect-creation.md
 
 estado: M0_entregue
-  # M0 entregue 2026-06-04. 3 passes do delivery-reviewer, todos os 5 preflight
-  # checks passam, todos os 13 condições vinculantes (R1-R5 + G1-G8) intactas.
-  # M1 (BASIC→STABLE) agendado para 2026-07-04 (+30d), gated por:
-  # (a) ≥ 1 uso real do capability-architect em scaffolding de capability futura;
-  # (b) community feedback sobre R5 (única condição inferida);
-  # (c) delivery-reviewer STABLE sign-off.
+# M0 entregue 2026-06-04. 3 passes do delivery-reviewer, todos os 5 preflight
+# checks passam, todos os 14 condições vinculantes (R1-R5 + G1-G9) intactas.
+# M1 (BASIC→STABLE) agendado para 2026-07-04 (+30d), gated por:
+# (a) ≥ 1 uso real do capability-architect em scaffolding de capability futura;
+# (b) community feedback sobre R5 (única condição inferida);
+# (c) delivery-reviewer STABLE sign-off.
 
 criado_em: 2026-06-04
 
 # Quem executa
 executor: orchestrator (LAOS primary agent)
-  # Capability-architect é criado pelo orchestrator uma primeira vez.
-  # Após M1 (STABLE), capability-architect implementa capabilities futuras.
+# Capability-architect é criado pelo orchestrator uma primeira vez.
+# Após M1 (STABLE), capability-architect implementa capabilities futuras.
 
 # Validação
 reviewed_by: delivery-reviewer
@@ -183,10 +176,10 @@ review_date: 2026-06-04
 review_verdict: DELIVERABLE
 review_passes: 3
 review_p0_findings_resolved: 3
-  # P0 #1: M0-8 (lacouncil.record_project) — confirmado via DuckDB project_id
-  # P0 #2: preflight path blocker — schema mudou de `path:` para `action:`
-  # P0 #3: preflight arithmetic off-by-13 — campo renomeado + YAML block scalar fix
-  # Todos os 3 P0 foram corrigidos antes do verdict final.
+# P0 #1: M0-8 (lacouncil.record_project) — confirmado via DuckDB project_id
+# P0 #2: preflight path blocker — schema mudou de `path:` para `action:`
+# P0 #3: preflight arithmetic off-by-13 — campo renomeado + YAML block scalar fix
+# Todos os 3 P0 foram corrigidos antes do verdict final.
 
 # Capability status (tracking BASIC)
 capability_status:
@@ -197,15 +190,15 @@ capability_status:
   target_status: STABLE
   deadline_basic_to_stable: 2026-07-04
   meta_gates:
-    M0-1: done_2026-06-04   # agent file
-    M0-2: done_2026-06-04   # project.yaml
-    M0-3: done_2026-06-04   # binding-conditions.md
-    M0-4: done_2026-06-04   # capability-evolution.md
-    M0-5: done_2026-06-04   # ADR-003
-    M0-6: done_2026-06-04   # AGENTS.md topology
-    M0-7: done_2026-06-04   # orchestrator.md updated
-    M0-8: done_2026-06-04   # lacouncil.record_project (project_id 30c9521a-...)
-    M0-9: done_2026-06-04   # delivery-reviewer sign-off (3 passes, final DELIVERABLE)
+    M0-1: done_2026-06-04  # agent file
+    M0-2: done_2026-06-04  # project.yaml
+    M0-3: done_2026-06-04  # binding-conditions.md
+    M0-4: done_2026-06-04  # capability-evolution.md
+    M0-5: done_2026-06-04  # ADR-003
+    M0-6: done_2026-06-04  # AGENTS.md topology
+    M0-7: done_2026-06-04  # orchestrator.md updated
+    M0-8: done_2026-06-04  # lacouncil.record_project (project_id 30c9521a-...)
+    M0-9: done_2026-06-04  # delivery-reviewer sign-off (3 passes, final DELIVERABLE)
   per_capability_gates_template:
     G1: "observability contract (health + list_supported_operations)"
     G2: "KB inicial com Handoff Boundaries"
@@ -215,9 +208,10 @@ capability_status:
     G6: "capability-evolution tracking"
     G7: "ADR"
     G8: "STABLE sign-off após 30d + ≥ 1 uso real"
-  conditions_total: 13   # R1-R5 (5) + G1-G8 (8) = 13 condições vinculantes
-  conditions_completed: 0   # Nenhuma aplicada ainda (sem capability scaffolded). R+G são o contrato para implementações FUTURAS.
-  conditions_blocking_stable: 13
+    G9: "commit+push obrigatório pós-sign-off para mudanças estruturais (LACOUNCIL 391a8179)"
+  conditions_total: 14
+  conditions_completed: 0  # Nenhuma aplicada ainda (sem capability scaffolded). R+G são o contrato para implementações FUTURAS.
+  conditions_blocking_stable: 14
 
 # Cross-references
 precedents:
