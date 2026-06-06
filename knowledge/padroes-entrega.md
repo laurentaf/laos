@@ -33,6 +33,12 @@ arquivo.
 - [ ] Todos os `deliverables` listados existem em `artifacts/`.
 - [ ] Nenhum segredo (API key, token, senha, connection string completa)
       aparece em arquivos versionados. `.env` está em `.gitignore`.
+- [ ] **Git sync pós-mudança estrutural (LACOUNCIL 391a8179).** Mudanças
+  estruturais aprovadas pelo Conselho e validadas pelo delivery-reviewer
+  (G4 BASIC ou G8 STABLE) **devem** ser commitadas e pushadas ao GitHub
+  dentro da mesma sessão. Regime A = obrigatório; Regime B (artefatos de
+  domínio) = mantém gate de reviewer + confirmação do usuário.
+  Ver `AGENTS.md` §"Git sync regime".
 
 ### Artefatos por subclasse
 
