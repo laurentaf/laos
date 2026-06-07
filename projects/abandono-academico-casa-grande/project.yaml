@@ -26,29 +26,25 @@ needs:
   # - dashboard   # UI com conclusoes + simulacao → ladesign
 
 deliverables:
-  # Fase 1 — arquivos commitados
+  # Fase 1
   - src/main.py
   - requirements.txt
   - .gitignore
   - data/.gitkeep
   - models/.gitkeep
   - reports/.gitkeep
-  # Fase 1 — outputs de runtime (gerados por src/main.py, gitignored)
-  # - data/dataset.parquet  (baixado pela API em fetch_dataset)
-  # - models/model.pkl      (treinado por train_model)
-  # - reports/model_metrics.md  (gerado por _save_metrics)
-# Fase 2 — arquivos commitados
-- artifacts/data/model.md
-- artifacts/dq/checks.md
-# Fase 2 — outputs de runtime (gerados por src/main.py, gitignored)
-# - data/raw.csv (exportado por fetch_dataset)
-# - data/dataset.parquet (baixado pela API em fetch_dataset)
-# - models/model.pkl (treinado por train_model)
-# - reports/model_metrics.md (gerado por _save_metrics)
-# Fase 3 (TBD)
+  # Fase 2
+  - artifacts/data/model.md
+  - artifacts/dq/checks.md
+  # Transversal
+  - README.md
+  # Runtime outputs (gitignored — gerados por src/main.py)
+  # - data/dataset.parquet
+  # - data/raw.csv
+  # - models/model.pkl
+  # - reports/model_metrics.md
   # Fase 4 (opcional)
   # - artifacts/dashboard/
-  - README.md
 
 inputs:
   - brief
