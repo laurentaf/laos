@@ -1,0 +1,113 @@
+name: abandono-academico-casa-grande
+description: |
+  Pipeline de Previsao de Abandono Academico — Universidade Casa Grande.
+  Projeto DataMission com 3 fases (+ possivel fase 4 de dashboard + simulacao).
+  Fase 1: preparar ambiente, fetch dataset, treinar modelo baseline.
+  Fase 2: Capturar dados via API — formato parametrizado + HTTP handling (CONCLUÍDA)
+  Fase 3: (a definir pelo briefing da DataMission)
+  Fase 4 (opcional): dashboard com conclusoes e simulacao interativa
+  verificando variaveis importantes e avaliando o quanto mexer em cada uma
+  melhora ou piora o abandono.
+
+workflow: null # ad-hoc, segue fases da DataMission
+
+external_delivery: true # projeto publico para avaliacao automatizada
+
+repo: laurentaf/abandono-academico-casa-grande
+repo_url: https://github.com/laurentaf/abandono-academico-casa-grande
+
+needs:
+  - data          # ingestao API, profiling, SQL → latade
+  - etl           # pipeline bronze→silver→gold → latade
+  - ml            # modelo preditivo scikit-learn → laecon
+  - predictive-modeling # classificacao de abandono → laecon
+  - data-quality  # validacao de dados, guards → latade
+  # Fase 4 (condicional):
+  # - dashboard   # UI com conclusoes + simulacao → ladesign
+
+deliverables:
+  # Fase 1 — arquivos commitados
+  - src/main.py
+  - requirements.txt
+  - .gitignore
+  - data/.gitkeep
+  - models/.gitkeep
+  - reports/.gitkeep
+  # Fase 1 — outputs de runtime (gerados por src/main.py, gitignored)
+  # - data/dataset.parquet  (baixado pela API em fetch_dataset)
+  # - models/model.pkl      (treinado por train_model)
+  # - reports/model_metrics.md  (gerado por _save_metrics)
+# Fase 2 — arquivos commitados
+- artifacts/data/model.md
+- artifacts/dq/checks.md
+# Fase 2 — outputs de runtime (gerados por src/main.py, gitignored)
+# - data/raw.csv (exportado por fetch_dataset)
+# - data/dataset.parquet (baixado pela API em fetch_dataset)
+# - models/model.pkl (treinado por train_model)
+# - reports/model_metrics.md (gerado por _save_metrics)
+# Fase 3 (TBD)
+  # Fase 4 (opcional)
+  # - artifacts/dashboard/
+  - README.md
+
+inputs:
+  - brief
+  - api_endpoint
+  - project_id
+  - api_token
+
+input_values:
+  brief: |
+    Pipeline de Previsao de Abandono Academico — Universidade Casa Grande.
+    DataMission project ID: 2e4ce469-1a75-45fb-a41e-160196c7b989
+    Dataset: 1000 registros, 7 colunas (student_id, timestamp, course_name,
+    enrollment_status, grade_point_average, attendance_rate, scholarship_percent).
+    Target: enrollment_status (SUSPENDED = abandono?).
+    Fase 1: criar src/main.py com main(), fetch_dataset() via requests,
+    train_model() via scikit-learn; requirements.txt com pandas, scikit-learn,
+    requests, dbt.
+    Nota do dono da DataMission: testar URL com .git no final para economia
+    de custo. Resultado do teste: URL sem .git funciona (200, 63KB parquet);
+    com .git no path do project_id da 422. NAO usar .git.
+  api_endpoint: "https://api.datamission.com.br/projects/{project_id}/dataset?format=parquet"
+  project_id: "2e4ce469-1a75-45fb-a41e-160196c7b989"
+  api_token: "{{DATAMISSION_APIKEY}}" # env var em E:\projects\.env
+
+stages:
+  - id: 1
+    name: "Preparar ambiente e dependencias"
+    description: |
+      Criar estrutura inicial com pastas src, data e reports.
+      Adicionar requirements.txt incluindo pandas, scikit-learn, requests e dbt.
+      Criar src/main.py com funcao main() vazia.
+      Implementar fetch_dataset() que usa requests.get com URL da API.
+      Implementar train_model() que treina e salva modelo via scikit-learn.
+    acceptance_criteria:
+      - Existe src/main.py com funcao main definida
+      - requirements.txt lista pandas, scikit-learn, requests e dbt
+      - Existe funcao fetch_dataset que usa requests.get com URL da API
+      - Existe funcao train_model que treina e salva modelo via scikit-learn
+  - id: 2
+    name: "Capturar dados via API — formato parametrizado + HTTP handling"
+    description: |
+      Implementar fetch_dataset(project_id, format) com parametro format,
+      tratamento de status HTTP, salvar dados crus em data/raw.csv,
+      e registrar tamanho do arquivo baixado no print.
+    acceptance_criteria:
+      - Existe src/main.py com funcao main definida
+      - requirements.txt lista pandas, scikit-learn, requests e dbt
+      - Existe funcao fetch_dataset que usa requests.get com URL da API
+      - Existe funcao train_model que treina e salva modelo via scikit-learn
+      - fetch_dataset aceita parametro format (parquet/json/csv)
+      - fetch_dataset trata erros HTTP (4xx/5xx) com mensagem amigavel
+      - fetch_dataset salva dados crus em data/raw.csv alem do parquet
+      - Print registra tamanho do arquivo baixado
+  - id: 3
+    name: "Fase 3 (TBD — aguardar briefing DataMission)"
+    description: A definir pelo proximo briefing da DataMission.
+  - id: 4
+    name: "Dashboard + Conclusoes + Simulacao (opcional)"
+    description: |
+      Dashboard interativo com conclusoes e simulacao, verificando variaveis
+      importantes e avaliando o quanto mexer em cada uma melhora ou piora
+      o abandono. Publicar no GitHub.

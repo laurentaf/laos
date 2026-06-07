@@ -1,0 +1,142 @@
+name: previsao-concursos
+description: |
+  Plataforma web que prevê os assuntos mais prováveis por matéria em concursos
+  públicos brasileiros, usando histórico de provas da banca avaliadora
+  identificada a partir do edital. Entrega um roteiro de estudo hierárquico
+  (Matéria > Assunto > Sub-assunto) com probabilidades empíricas por banca/cargo.
+
+workflow: dashboard-completo
+external_delivery: false   # POC 100% local, sem cliente externo
+
+# ──────────────────────────────────────────────────────────────
+#  Needs (validadas contra registry/needs-to-capabilities.yaml)
+# ──────────────────────────────────────────────────────────────
+needs:
+  - data                    # análise histórica, modelagem preditiva   → latade
+  - etl                     # ingestão PDF/link/texto, cache de editais → latade (+lan8n)
+  - modeling               # modelo preditivo por banca/cargo          → latade (data prep) + laecon (ML) (ver nota)
+  - predictive-modeling    # ML empírico por (banca, cargo)            → laecon (ver ADR-004)
+  - data-quality           # split temporal treino/validação           → latade
+  - dashboard              # UI web do candidato                       → ladesign
+  - design                 # estudo-guia hierárquico                   → ladesign
+  - automation             # refresh de cache, alertas                 → lan8n
+  - research               # descoberta de banca e provas anteriores   → exa
+  - integration            # parsing PDF, webhooks de ingestão         → lan8n
+  # NOTA ARQUITETURAL: desde proposta LACOUNCIL bf91c407 (4/4 SIM, 2026-06-05),
+  # `modeling` no registry/needs-to-capabilities.yaml tem `primary: [latade, laecon]`.
+  # `latade` cobre data prep/DQ; `laecon` cobre ML/econometria. O orchestrator
+  # seleciona conforme o brief do projeto (e.g. projeto puramente dimensional
+  # → latade; projeto preditivo → laecon). A need `predictive-modeling` foi
+  # adicionada também para projetos 100% preditivos que não querem ambiguidade
+  # de routing. Ver ADR-004 para handoff e fallback.
+
+# Extensões ad-hoc (não cobertas pelo workflow base).
+# O orchestrator deve disparar sub-stages dentro das etapas do
+# dashboard-completo usando capabilities/lacunas declaradas abaixo.
+custom_stages:
+  - id: scrap
+    when: dentro de discovery + data-model
+    description: |
+      Coletar provas anteriores da banca (PDFs) e editais.
+      Hoje NÃO existe como capability — gap. Para o POC, scraping
+      ad-hoc com httpx+BeautifulSoup (ou scrapy se justificável).
+      PROJETO FUTURO: capability transversal de scraping.
+  - id: chunking
+    when: dentro de data-model
+    description: |
+      Segmentar PDF/HTML da prova por banca, área, disciplina, assunto.
+      Comparar com edital para extrair a matriz de cobrança.
+  - id: classical-ml
+    when: depois de data-model, antes de build
+    description: |
+      Modelo preditivo por (banca, cargo) → probabilidade empírica de
+      cada assunto cair, com base no histórico.
+      IMPLEMENTAÇÃO: usa a stack da capability `laecon` (pandas,
+      scikit-learn, xgboost, shap, optuna) — já instalada em
+      E:\projects\laecon\.venv.
+      Não é gap: é laecon fazendo o que ela faz.
+  - id: study-plan
+    when: dentro de build
+    description: |
+      Gerar roteiro hierárquico Matéria > Assunto > Sub-assunto
+      com distribuição de probabilidade, ordenado do mais provável
+      para o menos. Exemplo:
+        # Português
+        ## Gramática
+        ### Crase (98% 1 questão, 2% nenhuma questão)
+        ## Literatura
+        ### Machado de Assis (40% 2 questões, 50% 1 questão, 10% nenhuma)
+
+# ──────────────────────────────────────────────────────────────
+#  Inputs (escopo do POC + saídas esperadas)
+# ──────────────────────────────────────────────────────────────
+inputs:
+  poc:
+    bancas: [FCC, FGV]              # 2 bancas para dataset mais rico
+    cargo: "Auditor Fiscal"          # família, com sub-trilhas
+    modo: "100% local"
+    janela_temporal:
+      treino:     [2022, 2023, 2024]
+      validacao:  [2025, 2026]
+      motivo: "split temporal obrigatório — sem leakage"
+    concursos_target:
+      total: 25                     # alvo, mínimo 20 (decisão do usuário)
+      por_banca: "10-15 cada"
+      criterios_inclusao:
+        - "uma das bancas (FCC ou FGV)"
+        - "área fiscal / tributos / controle"
+        - "cargo comparável (Auditor Fiscal federal/estadual/municipal)"
+
+  capacidades_primarias:
+    - latade       # DuckDB, SQL, modelagem, DQ
+    - ladesign     # UI do candidato, design system
+    - lan8n        # cache, refresh, ingestão automatizada
+    - exa          # descoberta de provas anteriores, dados da banca
+
+  gaps_conhecidos:
+    - id: scrap
+      severidade: alta
+      descricao: "Não existe capability de scraping. Google/Instagram/ML/legislação têm universos distintos. Para a POC, skill no LATADE (escopo pequeno)."
+      status: "skill implementada no repo filho; virar capability só se aparecer em 3+ projetos"
+    - id: classical-ml
+      severidade: resolvido
+      descricao: "ML é responsabilidade da capability `laecon`, que já tem pandas/scikit-learn/xgboost/shap/optuna instalados em E:\\projects\\laecon\\.venv. A POC vai usar a laecon."
+      status: "arquitetura corrigida — ML via laecon"
+
+  regras_negocio:
+    - "Não usar LLM para classificar/ranquear assuntos — inviável em escala. Classical ML."
+    - "Split temporal obrigatório: treino nunca vê dados de validação (anti-leak)."
+    - "Cache de concursos por URL do edital — evitar re-raspagem do mesmo concurso."
+    - "Probabilidades são empíricas sobre histórico, não inferência causal."
+    - "Roteiro ordenado do mais provável para o menos provável."
+
+  referencias:
+    bancas: ["FCC (Fundação Carlos Chagas)", "FGV (Fundação Getúlio Vargas)"]
+    cargo_alvo: "Auditor Fiscal (tributos federais/estaduais/municipais / RFB)"
+    fontes_provaveis_provas:
+      - "concursosfcc.com.br (oficial FCC, URL determinística)"
+      - "qconcursos.com.br (taggeamento por assunto — ouro para ML)"
+      - "pciconcursos.com.br (índice FCC-Auditor)"
+      - "fgv.br/... (oficial FGV)"
+      - "estrategia.com.br, grancursosonline.com.br (cadernos e análises)"
+
+# ──────────────────────────────────────────────────────────────
+#  Deliverables (espelho do workflow + extensões)
+# ──────────────────────────────────────────────────────────────
+deliverables:
+  # Stages do workflow base
+  - artifacts/discovery/requirements.md
+  - artifacts/data/model.md
+  - artifacts/design/
+  - artifacts/dashboard/
+  - artifacts/automation/
+  - artifacts/review/checklist.md
+  # Extensões do POC
+  - artifacts/data/source-profile.md
+  - artifacts/data/train-validation-split.md
+  - artifacts/pipeline/            # scraper + chunker
+  - artifacts/dq/checks.md
+  - artifacts/ml/                  # modelo + métricas
+  # Repositório filho
+  - repo: laurentaf/previsao-concursos
+    nota: "Todos os artefatos acima serão commitados no repo filho, não em LAOS."
