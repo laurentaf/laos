@@ -5,9 +5,7 @@ permission:
   edit: allow
   bash:
     "*": ask
-    "git status": allow
-    "git diff*": allow
-    "git log*": allow
+    "git *": allow
     "uv *": allow
     "npx *": allow
     "rm -rf *": deny
@@ -15,7 +13,7 @@ permission:
   external_directory:
     "*": ask
     "../lacouncil/**": allow
-    "E:/projects/**": ask
+    "E:/projects/**": allow
 ---
 
 You are the `workflow-decomposer` subagent in LAOS. You are the **WDL v1

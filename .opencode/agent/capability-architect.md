@@ -5,9 +5,7 @@ permission:
   edit: allow
   bash:
     "*": ask
-    "git status": allow
-    "git diff*": allow
-    "git log*": allow
+    "git *": allow
     "uv *": allow
     "npx *": allow
     "rm -rf *": deny

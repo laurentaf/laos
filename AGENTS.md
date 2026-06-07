@@ -38,10 +38,45 @@ LAOS is an **orchestration layer** with an independent structural improvement te
      `workflows/wdl-contract.yaml` §triggers.exempt.scope.tool_allowlist.
      No narrative exemptions. Any tool outside the allowlist, or
      any non-orchestrator-direct subagent, requires the WDL gate.
-   - **8.5 (reviewer cites exit_code).** The `delivery-reviewer`
-     MUST quote the `exit_code` from the preflight `wdl-gate` in
-     its G4 sign-off. The 5 cite categories are enumerated in
-     `.opencode/agent/delivery-reviewer.md` §"WDL preflight gate".
+    - **8.5 (reviewer cites exit_code).** The `delivery-reviewer`
+      MUST quote the `exit_code` from the preflight `wdl-gate` in
+      its G4 sign-off. The 5 cite categories are enumerated in
+      `.opencode/agent/delivery-reviewer.md` §"WDL preflight gate".
+9. **Venv path policy (user authorization, 2026-06-07).** When invoking
+   a Python virtual environment, the orchestrator and subagents follow
+   this rule:
+   - **In-scope (no prompt):** venv lives under `E:/projects/**/.venv/`
+     or `E:/projects/**/venv/` (e.g. `E:/projects/laos/.venv`,
+     `E:/projects/latade/.venv`, `E:/projects/lacouncil/.venv`). Use
+     it directly.
+   - **Out-of-scope (must explain):** venv lives OUTSIDE
+     `E:/projects/**` (e.g. `~/.venv/`, system Python, `/usr/local/venv/`,
+     `C:\Python3X\`). Stop and explain to the user WHY before invoking
+     it: which capability needs the external venv, where it is, and
+     why we cannot colocate it under `E:/projects/`. This is a user
+     authorization boundary, not a hard technical constraint — the user
+     has chosen to keep the LAOS workspace self-contained. The
+     explanation is a one-time requirement per external venv; once the
+     user accepts, subsequent invocations proceed without re-asking.
+10. **Permission grants for the LAOS workspace (user authorization,
+    2026-06-07).** The following operations are pre-authorized in
+    `opencode.jsonc` and every subagent frontmatter (per Hard Rule #9
+    + user grant). No prompt required:
+    - **File operations** under `E:/projects/**` (read, write, edit,
+      create, delete). This covers all LAOS projects, capability repos
+      (latade, lan8n, lacouncil, laecon, laengine, ladesign), and
+      cross-project grounding data (`E:/projects/_commomdata/**`).
+    - **Bash `git *`** — all git subcommands (status, diff, log, add,
+      commit, push, pull, fetch, branch, checkout, merge, rebase,
+      stash, tag, etc.) run without prompt. Destructive operations
+      are not separately blocked, but `rm -rf *` is denied at the
+      opencode layer (filesystem-level, not git-level) and Regime A
+      push rules still apply.
+    Implementation lives in:
+    - `.opencode/opencode.jsonc` `permission` block (top-level)
+    - `.opencode/agent/<subagent>.md` frontmatter (per-subagent override;
+      required because per `knowledge/opencode-permissions.md` §2.1
+      the subagent's frontmatter overrides the top-level wholesale)
 
 ## Repository layout
 

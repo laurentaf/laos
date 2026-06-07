@@ -103,30 +103,36 @@ implementação do glob no opencode runtime **pode** não casar o
 
 ## 3. Tabela de paths conhecidos por subagente
 
-Estado em 2026-06-05 (proposta `4a9f07c3` BASIC, ainda não
-implementado nos 5 instruction files — fica como referência canônica
-para o orchestrator implementar):
+Estado em 2026-06-07 (atualizado por Hard Rule #10, AGENTS.md).
+Todos os 7 subagentes (orchestrator, data-architect,
+dashboard-designer, automation-engineer, delivery-reviewer,
+capability-architect, workflow-decomposer) compartilham
+`E:/projects/**` como allowlist comum (regra Hard #10).
+A entrada explícita antiga `E:/projects/_commomdata/**` foi
+subsumida pelo umbrella `E:/projects/**` (qualquer path que case
+inclui `_commomdata`).
 
-| Subagente | Paths de leitura (charter) | Paths de escrita (charter) | Dot-directory no escopo? |
-|-----------|----------------------------|----------------------------|--------------------------|
-| `data-architect` | `../latade/**`, `E:/projects/**`, `E:/projects/_commomdata/**` | `projects/<name>/artifacts/{data,pipeline,dq}/` (workspace) | não |
-| `dashboard-designer` | `../ladesign/**`, `E:/projects/**` | `projects/<name>/artifacts/{design,deck}/` (workspace) + `../ladesign/.od/**` (daemon storage) | **sim — `.od/`** |
-| `automation-engineer` | `../lan8n/**`, `../n8n/**`, `E:/projects/**`, `E:/projects/_commomdata/**` | `projects/<name>/artifacts/automation/` (workspace) | não |
-| `delivery-reviewer` | `E:/projects/**` (read-only; `edit: deny` no frontmatter) | (nenhum) | não |
-| `capability-architect` | `E:/projects/**`, `../<capability>/**` para cada capability conhecida | `projects/_meta/**` (workspace) + capability repos existentes (latade, lan8n, lacouncil, laengine, laecon, ladesign) | não |
-| `orchestrator` | já coberto em `opencode.jsonc` (top-level) | já coberto em `opencode.jsonc` (top-level) | n/a (config em JSONC) |
+| Subagente | Paths de leitura (charter) | Paths de escrita (charter) | Bash `git *` | Dot-directory no escopo? |
+|-----------|----------------------------|----------------------------|--------------|--------------------------|
+| `data-architect` | `../latade/**`, `E:/projects/**` | `projects/<name>/artifacts/{data,pipeline,dq}/` (workspace) | allow | não |
+| `dashboard-designer` | `../ladesign/**`, `E:/projects/**` | `projects/<name>/artifacts/{design,deck}/` (workspace) + `../ladesign/.od/**` (daemon storage) | allow | **sim — `.od/`** |
+| `automation-engineer` | `../lan8n/**`, `../n8n/**`, `E:/projects/**` | `projects/<name>/artifacts/automation/` (workspace) | allow | não |
+| `delivery-reviewer` | `E:/projects/**` (read-only; `edit: deny` no frontmatter) | (nenhum) | deny (bash: deny) | não |
+| `capability-architect` | `E:/projects/**`, `../<capability>/**` para cada capability conhecida | `projects/_meta/**` (workspace) + capability repos existentes (latade, lan8n, lacouncil, laengine, laecon, ladesign) | allow | não |
+| `orchestrator` | já coberto em `opencode.jsonc` (top-level) | já coberto em `opencode.jsonc` (top-level) | allow | n/a (config em JSONC) |
+| `workflow-decomposer` | `../lacouncil/**`, `E:/projects/**` | `artifacts/wdl/<plan-id>/` (workspace) | allow | não |
 
-**Convenção aplicada:** `E:/projects/**` é o "leio tudo no
-diretório de projetos" — para contexto de outros projetos.
+**Convenção aplicada:** `E:/projects/**` é o "leio/escrevo tudo no
+diretório de projetos" — para contexto de outros projetos, capability
+repos, e cross-project grounding data (`_commomdata`).
 `projects/<name>/artifacts/<subclass>/` é o **escritório oficial**
 e não precisa de `external_directory` porque está dentro do
 workspace (LAOS).
 
-A linha do `data-architect` em particular carrega a convenção
-`_commomdata` (ver `knowledge/data-conventions.md` §"_commomdata
-— diretório compartilhado cross-project") — daí a entrada
-explícita no allowlist do orchestrator e dos subagentes que
-trabalham com grounding externo.
+**Bash `git *` allow** (Hard Rule #10, 2026-06-07): todos os
+subagentes com `bash: allow` no frontmatter recebem `git *` no
+allowlist. `delivery-reviewer` mantém `bash: deny` (read-only por
+design). `rm -rf *` continua denylisted em todos.
 
 ---
 

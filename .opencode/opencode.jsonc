@@ -166,14 +166,15 @@
   },
 
   // Permissions for the orchestrator (primary). Subagents narrow this.
+  // Per Hard Rule #10 (AGENTS.md, 2026-06-07): file ops under E:/projects/**
+  // and bash `git *` are pre-authorized. Subagent frontmatter overrides
+  // the top-level wholesale (per knowledge/opencode-permissions.md §2.1).
   "permission": {
     "edit": "allow",
     "webfetch": "allow",
     "bash": {
       "*": "ask",
-      "git status": "allow",
-      "git diff*": "allow",
-      "git log*": "allow",
+      "git *": "allow",
       "uv *": "allow",
       // subagent_boot_check.py é pre-flight obrigatório (AGENTS.md +
       // stack-decisions.md). Read-only, exit 0/1, sem efeito colateral.
@@ -191,11 +192,12 @@
       "../laengine/**": "allow",
       "../lacouncil/**": "allow",
       "../laecon/**": "allow",
-      // _commomdata (cross-project grounding data). Convention documented
-      // in knowledge/data-conventions.md and knowledge/opencode-permissions.md.
-      // Allows LAOS subagentes (data-architect, automation-engineer) to read
-      // E:/projects/_commomdata/** without "Permissão necessária" prompts.
-      "E:/projects/_commomdata/**": "allow"
+      // Per Hard Rule #10 (AGENTS.md, 2026-06-07): all of E:/projects/**
+      // is pre-authorized. Covers LAOS workspace, capability repos
+      // (latade/lan8n/lacouncil/laecon/laengine/ladesign), and
+      // cross-project grounding data (_commomdata). The prior explicit
+      // "E:/projects/_commomdata/**" entry is now subsumed by this.
+      "E:/projects/**": "allow"
     }
   }
 }

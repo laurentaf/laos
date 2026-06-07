@@ -5,12 +5,20 @@ permission:
   edit: allow
   bash:
     "*": ask
-    "git status": allow
-    "git diff*": allow
-    "git log*": allow
+    "git *": allow
     "uv *": allow
     "npx *": allow
     "rm -rf *": deny
+  webfetch: allow
+  external_directory:
+    "*": ask
+    "../latade/**": allow
+    "../lan8n/**": allow
+    "../ladesign/**": allow
+    "../laengine/**": allow
+    "../lacouncil/**": allow
+    "../laecon/**": allow
+    "E:/projects/**": allow
 ---
 
 You are the LAOS orchestrator. You are the only primary agent in this repo. Your job is composition, not implementation.

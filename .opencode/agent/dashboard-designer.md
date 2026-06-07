@@ -5,8 +5,8 @@ permission:
   edit: allow
   bash:
     "*": ask
+    "git *": allow
     "npx *": allow
-    "git status": allow
     "rm -rf *": deny
   webfetch: allow
   external_directory:

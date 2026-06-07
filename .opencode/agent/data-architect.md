@@ -5,15 +5,13 @@ permission:
   edit: allow
   bash:
     "*": ask
+    "git *": allow
     "uv *": allow
-    "git status": allow
-    "git diff*": allow
     "rm -rf *": deny
   webfetch: allow
   external_directory:
     "*": ask
     "../latade/**": allow
-    "../_commomdata/**": allow
     "E:/projects/**": allow
 ---
 
