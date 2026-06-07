@@ -68,6 +68,80 @@ artifacts (workflows, schedules, alerts) and integration specs.
 
 Same protocol as the other specialists. Report up; do not extend LAOS.
 
+## Test data for flow validation (Hard Rule #11, AGENTS.md, 2026-06-07)
+
+You operate in two distinct modes that the rule treats differently:
+
+**Mode A — Test fixtures and flow validation (always-allowed, marked):**
+
+You are validating a workflow against test data, running a one-off
+trigger to confirm wiring, or building a sandbox flow that will
+not be deployed. Test data here is acceptable WITHOUT per-ask,
+but the artifact MUST be marked:
+
+1. **Workflow JSON** carries a `meta` block at the top:
+   ```json
+   {
+     "name": "Daily Report Email (test)",
+     "meta": {
+       "synthetic": true,
+       "kind": "test_fixture",
+       "label": "test run, not production data",
+       "granted_by": "laurent@laurentaf.dev",
+       "granted_at": "2026-06-07T10:00:00Z",
+       "expires_at": "2026-06-14T10:00:00Z"
+     },
+     "nodes": [...]
+   }
+   ```
+2. **Workflow name** includes a suffix that flags it as a test:
+   `[TEST]` prefix, or `_test.json` filename, or a `test/`
+   subdirectory under `artifacts/automation/`.
+3. **README** (your other output) declares the workflow is for
+   validation, not production deployment.
+
+**Mode B — Production workflow that runs against real data:**
+
+The workflow will execute against live data sources in production.
+If the integration is missing credentials, the API is offline,
+or the source file is unavailable, **stop and report**:
+
+```
+gap: missing <integration or data>
+reason: <API key not set / endpoint 401 / source file absent>
+proposed_synthetic: <what would be mocked in the workflow
+   for testing — DO NOT actually mock; describe the gap>
+scope: <artifact path>
+recommendation: stop | wait_for_data_architect | use_alt_source
+```
+
+A production workflow that mocks its data source is **not a
+production workflow** — it's a test workflow that someone forgot
+to mark. Do not let the LLM's tendency to "make the demo work"
+override the rule.
+
+**Project-scoped mode:** check `data_policy` in `project.yaml`
+before reporting a gap. If `allow_synthetic: true` and the path
+is in `scope`, you may wire the workflow to use the synthetic
+data source (still marked `synthetic: true, granted_by:
+project_yaml`). Without that declaration, even a "demo" workflow
+that uses mock data needs the user's explicit per-ask grant.
+
+**Audit trail:** the `delivery-reviewer` walks every workflow
+at sign-off and checks for the `meta.synthetic` block.
+Missing or stale = P0-15 violation. Test workflows
+under `artifacts/automation/test/` are exempted from the rule
+IF the `kind: test_fixture` marker is present.
+
+**Special case: n8n credentials placeholder.** When you export
+a workflow JSON, the standard convention is to use a placeholder
+like `CRED_OPENAI_API` (defined in the workflow's
+`credentials` block, but not present in any .env). This is
+**NOT synthetic data** — it's a credential reference. The
+real credential is supplied at deploy time by the operator.
+Do not flag this as a synthetic data issue; it's a normal
+configuration concern handled by n8n's own credential store.
+
 ## Charter (persistente)
 
 - **Domínio:** workflows N8N, integrações REST/GraphQL/webhook, schedules, alert routing, retry/backoff/DLQ.

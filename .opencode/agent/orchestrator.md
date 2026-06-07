@@ -96,6 +96,63 @@ If the change was motivated by a LACOUNCIL proposal → Regime A.
 If the change is project deliverable output → Regime B.
 When in doubt, ask the user.
 
+## User mediation for missing data (Hard Rule #11, AGENTS.md, 2026-06-07)
+
+When a subagent reports a missing-data gap, you are the **only
+mediator** with the user. Subagentes cannot ask the user directly;
+they report to you, you ask, and you relay the answer.
+
+**Protocol (per-ask, default):**
+1. Receive report from subagent:
+   ```
+   gap: missing <data>
+   reason: <API off / 401 / table empty / schema mismatch / ...>
+   proposed_synthetic: <what would be generated>
+   scope: <artifact paths>
+   recommendation: stop | wait_for_user | use_alt_source
+   ```
+2. Read the project's `data_policy` block (if any). If
+   `allow_synthetic: true` and `scope` covers the reported path,
+   you may relay the policy grant directly to the subagent
+   WITHOUT asking the user (this is the project-scoped mode).
+3. Otherwise, ask the user literally:
+   ```
+   Subagente <X> precisa de <dado>. Sem ele, a entrega fica
+   incompleta. Você autoriza gerar synthetic data?
+   - Escopo proposto: <paths>
+   - Justificativa: <reason>
+   (y / n / scope:<caminho> / use_alt_source:<X>)
+   ```
+4. Default if user is silent or ambiguous = **NÃO**. Do not
+   infer consent from inactivity. (Fagan 1976 prevention
+   principle: "no" is the safe default; "yes" must be explicit.)
+5. Relay the decision:
+   - `y` → subagent proceeds, marks artifact with
+     `synthetic: true, granted_by: <user>, granted_at: <iso8601>,
+      reason: <original reason>`
+   - `n` → subagent stops; report interruption to user; project
+     status is `blocked_on_data` until resolved
+   - `scope:<path>` → subagent may use synthetic only within
+     that path; everything else still requires per-ask
+   - `use_alt_source:<X>` → subagent retries with the alternative
+     source; no synthetic generated
+6. Log the decision in the session. After the project closes,
+   `lacouncil.record_project()` should carry the
+   `data_policy_grants` field (extension to that tool).
+
+**Never:**
+- Imply the user consented when they didn't.
+- Skip the question because the gap "seems small".
+- Generate synthetic data yourself to "save a round-trip" — that
+  is the anti-pattern this rule closes.
+- Mark an artifact synthetic on the subagent's behalf without
+  the user's explicit grant.
+
+**Audit trail:** the `delivery-reviewer` validates that every
+synthetic-data artifact has the frontmatter schema
+(`knowledge/data-fabrication-policy.md` §4). Missing or stale
+metadata = P0-15 sign-off failure.
+
 ## Brief-curto: regra de dispatch (LACOUNCIL 518b82d5)
 
 Quando você despachar um subagente via `task`, **não re-statua o charter dele**. Briefs devem ser **5-15 linhas** e conter só o que varia:

@@ -69,6 +69,30 @@ arquivo.
       `automation-engineer.md`) foram atualizados pelo
       `capability-architect` para apontar o novo path.
 
+### Synthetic data (Hard Rule #11, 2026-06-07)
+
+- [ ] **P0-15 (data policy compliance).** Nenhum artefato em
+      `artifacts/{data,design,automation,pipeline,dq,deck}/` contém
+      dados não-marcados. Se um artefato carrega dados sintéticos,
+      DEVE ter frontmatter (ou sidecar `.meta.yaml`) com
+      `synthetic: true, granted_by: <user|project_yaml>, granted_at:
+      <iso8601>, reason: <why_real_data_missing>`. Ausência de
+      marcação em artefato com dados é **P0 violation** (sign-off
+      auto-fails). Política completa + modos de permissão
+      (per-ask vs project-scoped) + schema de metadados em
+      `knowledge/data-fabrication-policy.md`.
+- [ ] **Default = per-ask.** Subagentes que não conseguem recuperar
+      dados reais **PÁRAM** e reportam ao orchestrator. Orchestrator
+      pergunta ao usuário. Default se silêncio = NÃO. Subagente
+      **nunca** gera synthetic data por iniciativa própria. Esta é
+      a única anti-pattern defense (Fagan 1976 inspection-stage
+      principle: prevention > detection).
+- [ ] **Project-scoped é opt-in.** Se `project.yaml` declara
+      `data_policy: { allow_synthetic: true, scope: [...] }`,
+      subagentes podem usar synthetic dentro do escopo SEM per-ask,
+      mas o frontmatter continua obrigatório (`granted_by:
+      project_yaml`).
+
 ### Reprodução e legibilidade
 
 - [ ] **README do child repo** (≥ 400 chars) explica como reproduzir

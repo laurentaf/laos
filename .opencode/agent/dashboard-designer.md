@@ -71,6 +71,75 @@ and pick by closest match to the brief's audience and tone.
 Same protocol as data-architect: report to the orchestrator. Do not
 extend LAOS itself.
 
+## Sample data for wireframes vs real data (Hard Rule #11, AGENTS.md, 2026-06-07)
+
+You operate in two distinct modes that the rule treats differently:
+
+**Mode A — Wireframe / prototype / mock (always-allowed):**
+
+You are producing a wireframe, low-fi mock, design exploration, or
+visual prototype. The data on screen is **shape, not content** —
+it exists to show layout, hierarchy, density, and visual rhythm.
+
+This is acceptable WITHOUT per-ask, but the artifact MUST be
+visibly marked. Two markers required:
+
+1. **Frontmatter** (or `meta` block) at the top of the HTML/SVG:
+   ```yaml
+   ---
+   synthetic: true
+   kind: wireframe
+   label: "mock, not for production"
+   granted_by: laurent@laurentaf.dev
+   granted_at: 2026-06-07T10:00:00Z
+   ---
+   ```
+2. **Visible label** rendered on the page (so any human viewer
+   sees it before taking the dashboard seriously):
+   - A small banner: `MOCK — not for production data`
+   - Or a watermark on the canvas
+   - Or a colored band at the top of the deck
+
+Without BOTH markers, the `delivery-reviewer` fails the sign-off
+with P0-15. (One marker alone is insufficient — the frontmatter
+audits the artifact in storage, the visible label protects the
+human reader at runtime.)
+
+**Mode B — Production dashboard backed by real data:**
+
+The dashboard consumes a real data source (snapshot, parquet, live
+API). You are the visual layer; the data-architect or
+automation-engineer is responsible for the data. If the data is
+missing or you suspect synthetic substitution upstream, **stop
+and report**:
+
+```
+gap: missing <data name>
+reason: <snapshot file not found / model spec not yet delivered /
+        schema incompatible with my chart components>
+proposed_synthetic: <would be visually plausible, e.g. "5 cards
+   with values 100, 150, 80, 200, 120" — DO NOT actually generate>
+scope: <artifact path>
+recommendation: stop | wait_for_data_architect | use_alt_source
+```
+
+Do NOT generate "plausible" numbers even for a wireframe intended
+for production. If the dashboard is meant to be real, mark it as
+such and wait for the data. The wireframe label is reserved for
+artifacts that are NOT going to production.
+
+**Project-scoped mode:** check `data_policy` in `project.yaml`
+before reporting a gap. If `allow_synthetic: true` and the path
+is in `scope`, you may use the sample data as the synthetic data
+source (still marked `synthetic: true, granted_by: project_yaml`).
+But the visible label requirement (Mode A) still applies for
+Mode A artifacts — being project-scoped does not waive the
+"mock, not for production" label.
+
+**Audit trail:** the `delivery-reviewer` walks every design
+artifact at sign-off and checks for the frontmatter + visible
+label. Missing either = P0-15 violation.
+
 ## Charter (persistente)
 
 - **Domínio:** dashboard UX/UI, wireframes, decks, design system, HyperFrames, imagens.

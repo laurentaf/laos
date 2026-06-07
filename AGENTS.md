@@ -77,6 +77,40 @@ LAOS is an **orchestration layer** with an independent structural improvement te
     - `.opencode/agent/<subagent>.md` frontmatter (per-subagent override;
       required because per `knowledge/opencode-permissions.md` §2.1
       the subagent's frontmatter overrides the top-level wholesale)
+11. **No synthetic data in production artifacts without explicit user
+    permission (proposed LACOUNCIL, 2026-06-07).** When a subagent
+    (`data-architect`, `dashboard-designer`, `automation-engineer`, or
+    any future specialist) cannot retrieve the **real** data needed
+    for a deliverable, it MUST stop and report the gap to the
+    orchestrator. The orchestrator MUST ask the user before any
+    synthetic data is generated. The default user response is **NO**.
+    The agent's temptation to "just make it up" is the failure mode
+    this rule closes (Fagan 1976 inspection-stage principle: defect
+    injection is cheaper to prevent than to detect downstream).
+    Permission modes (see `knowledge/data-fabrication-policy.md` for
+    the full policy, metadata schema, and audit trail):
+    - **Per-ask (default, strict).** Agent stops, orchestrator asks
+      the user, user decides per occurrence. The synthetic data
+      artifact MUST carry frontmatter
+      `synthetic: true, granted_by: <user>, granted_at: <iso8601>,
+       reason: <why_real_data_missing>`.
+    - **Project-scoped (opt-in, less strict).** The `project.yaml`
+      declares `data_policy: { allow_synthetic: true, scope: [<list
+      of artifact paths or classes>] }`. Within the declared scope,
+      the agent can use synthetic data without per-ask. The
+      `granted_by` field reads `project_yaml` (not the user name)
+      and `granted_at` is the project.yaml `criado_em` or the
+      data_policy block's `decided_at` field.
+    - **Acceptable without permission (always allowed).** Test
+      fixtures in `tests/` directories; wireframe mockups explicitly
+      labeled `mock, not for production`; documentation examples
+      in `docs/` or knowledge entries. Production deliverables
+      (`artifacts/data/`, `artifacts/design/`, `artifacts/automation/`,
+      `artifacts/deck/`, `artifacts/pipeline/`, `artifacts/dq/`) are
+      never acceptable without the explicit permission flow above.
+    Any synthetic-data artifact in a production path without
+    frontmatter marking is a **P0 violation** (delivery-reviewer
+    auto-fails the sign-off; see `knowledge/padroes-entrega.md`).
 
 ## Repository layout
 
