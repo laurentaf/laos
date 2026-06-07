@@ -1,42 +1,52 @@
 # LAOS project contract
-# Gerado pelo orchestrator para o Data Mission — Monitor de Ruptura
+# Monitor de Ruptura — Lojas Giovanna (Docker + ShadowTraffic)
 
 project: giovanna-rupture-monitor
+type: deliverable
 display_name: "Monitor de Ruptura por Região — Lojas Giovanna"
 brief: >
-  Pipeline ETL em 3 estágios que consome dados da API DataMission,
-  calcula ruptura de estoque por região e gera relatório analítico.
-  Projeto de portfólio de engenharia de dados.
-
-source: Data Mission (datamission.com.br/projects/93fa0f19-ae51-4ed9-986b-47457ac2f26a)
+  Pipeline ETL em 3 estágios com dados sintéticos (ShadowTraffic),
+  calcula ruptura de estoque por região, gera relatório CSV e
+  dashboard HTML. Dockerizado: único `docker run` produz dashboard funcional.
 
 needs:
-  - etl
-  - data
-  - data-quality
-  - presentation
+- etl
+- data
+- data-quality
+- dashboard
+- presentation
 
 capabilities:
-  primary:
-    - latade
-  optional:
-    - ladesign
-    - context7
+primary:
+- latade
+- ladesign
+optional:
+- context7
 
 deliverables:
-  - path: data/raw_data.json
-    description: Dados brutos obtidos da API Data Mission
-  - path: data/rupture_report.csv
-    description: Relatório de ruptura por região
-  - path: main.py
-    description: Pipeline ETL com 3 estágios
-  - path: README.md
-    description: README de portfólio com documentação completa
-  - path: data/quality_rules.md
-    description: Regras de qualidade de dados
-  - path: spec/adr/001-rupture-pipeline.md
-    description: Decisão técnica sobre stack e arquitetura
+- path: main.py
+  description: Pipeline ETL com 3 estágios (modo --local com ShadowTraffic)
+- path: generate_shadowtraffic_data.py
+  description: Gerador de dados sintéticos de inventário
+- path: data/raw_data.json
+  description: Dataset sintético usado pelo pipeline local
+- path: data/rupture_report.csv
+  description: Relatório de ruptura por região (gerado pelo pipeline)
+- path: dashboard.html
+  description: Dashboard HTML interativo com mapa de ruptura
+- path: Dockerfile
+  description: "Container Docker: roda pipeline + serve dashboard"
+- path: docker-compose.yml
+  description: "Compose para docker compose up"
+- path: entrypoint.sh
+  description: "Script de entrada: pipeline + http.server"
+- path: README.md
+  description: Documentação com instruções Docker e local
+- path: data/quality_rules.md
+  description: Regras de qualidade de dados
+- path: spec/adr/001-rupture-pipeline.md
+  description: Decisão técnica sobre stack e arquitetura
 
 repo: https://github.com/laurentaf/giovanna-rupture-monitor
-status: in_progress
+status: delivered
 created_at: 2026-06-03
