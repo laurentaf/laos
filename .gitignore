@@ -14,6 +14,7 @@ __pycache__/
 # Per-project artifacts
 projects/*/artifacts/
 projects/*/.cache/
+projects/*/_child_clone/
 
 # Editor / OS
 .vscode/
