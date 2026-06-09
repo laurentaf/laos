@@ -130,6 +130,12 @@ arquivo.
 
 ## P1 - bloqueia se a entrega for para cliente externo
 
+- [ ] **DQ baseline checks (LACOUNCIL d6c79133, 2026-06-09).** Para cada
+artefato de dados, os 6 DQ baseline checks (null profiling, column existence,
+type validation, duplicate detection, target balance, range/bounds) foram
+implementados ou justificados N/A em `artifacts/dq/checks.md`. Detalhes e
+código-exemplo em `knowledge/data-quality-baseline.md`. Severidade MEDIUM
+por default; promovido para HIGH quando o estágio seguinte depende do check.
 - [ ] Snapshots de dados estão datados e identificados (não "dados.xlsx").
 - [ ] Decks e dashboards passam por revisão de acessibilidade básica
       (contraste, ordem de leitura).
