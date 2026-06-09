@@ -42,6 +42,15 @@ Definições profundas em `../ladesign/`. Atalhos:
 - **Trigger**: evento que dispara um workflow (schedule, webhook, etc).
 - **SLA**: prazo máximo aceitável entre disparo e conclusão.
 
+## Autoria e referências
+
+- **Autor dos projetos**: Laurent — Data Architect & ML Engineer
+  - GitHub: [@laurentaf](https://github.com/laurentaf)
+  - LinkedIn: [lauferreira](https://linkedin.com/in/lauferreira)
+- **Nota**: "Universidade Casa Grande" era um nome fictício usado no
+  projeto abandono-academico-casa-grande. Não é uma instituição real.
+  O dataset vem da API DataMission.
+
 ## Como adicionar um termo aqui
 
 Antes de adicionar: o termo é mesmo transversal a múltiplos domínios?
