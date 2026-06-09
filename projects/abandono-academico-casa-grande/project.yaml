@@ -31,7 +31,6 @@ deliverables:
   - requirements.txt
   - .gitignore
   - data/.gitkeep
-  - models/.gitkeep
   - reports/.gitkeep
   # Fase 2
   - artifacts/data/model.md
@@ -114,7 +113,7 @@ stages:
       - 6 DQ baseline checks implementados (ou justificados N/A) em src/main.py
       - DQ checks executam ANTES de preprocess_data (entre fetch e preprocess)
       - artifacts/dq/checks.md atualizado com implementacao dos 6 checks (DQ-01 a DQ-06)
-      - Modelo salvo em src/model.pkl (conforme briefing) ou models/model.pkl (conforme ADR-001) — decidir e documentar
+      - Modelo salvo em src/model.pkl (ADR-002 documenta decisao)
       - main() executa pipeline completa end-to-end com console metrics
       - DataFrame vazio guard continua funcionando (P0)
   - id: 4
