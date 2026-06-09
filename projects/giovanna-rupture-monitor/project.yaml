@@ -50,3 +50,16 @@ deliverables:
 repo: https://github.com/laurentaf/giovanna-rupture-monitor
 status: delivered
 created_at: 2026-06-03
+
+# Hard Rule #11 — synthetic data policy (retroactive, 2026-06-09)
+# Project uses ShadowTraffic synthetic data by design.
+data_policy:
+  allow_synthetic: true
+  scope:
+    - "data/*"
+    - "artifacts/data/*"
+    - "artifacts/dq/*"
+    - "dashboard.html"
+  decided_at: "2026-06-09T00:00:00Z"
+  decided_by: user_override
+  reason: "ShadowTraffic synthetic inventory data is the project's core input — no real data source exists or is intended"
