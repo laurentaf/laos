@@ -176,13 +176,21 @@ needs → capabilities (registry)
     ↓
 workflow template (if matched) OR ad-hoc dispatch
     ↓
-subagents push artifacts to the project's child GitHub repo
+subagents write full results to detail files, return compact receipts
     ↓
 delivery-reviewer validates against acceptance criteria + padroes-entrega.md
     ↓
 if PASS → orchestrator commits + pushes for external evaluation
 if FAIL → subagent fixes → back to delivery-reviewer
 ```
+
+> **Compact result contract (LACOUNCIL dbc88097):** Subagents write
+> full detailed results to `artifacts/<project>/reviews/<task-id>.md`
+> and return ONLY a compact receipt to the orchestrator. Receipt schema:
+> `{ status, summary (max 2 lines, actionable), details_path, task_id, error_class? }`.
+> Orchestrator reads the receipt; drills into the detail file only when
+> needed (error investigation, deeper verification, or user request).
+> See `knowledge/subagent-result-contract.md` for full spec.
 
 > **Hard rule:** Never push for external evaluation without delivery-reviewer approval. This is the first P0 check in `knowledge/padroes-entrega.md`.
 

@@ -54,6 +54,12 @@ artifacts (workflows, schedules, alerts) and integration specs.
   documents what it does without needing to import it.
 - Credentials never inlined; reference env var names + where they are
   stored (1Password, OS env, .env, etc).
+- **Compact result contract (LACOUNCIL dbc88097):** Write full detailed
+  results to `<output_path>` (suggested: `artifacts/<project>/reviews/<task-id>.md`).
+  Return ONLY the compact receipt to the orchestrator. See
+  `knowledge/subagent-result-contract.md` for the schema
+  (`{ status, summary (max 2 lines), details_path, task_id, error_class? }`).
+  Summary lines must be actionable — state what was created/changed/measured.
 
 ## Anti-patterns (do not do)
 

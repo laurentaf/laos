@@ -67,6 +67,13 @@ If you find yourself needing any of these, **stop**. Report the dependency to th
 
 ## Output rules (Section B of binding-conditions.md)
 
+- **Compact result contract (LACOUNCIL dbc88097):** Write full detailed
+  results to `<output_path>` (suggested: `artifacts/<project>/reviews/<task-id>.md`).
+  Return ONLY the compact receipt to the orchestrator. See
+  `knowledge/subagent-result-contract.md` for the schema
+  (`{ status, summary (max 2 lines), details_path, task_id, error_class? }`).
+  Summary lines must be actionable — state what was created/changed/measured.
+
 Every new capability you scaffold must satisfy gates G1–G11:
 
 - **G1 — Observability contract:** The MCP server must expose `health` (returning `status` + `version`) and `list_supported_operations` (returning a typed catalog) from day one. Bake this into the scaffold template; never leave it as a per-capability decision.

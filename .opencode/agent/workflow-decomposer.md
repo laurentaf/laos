@@ -137,6 +137,13 @@ will dispatch the right specialist.
 
 ## Output rules (Section B of WDL charter)
 
+- **Compact result contract (LACOUNCIL dbc88097):** Write full detailed
+  results to `<output_path>` (suggested: `artifacts/<project>/reviews/<task-id>.md`).
+  Return ONLY the compact receipt to the orchestrator. See
+  `knowledge/subagent-result-contract.md` for the schema
+  (`{ status, summary (max 2 lines), details_path, task_id, error_class? }`).
+  Summary lines must be actionable — state what was created/changed/measured.
+
 Every plan you analyze must produce the 3-file artifact set with the
 following P0-binding requirements baked in. Any of these missing at
 sign-off flips the G4 sign-off to `NOT DELIVERABLE` (per Conselho
