@@ -38,11 +38,11 @@ deliverables:
   - artifacts/dq/checks.md
   # Transversal
   - README.md
-  # Runtime outputs (gitignored — gerados por src/main.py)
-  # - data/dataset.parquet
-  # - data/raw.csv
-  # - models/model.pkl
-  # - reports/model_metrics.md
+# Runtime outputs (gitignored — gerados por src/main.py)
+# - data/dataset.parquet
+# - data/raw.csv
+# - src/model.pkl
+# - reports/model_metrics.md
   # Fase 4 (opcional)
   # - artifacts/dashboard/
 
@@ -99,8 +99,24 @@ stages:
       - fetch_dataset salva dados crus em data/raw.csv alem do parquet
       - Print registra tamanho do arquivo baixado
   - id: 3
-    name: "Fase 3 (TBD — aguardar briefing DataMission)"
-    description: A definir pelo proximo briefing da DataMission.
+    name: "Fase 3: Preprocessamento + DQ baseline checks + pipeline reestruturada"
+    description: |
+      Extrair preprocess_data(df) de train_model(), implementar 6 DQ baseline checks
+      (null profiling, column existence, type validation, duplicate detection,
+      target balance, range/bounds), limpar nulls, encode categoricals via pandas
+      (nao sklearn LabelEncoder), reestruturar pipeline como
+      fetch_dataset -> preprocess_data -> train_model, e adicionar console metrics.
+    acceptance_criteria:
+      - Existe funcao preprocess_data(df) separada de train_model()
+      - preprocess_data limpa nulls (drop ou fill) e faz logging
+      - preprocess_data encode categorical variables usando pandas (pd.get_dummies ou .cat.codes), nao sklearn LabelEncoder
+      - Pipeline encadeia fetch_dataset -> preprocess_data -> train_model
+      - 6 DQ baseline checks implementados (ou justificados N/A) em src/main.py
+      - DQ checks executam ANTES de preprocess_data (entre fetch e preprocess)
+      - artifacts/dq/checks.md atualizado com implementacao dos 6 checks (DQ-01 a DQ-06)
+      - Modelo salvo em src/model.pkl (conforme briefing) ou models/model.pkl (conforme ADR-001) — decidir e documentar
+      - main() executa pipeline completa end-to-end com console metrics
+      - DataFrame vazio guard continua funcionando (P0)
   - id: 4
     name: "Dashboard + Conclusoes + Simulacao (opcional)"
     description: |
