@@ -1,90 +1,83 @@
-# Handoff — 2026-06-09
+# Handoff — 2026-06-10
 
 ## Project: abandono-academico-casa-grande
 
-**Status:** Fases 1-3 COMPLETE, DELIVERABLE. Fase 4 (optional dashboard) pending.
+**Status:** All 4 stages COMPLETE. DELIVERABLE (pending Round 9 review after LAOS-side sync fixes).
 
-### What happened this session
+### What happened (summary of all sessions)
 
-#### LACOUNCIL proposal d6c79133 — Baseline DQ checks (APPROVED)
-- Created `knowledge/data-quality-baseline.md` with 6 universal DQ checks
-- Updated `knowledge/padroes-entrega.md` P1 section
-- G4 BASIC sign-off: PASS (4/4 SIM, 100% majority)
-- Committed + pushed under Regime A (`0ba1497` on LAOS)
+#### ADR-003: Dataset Reversal DataMission → OULAD
+- Original pipeline used DataMission API (1000 records, 7 cols, SUSPENDED target)
+- Reversed to OULAD (Open University Learning Analytics Dataset) — 32.593 students, 7 CSVs, CC-BY 4.0
+- All code, specs, dashboard, and documentation updated to OULAD
 
-#### Fase 3 — Preprocessamento + DQ Baseline + Pipeline Reestruturada (APPROVED)
-- data-architect extracted `preprocess_data(df)` from `train_model()`
-- 6 DQ baseline checks implemented (DQ-01 to DQ-06) with severity escalation
-- Pipeline restructured: `fetch → DQ checks → preprocess → train → metrics`
-- Pandas `.cat.codes` encoding (not sklearn LabelEncoder)
-- Model path moved to `src/model.pkl` (ADR-002)
-- `artifacts/dq/checks.md` updated with all 6 checks
-- Delivery: 5th review, 2 rounds (2 P0 findings fixed: README stale path, project.yaml comment)
-- Final verdict: **DELIVERABLE**
+#### Stage 1: OULAD Ingestion + Feature Engineering
+- 7 OULAD CSVs → DuckDB bronze (7 tables, 10.9M rows)
+- 2 silver tables (deduplicated)
+- gold_oulad_features: 32.593 rows x 26 cols
+- 6 DQ baseline checks — all PASS
+- ETL documented in artifacts/data/etl_oulad.sql
 
-#### Post-delivery cleanup
-- Removed stale `models/.gitkeep` from LAOS project.yaml
-- Marked all 8 Fase 3 tasks complete in spec/todo.md
-- Added `src/model.pkl` to .gitignore
-- Recorded project in LACOUNCIL for pattern detection
+#### Stage 2: Predictive Model + Evaluation
+- RandomForest + LogisticRegression + Dummy baseline (5-fold CV)
+- RF: 87.5% accuracy, 93.7% recall (dropout), 0.954 ROC-AUC
+- Statistical significance: RF vs Dummy p=0.001; RF vs LR p=0.084 (ns)
+- Model saved to src/model.pkl
+- Comprehensive documentation in artifacts/data/model.md
+
+#### Stage 3: ETL SQL + Documentation
+- artifacts/data/etl_oulad.sql with bronze→silver→gold pipeline
+- artifacts/data/model.md with schema, ML results, feature importance
+
+#### Stage 4: Dashboard + Interactive Simulation
+- Dashboard in artifacts/dashboard/index.html (self-contained HTML, dark theme)
+- OULAD metrics: accuracy 87.5%, recall 93.7%, ROC-AUC 0.954
+- 5 interactive sliders: last_activity_day, assessment_count, avg_assessment_score, total_clicks, days_active
+- Feature importance chart (top 15 features)
+- Target distribution, conclusions section
+
+#### LACOUNCIL proposals
+- d6c79133 — Baseline DQ checks (APPROVED 4/4, 2026-06-09)
+- a4fe9faa + 7fd94c1a — WDL v1 (project predates, not retroactively applied)
 
 ### Current state of child repo (laurentaf/abandono-academico-casa-grande)
 
 **Code:**
-- `src/main.py` — full pipeline: fetch → DQ checks → preprocess → train → metrics
+- `src/main.py` — full pipeline: DuckDB load → DQ checks → feature engineering → train → evaluate
 - 6 DQ functions: check_nulls, check_columns, check_types, check_duplicates, check_target_balance, check_bounds
-- `run_dq_checks(df)` aggregates all 6
-- `preprocess_data(df)` — null cleaning + pandas .cat.codes encoding
-- `train_model(df)` — RandomForestClassifier, saves to `src/model.pkl`
-- Empty DataFrame guard (`sys.exit(1)` + stderr) at 3 call sites
+- `_guard_empty()` at 6 pipeline call sites
+- Pandas `.cat.codes` encoding (not sklearn LabelEncoder)
+- Model saved to `src/model.pkl` (not `models/`)
 
 **Specs:**
-- `spec/adr/001-classificador-baseline.md` — RandomForest
+- `spec/adr/001-classificador-baseline.md` — RandomForest (Superseded by ADR-003)
 - `spec/adr/002-model-path-and-encoding.md` — model path + encoding change
-- `artifacts/data/model.md` — schema (7 cols, grain, target encoding)
+- `spec/adr/003-dataset-reversal-oulad.md` — DataMission → OULAD migration
+- `artifacts/data/model.md` — comprehensive (35KB): schema, ML results, feature importance, statistical tests
 - `artifacts/dq/checks.md` — DQ-01 to DQ-06 with severity escalation
+- `artifacts/dashboard/index.html` — OULAD dashboard (40KB self-contained)
 
-**Review history:** 5 reviews total (Fase 1: 1, Fase 2: 3, Fase 3: 2). All findings resolved.
-
-### Advisory items (non-blocking, for Fase 4)
-
-1. **`dbt-core` unused** — in requirements.txt since Fase 1, never used. 3rd consecutive review flagged. Remove or add to Fase 4 if needed.
-2. **`contract.md` stale** — doesn't mention Fase 3 additions. Update before Fase 4.
-3. **Model metrics:** Acc=0.665, F1=0.152 (Fase 1 baseline). Fase 3 retrained but metrics not re-checked by reviewer.
-
-### Fase 4 scope (optional)
-
-Dashboard com conclusões + simulação interativa. Needs:
-- `dashboard` need → ladesign capability
-- LADESIGN skill (e.g. `d3-visualization`, `data-report`, `frontend-design`)
-- Will need `spec/design-direction.md` (conditional SDD file, only required when `dashboard` or `design` in needs)
-- Simulação interativa: mexer em variáveis para ver impacto no abandono
-
-### Structural changes made to LAOS this session
-
-| File | Change | Commit |
-|------|--------|--------|
-| `knowledge/data-quality-baseline.md` | NEW — 6 universal DQ checks | `0ba1497` |
-| `knowledge/padroes-entrega.md` | P1 DQ baseline item added | `0ba1497` |
-| `projects/.../project.yaml` | models/.gitkeep removed, acceptance criteria updated | `a98f275` |
-| `projects/.../spec/todo.md` | Fase 3 tasks marked complete | `ec6a26a` (child repo) |
+**Review history:** 8 rounds total. Round 7 FAIL (DataMission remnants in dashboard) → Round 8 FAIL (7 LAOS-side stale files + 1 stale checkbox). All fixes committed in Round 8.
 
 ### Key decisions to preserve
 
 - **RandomForest** is the baseline classifier (ADR-001) — do NOT switch to LogisticRegression
 - **Pandas `.cat.codes`** for categorical encoding — not sklearn LabelEncoder (ADR-002)
 - **Model path: `src/model.pkl`** — not `models/model.pkl` (ADR-002)
+- **OULAD dataset** — NOT DataMission (ADR-003). DataMission API is dead; do not reference it.
+- **Target: final_result binarizado** (Withdrawn=1, others=0), 31.2% positive class
 - **DQ checks are MEDIUM default**, HIGH when dependent stage needs them (knowledge/data-quality-baseline.md)
 - **DQ checks are P1** — blocks external delivery, not internal (padroes-entrega.md)
 
-### API credentials
+### Dataset: OULAD
 
-- DataMission API key: `E:\projects\.env` → `DATAMISSION_APIKEY`
-- Project ID: `2e4ce469-1a75-45fb-a41e-160196c7b989`
-- URL: `https://api.datamission.com.br/projects/{project_id}/dataset?format={fmt}`
-- Formats supported: parquet, json, csv
+- Source: https://analyse.kmi.open.ac.uk/open_dataset
+- 7 CSVs: studentInfo, studentVle, studentAssessment, studentRegistration, assessments, courses, vle
+- 32.593 students, 7 modules, 22 presentations (2013-2014)
+- License: CC-BY 4.0 (Kuzilek et al., Nature Scientific Data, 2017)
+- Local path: `data/oulad/` (gitignored, `.gitkeep` preserved)
 
 ### Git state
 
-- LAOS: `main`, pushed, clean
-- Child repo: `main`, pushed, clean
+- LAOS: `main`, pushed (8 Round 8 fix commits: 5 LAOS-side file syncs + 3 remaining)
+- Child repo: `main`, pushed (3 Round 8 fix commits: checklist + todo.md checkbox)
