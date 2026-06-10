@@ -136,6 +136,12 @@ type validation, duplicate detection, target balance, range/bounds) foram
 implementados ou justificados N/A em `artifacts/dq/checks.md`. Detalhes e
 código-exemplo em `knowledge/data-quality-baseline.md`. Severidade MEDIUM
 por default; promovido para HIGH quando o estágio seguinte depende do check.
+- [ ] **Discover before build (knowledge/discover-before-build.md).** Nenhum
+subagente instalou tool, criou venv, baixou container ou gerou arquivo que
+já existia no workspace. Cascata obrigatória: (1) PATH, (2) sistema,
+(3) venv existente, (4) container rodando, (5) dependência instalada,
+(6) só então instalar/criar. Anti-patterns: `pip install` sem `pip list`
+prévio, `docker pull` sem `docker images`, criar `.venv` quando `uv` gerencia.
 - [ ] Snapshots de dados estão datados e identificados (não "dados.xlsx").
 - [ ] Decks e dashboards passam por revisão de acessibilidade básica
       (contraste, ordem de leitura).

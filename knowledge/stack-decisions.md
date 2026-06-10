@@ -9,8 +9,14 @@ ficam nas capability repos.
   - LAOS tem `pyproject.toml` próprio. `uv sync` cria `.venv` local.
   - Stub MCP servers e scripts rodam via `uv run python <arquivo>`,
     que usa automaticamente o venv local.
+  - **Nunca criar `.venv` manualmente** quando `uv` está disponível.
+    Se o repo já tem `.venv`, `uv sync` detecta e re-sincroniza.
+    Ver `knowledge/discover-before-build.md` §1 (hierarquia de descoberta).
 - **Node**: `npx -y <pacote>` para tools de uso pontual (MCPs npm).
   Sem `package.json` em LAOS.
+- **Docker**: checar `docker ps` e `docker images` antes de criar
+  ou baixar qualquer container. Preferir `docker compose` quando
+  o projeto tem `docker-compose.yaml`.
 
 ## MCP
 
@@ -70,6 +76,48 @@ A checagem acontece **uma vez no boot**, não per-action.
 4. **paths** — `projects/<name>/artifacts/<subclass>/` criável para cada subclasse que o subagente produz.
 5. **env** — env vars requeridas presentes (LATADE_DB_PATH, GITHUB_TOKEN, N8N_API_URL) ou com default documentado.
 
+## Toolchain inventory (toolchain_inventory.py)
+
+**Regra:** No início de cada ciclo de projeto (antes de needs
+resolution), o orchestrator DEVE rodar
+`uv run python scripts/toolchain_inventory.py`.
+O output é um JSON que inventaria runtimes, package managers,
+containers Docker, venvs existentes e configs de projeto no workspace.
+
+### Por que existe
+
+Resolve o problema de agents ignorarem o toolchain existente durante
+o planning. Sem inventário, o agente sugere Java quando Python já
+está configurado; sugere "vamos subir um DB" quando PostgreSQL já
+está rodando. O inventário é **dados concretos**, não regra
+documentada — agentes ignoram regras, não ignoram dados.
+
+### O que inventaria
+
+1. **Runtimes no PATH** — python, node, java, go, rustc, gcc, dotnet
+2. **Package managers** — uv, pip, npm, pnpm, cargo, winget
+3. **Docker** — disponível? containers rodando? imagens locais?
+4. **Venvs existentes** — quais projetos já têm `.venv` sincronizado
+5. **Configs de projeto** — pyproject.toml, package.json, docker-compose
+
+### Como usar o output
+
+- **Planning (Fase 1):** orchestrator inclui `summary` no dispatch
+  brief do subagente. Subagente usa para decidir stack.
+- **Execution (Fase 2):** subagente consulta `runtimes` e `venvs`
+  antes de instalar algo (cascata de discover-before-build).
+
+### Integração com o loop do orchestrator
+
+```
+1. Ler project.yaml
+2. Rodar toolchain_inventory.py          ← NOVO
+3. Resolver needs via registry
+4. WDL preflight gate
+5. Dispatch subagent (com inventário no brief)
+6. ...
+```
+
 ### Exit codes
 
 - `0` — PASS, subagente pronto para dispatch.
@@ -87,6 +135,14 @@ A checagem acontece **uma vez no boot**, não per-action.
 Se um subagente recebe `4xx/5xx` mid-task: re-chama `*.health()`; se
 falhar, **escala ao orchestrator** com mensagem acionável; **NÃO**
 improvisar workaround com outra tool.
+
+### Discover before build (Hard Rule, 2026-06-09)
+
+Antes de qualquer setup (venv, Docker, CLI, arquivo), o agente DEVE
+verificar se já existe. Cascata obrigatória em
+`knowledge/discover-before-build.md` §1. Anti-pattern: instalar
+quando já está no PATH, criar venv quando já existe, baixar
+container quando já está rodando.
 
 ### Onde se aplica
 

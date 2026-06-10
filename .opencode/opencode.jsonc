@@ -9,11 +9,21 @@
   "instructions": [
     "AGENTS.md",
     "registry/capabilities.yaml",
-    "registry/needs-to-capabilities.yaml",
+    "registry/needs-to-capabilities.md",
     "knowledge/glossario-negocio.md",
     "knowledge/padroes-entrega.md",
-    "knowledge/stack-decisions.md"
+    "knowledge/stack-decisions.md",
+    "knowledge/discover-before-build.md"
   ],
+
+  // Plugins — LAOS mechanical enforcement layer.
+  // Each plugin enforces a hard rule that was previously prompt-only.
+  // Provenance: OmO adoption plan (2026-06-09), see knowledge/omo-adoption-provenance.md
+  "plugins": {
+    "paths": [
+      ".opencode/plugins"
+    ]
+  },
 
   // Skills come from LAOS itself plus the LADESIGN capability repo.
   "skills": {
@@ -185,19 +195,17 @@
       "rm -rf *": "deny"
     },
     "external_directory": {
-      "*": "ask",
+      // Per Hard Rule #10 (AGENTS.md, 2026-06-07): all of E:/projects/**
+      // is pre-authorized. No catch-all "ask" — every legitimate path
+      // is covered by the umbrella below. Individual repo entries kept
+      // as explicit fallback for glob edge cases (dotfiles, backslash).
+      "E:/projects/**": "allow",
       "../latade/**": "allow",
       "../lan8n/**": "allow",
       "../ladesign/**": "allow",
       "../laengine/**": "allow",
       "../lacouncil/**": "allow",
-      "../laecon/**": "allow",
-      // Per Hard Rule #10 (AGENTS.md, 2026-06-07): all of E:/projects/**
-      // is pre-authorized. Covers LAOS workspace, capability repos
-      // (latade/lan8n/lacouncil/laecon/laengine/ladesign), and
-      // cross-project grounding data (_commomdata). The prior explicit
-      // "E:/projects/_commomdata/**" entry is now subsumed by this.
-      "E:/projects/**": "allow"
+      "../laecon/**": "allow"
     }
   }
 }
