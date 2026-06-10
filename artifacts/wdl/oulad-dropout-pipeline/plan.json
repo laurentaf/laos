@@ -1,0 +1,276 @@
+{
+  "plan_id": "oulad-dropout-pipeline",
+  "project": "abandono-academico-casa-grande",
+  "project_yaml_path": "projects/abandono-academico-casa-grande/project.yaml",
+  "child_repo": "laurentaf/abandono-academico-casa-grande",
+  "generated_at": "2026-06-09T17:48:00Z",
+  "contract_version": "1.0.0",
+  "wdl_version": 1,
+  "planner_id": "workflow-decomposer",
+  "verified_by": "delivery-reviewer",
+  "session_id": "oulad-dropout-pipeline",
+  "prior_verdicts": [
+    {
+      "plan_id": "f4a9c2e1-7b3d-4e8f-a1c6-9d2e5f8b7a04",
+      "state": "READY",
+      "scope": "dashboard-only task",
+      "generated_at": "2026-06-09T00:00:00Z",
+      "note": "Superseded by this plan - prior verdict scoped only dashboard build"
+    }
+  ],
+  "three_q": {
+    "clear_input": 3,
+    "validatable_success": 3,
+    "single_type_of_reasoning": 2,
+    "total": 8,
+    "max": 9,
+    "readiness": "partial",
+    "caveat": "Mixed reasoning (extract+build+synthesize) is inherent to ML pipeline projects; anti-pattern clause prevents phase multiplication"
+  },
+  "decomposition": {
+    "conjunction": true,
+    "plural_criteria": true,
+    "multi_owns": true,
+    "temporal": true,
+    "signals_fired": 4,
+    "detect_patterns_called": true,
+    "detect_patterns_finding": "etl/data are most common needs (5 each); latade/lacouncil most used capabilities (7 each); prior Hard Rule #2 violation on artifact paths",
+    "anti_pattern_applied": true,
+    "anti_pattern_note": "Linear pipeline is one lifecycle, not three tasks - temporal signal does not multiply phases"
+  },
+  "capability_split": [
+    {
+      "group": "A",
+      "owner_capability": "latade",
+      "specialist": "data-architect",
+      "tasks": [
+        {
+          "id": "T1",
+          "name": "Data Ingestion",
+          "description": "Load 7 OULAD CSVs from data/oulad/ into DuckDB bronze layer via latade MCP",
+          "needs": [
+            "data"
+          ],
+          "deliverables": [
+            "Bronze tables in DuckDB"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "T2",
+          "name": "ETL Pipeline",
+          "description": "bronze->silver (dedup, type cast)->gold (aggregated features) via latade medallion pipeline",
+          "needs": [
+            "etl"
+          ],
+          "deliverables": [
+            "Silver/gold tables in DuckDB"
+          ],
+          "dependencies": [
+            "T1"
+          ]
+        },
+        {
+          "id": "T3",
+          "name": "DQ Baseline Checks",
+          "description": "6 DQ checks: null profiling, column existence, type validation, duplicate detection, target balance, range/bounds",
+          "needs": [
+            "data-quality"
+          ],
+          "deliverables": [
+            "artifacts/dq/checks.md"
+          ],
+          "dependencies": [
+            "T2"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "B",
+      "owner_capability": "laecon",
+      "specialist": "data-architect (fallback) or laecon specialist",
+      "tasks": [
+        {
+          "id": "T4",
+          "name": "Feature Engineering",
+          "description": "Merge 7 CSVs on student_id+code_module+code_presentation; engineer temporal VLE click features",
+          "needs": [
+            "ml",
+            "predictive-modeling"
+          ],
+          "deliverables": [
+            "Merged feature DataFrame"
+          ],
+          "dependencies": [
+            "T3"
+          ]
+        },
+        {
+          "id": "T5",
+          "name": "Model Training",
+          "description": "scikit-learn classifier (LogisticRegression/RandomForest), train/test split, cross-validation",
+          "needs": [
+            "ml",
+            "predictive-modeling"
+          ],
+          "deliverables": [
+            "src/main.py (pipeline)",
+            "model.pkl"
+          ],
+          "dependencies": [
+            "T4"
+          ]
+        },
+        {
+          "id": "T6",
+          "name": "Model Evaluation",
+          "description": "Accuracy, precision, recall, F1, confusion matrix, feature importance analysis",
+          "needs": [
+            "ml"
+          ],
+          "deliverables": [
+            "Evaluation metrics",
+            "artifacts/data/model.md"
+          ],
+          "dependencies": [
+            "T5"
+          ]
+        }
+      ],
+      "gap": {
+        "description": "laecon capability is BASIC (not STABLE). MCP server functional but workflows less validated.",
+        "affects": "T4-T6 (ML pipeline tasks)",
+        "owner_notified": "laecon owner (Laurent)",
+        "severity": "MEDIUM",
+        "ttl_cycles": 2,
+        "mitigation": "Use laecon MCP for model training; fallback to direct scikit-learn in src/main.py if MCP tools fail"
+      }
+    },
+    {
+      "group": "C",
+      "owner_capability": "ladesign",
+      "specialist": "dashboard-designer",
+      "tasks": [
+        {
+          "id": "T7",
+          "name": "Dashboard Build",
+          "description": "Interactive HTML dashboard with model conclusions, feature importance chart, simulation sliders, responsive layout",
+          "needs": [
+            "dashboard"
+          ],
+          "deliverables": [
+            "artifacts/dashboard/index.html"
+          ],
+          "dependencies": [
+            "T6"
+          ]
+        }
+      ]
+    }
+  ],
+  "execution_sequence": [
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5",
+    "T6",
+    "T7"
+  ],
+  "critical_gates": [
+    {
+      "after": "T3",
+      "gate": "DQ checks must pass before ML pipeline",
+      "action_on_fail": "Stop pipeline, surface gap to user"
+    },
+    {
+      "after": "T6",
+      "gate": "Model must achieve baseline accuracy before dashboard",
+      "action_on_fail": "Review feature engineering, consider different model"
+    }
+  ],
+  "routing": {
+    "latade": {
+      "primary": true,
+      "tasks": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "mcp_server": "latade",
+      "specialist": "data-architect"
+    },
+    "laecon": {
+      "primary": true,
+      "tasks": [
+        "T4",
+        "T5",
+        "T6"
+      ],
+      "mcp_server": "laecon",
+      "specialist": "data-architect (fallback) or laecon specialist",
+      "status": "basic"
+    },
+    "ladesign": {
+      "primary": true,
+      "tasks": [
+        "T7"
+      ],
+      "mcp_server": "ladesign",
+      "specialist": "dashboard-designer"
+    },
+    "context7": {
+      "primary": false,
+      "optional": true,
+      "use_for": "library docs (scikit-learn, pandas)"
+    }
+  },
+  "risks": [
+    {
+      "id": "R1",
+      "severity": "HIGH",
+      "description": "Previous DataMission failure - noisy dataset produced no predictive signal",
+      "mitigation": "OULAD is Nature Sci. Data validated; DQ checks (T3) gate ML pipeline"
+    },
+    {
+      "id": "R2",
+      "severity": "MEDIUM",
+      "description": "laecon BASIC status - less battle-tested MCP workflows",
+      "mitigation": "Fallback to direct scikit-learn; gap acknowledged with TTL=2"
+    },
+    {
+      "id": "R3",
+      "severity": "MEDIUM",
+      "description": "Artifact path violation risk - detect_patterns found prior Hard Rule #2 violations",
+      "mitigation": "All artifacts to child repo, never LAOS projects/ path"
+    },
+    {
+      "id": "R4",
+      "severity": "LOW-MEDIUM",
+      "description": "Dataset merge complexity - 7 CSVs with many-to-many relationships",
+      "mitigation": "T2 documents merge strategy, handles cardinality explicitly"
+    }
+  ],
+  "exemption": {
+    "applied": false
+  },
+  "capability_gaps": [
+    {
+      "description": "laecon capability is BASIC (not STABLE). MCP server exists and is functional, but workflows and validation patterns are less mature than STABLE capabilities.",
+      "affects": "Task Group B (T4-T6): ML pipeline tasks including feature engineering, model training, and evaluation",
+      "owner_notified": "laecon owner",
+      "severity": "MEDIUM",
+      "ttl_cycles": 2,
+      "delivered_in_plan_id": "oulad-dropout-pipeline"
+    }
+  ],
+  "gaps_acknowledged": {
+    "max_delivery_cycles": 2,
+    "gap_summary": "laecon BASIC status affects ML pipeline quality; mitigated by fallback to direct scikit-learn"
+  },
+  "signature": {
+    "algorithm": "sha256-canonical-json",
+    "value": "204d5751df70025fa1d92784d740b96284626974842765f87fc75403937c3657"
+  }
+}

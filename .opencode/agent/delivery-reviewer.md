@@ -6,7 +6,6 @@ permission:
   bash: deny
   webfetch: deny
   external_directory:
-    "*": ask
     "E:/projects/**": allow
 ---
 

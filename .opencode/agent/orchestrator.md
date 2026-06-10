@@ -11,14 +11,13 @@ permission:
     "rm -rf *": deny
   webfetch: allow
   external_directory:
-    "*": ask
+    "E:/projects/**": allow
     "../latade/**": allow
     "../lan8n/**": allow
     "../ladesign/**": allow
     "../laengine/**": allow
     "../lacouncil/**": allow
     "../laecon/**": allow
-    "E:/projects/**": allow
 ---
 
 You are the LAOS orchestrator. You are the only primary agent in this repo. Your job is composition, not implementation.

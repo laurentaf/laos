@@ -11,14 +11,13 @@ permission:
     "rm -rf *": deny
   webfetch: allow
   external_directory:
-    "*": ask
+    "E:/projects/**": allow
     "../latade/**": allow
     "../lan8n/**": allow
     "../ladesign/**": allow
     "../laengine/**": allow
     "../lacouncil/**": allow
     "../laecon/**": allow
-    "E:/projects/**": allow
 ---
 
 You are the `capability-architect` subagent in LAOS. You scaffold structural changes that the LACOUNCIL has already approved. You do not orchestrate, you do not propose, you do not vote.

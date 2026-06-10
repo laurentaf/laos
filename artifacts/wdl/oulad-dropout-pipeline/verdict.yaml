@@ -1,0 +1,93 @@
+capability_gaps:
+- affects: 'T4-T6: ML pipeline tasks (feature engineering, training, evaluation)'
+  delivered_in_plan_id: oulad-dropout-pipeline
+  description: laecon capability is BASIC (not STABLE). MCP server functional but
+    workflows less validated.
+  owner_notified: laecon owner
+  severity: MEDIUM
+  ttl_cycles: 2
+contract_version: 1.0.0
+decomposition:
+  anti_pattern_applied: true
+  anti_pattern_note: Linear pipeline is one project lifecycle, not three tasks - temporal
+    signal does not multiply phases
+  conjunction: true
+  detect_patterns_called: true
+  multi_owns: true
+  plural_criteria: true
+  signals_fired: 4
+  temporal: true
+exemption:
+  applied: false
+gaps_acknowledged:
+  gap_summary: laecon BASIC status affects ML pipeline quality; mitigated by fallback
+    to direct scikit-learn
+  max_delivery_cycles: 2
+generated_at: '2026-06-09T17:48:00Z'
+plan_id: oulad-dropout-pipeline
+planner_id: workflow-decomposer
+quality_score: 2
+readiness: gaps_acknowledged
+routing:
+  optional:
+  - context7
+  primary:
+  - latade
+  - laecon
+  - ladesign
+  split_by_capability: true
+session_id: oulad-dropout-pipeline
+signature:
+  algorithm: sha256-canonical-json
+  value: b42c7c1bd014394b93732a5742d89df524e2f7a4c609953e8d7923da4d84c4c8
+state: READY
+tasks:
+- deliverable: Bronze tables
+  description: Load 7 OULAD CSVs into DuckDB bronze layer
+  id: T1
+  name: data-ingestion
+  owner_capability: latade
+  specialist: data-architect
+- deliverable: Silver/gold tables
+  description: bronze->silver->gold medallion pipeline
+  id: T2
+  name: etl-pipeline
+  owner_capability: latade
+  specialist: data-architect
+- deliverable: artifacts/dq/checks.md
+  description: 6 DQ baseline checks on OULAD dataset
+  id: T3
+  name: dq-baseline
+  owner_capability: latade
+  specialist: data-architect
+- deliverable: Merged feature DataFrame
+  description: Merge 7 CSVs, engineer temporal VLE features
+  id: T4
+  name: feature-engineering
+  owner_capability: laecon
+  specialist: data-architect
+- deliverable: src/main.py, model.pkl
+  description: scikit-learn classifier with cross-validation
+  id: T5
+  name: model-training
+  owner_capability: laecon
+  specialist: data-architect
+- deliverable: artifacts/data/model.md
+  description: Accuracy, precision, recall, F1, feature importance
+  id: T6
+  name: model-evaluation
+  owner_capability: laecon
+  specialist: data-architect
+- deliverable: artifacts/dashboard/index.html
+  description: Interactive HTML dashboard with simulation sliders
+  id: T7
+  name: dashboard-build
+  owner_capability: ladesign
+  specialist: dashboard-designer
+three_q:
+  clear_input: 3
+  max: 9
+  single_type_of_reasoning: 2
+  total: 8
+  validatable_success: 3
+verified_by: delivery-reviewer

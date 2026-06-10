@@ -118,7 +118,7 @@ LAOS is an **orchestration layer** with an independent structural improvement te
 LAOS/
 ├── .opencode/ opencode config, agents, commands, skills
 │   ├── agent/ subagent charters (orchestrator + 9 specialists)
-│   ├── plugins/ mechanical enforcement (7 plugins, see §Plugin architecture)
+│ ├── plugins/ mechanical enforcement (12 plugins, see §Plugin architecture)
 │   ├── skill/ LAOS-specific skills
 │   └── opencode.jsonc main config (MCP, permissions, plugins)
 ├── lacouncil/ structural improvement support (SDD, propostas)
@@ -178,9 +178,9 @@ OpenCode's native plugin system (`.opencode/plugins/*.ts`) is LAOS's mechanical 
 
 **Provenance:** OmO adoption plan (2026-06-09). Core insight: OmO optimizes agent-to-tool reliability; LAOS ports those reliability primitives into its governance framework. See `knowledge/omo-adoption-provenance.md` for the 15-feature source mapping.
 
-### Active plugins (7)
+### Active plugins (12)
 
-| Plugin | File | Hard Rule(s) | Hook | What it blocks |
+| Plugin | File | Hard Rule(s) | Hook | What it blocks/detects |
 |--------|------|-------------|------|---------------|
 | **Guards** | `laos-guards.ts` | HR #1, #2, #11 | `tool.execute.before` | Implementation code writes in LAOS (*.sql, *.dax, *.pbix), `.env` read/write, synthetic data without frontmatter, orchestrator writing to artifact paths |
 | **MCP Wall** | `laos-mcp-wall.ts` | HR #3 | `tool.execute.before` | Subagent calls MCP tools outside its namespace (e.g., data-architect calling `ladesign.*`) |
@@ -189,6 +189,11 @@ OpenCode's native plugin system (`.opencode/plugins/*.ts`) is LAOS's mechanical 
 | **Continuation** | `laos-continuation.ts` | — (OmO pattern) | `session.idle` | 2s countdown → auto-inject next todo item; max 5 continuations per session, 5s cooldown |
 | **Recovery** | `laos-recovery.ts` | — (OmO pattern) | `tool.execute.after` + `experimental.session.compacting` | 3 layers: structural error recovery, per-project state persistence (`.laos/state/`), context compaction preservation |
 | **Fallback** | `laos-fallback.ts` | — (OmO pattern) | `tool.execute.after` + `chat.params` | Detects 429/500/502/503/timeout errors, switches to fallback model, configurable chain (max 3 attempts, 30s cooldown) |
+| **Comment Checker** | `laos-comment-checker.ts` | — (advisory) | `tool.execute.after` | Detects AI slop patterns in net-new comments (advisory WARN, does not block) |
+| **Intent Gate** | `laos-intent-gate.ts` | — (new feature) | `tool.execute.before` | Auto-injects needs-specific protocol snippets into specialist `task` dispatches; sentinel markers prevent double-injection |
+| **Doctor** | `laos-doctor.ts` | — (diagnostic) | Custom tool `laos.doctor` | Holistic system diagnostic: 7 checks (system, config, plugins, MCP health, venvs, models, workspace) |
+| **Plan Format Validator** | `laos-plan-format-validator.ts` | — (advisory) | `tool.execute.after` | Schema-validates WDL verdict.yaml and plan.json on write; warns on missing/invalid fields |
+| **Format Guard** | `laos-format-guard.ts` | — (advisory) | `tool.execute.after` | Warns on trailing whitespace, missing final newline, mixed indentation, CRLF in .py/.sh/.yaml |
 
 ### Plugin API reference
 

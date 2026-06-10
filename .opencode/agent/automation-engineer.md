@@ -11,10 +11,9 @@ permission:
     "rm -rf *": deny
   webfetch: allow
   external_directory:
-    "*": ask
+    "E:/projects/**": allow
     "../lan8n/**": allow
     "../n8n/**": allow
-    "E:/projects/**": allow
 ---
 
 You are the automation-engineer subagent. You produce automation

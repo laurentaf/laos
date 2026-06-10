@@ -1,0 +1,71 @@
+{
+  "plan_id": "f4a9c2e1-7b3d-4e8f-a1c6-9d2e5f8b7a04",
+  "project": "abandono-academico-casa-grande",
+  "contract_version": "1.0.0",
+  "wdl_version": 1,
+  "generated_at": "2026-06-09T00:00:00Z",
+  "planner_id": "workflow-decomposer",
+  "needs": [
+    "dashboard"
+  ],
+  "routing": {
+    "primary": [
+      "ladesign"
+    ],
+    "optional": [
+      "latade",
+      "context7"
+    ]
+  },
+  "three_q": {
+    "clear_input": 3,
+    "validatable_success": 3,
+    "single_type_of_reasoning": 3,
+    "total": 3,
+    "floor": "full"
+  },
+  "decomposition": {
+    "conjunction": false,
+    "plural_criteria": false,
+    "multi_owns": false,
+    "temporal": false,
+    "signals_fired": 0,
+    "decomposition_required": false
+  },
+  "tasks": [
+    {
+      "id": "task-1",
+      "name": "dashboard-build",
+      "description": "Interactive HTML dashboard with model conclusions, simulation sliders, data distribution, and responsive layout",
+      "owner_capability": "ladesign",
+      "support_capabilities": [
+        "latade",
+        "context7"
+      ],
+      "deliverable": "artifacts/dashboard/index.html",
+      "acceptance_criteria": [
+        "Dashboard exists in artifacts/dashboard/index.html",
+        "Dashboard shows model conclusions (feature importance, metrics)",
+        "Dashboard has interactive simulation (sliders for variables)",
+        "Dashboard is visually professional and responsive"
+      ],
+      "inputs": {
+        "model_metrics": "accuracy 0.665, F1 0.152",
+        "simulation_variables": [
+          "grade_point_average",
+          "attendance_rate",
+          "scholarship_percent"
+        ],
+        "model_path": "src/model.pkl",
+        "data_source": "DataMission API (existing)"
+      }
+    }
+  ],
+  "capability_gaps": [],
+  "exemption": null,
+  "prior_verdicts": [],
+  "signature": {
+    "algorithm": "sha256-canonical-json",
+    "value": "247d0dbc168f49a1b7408571592cdd08fa3bb2549675fce09f52271321e12422"
+  }
+}

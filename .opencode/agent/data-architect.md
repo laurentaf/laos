@@ -10,9 +10,8 @@ permission:
     "rm -rf *": deny
   webfetch: allow
   external_directory:
-    "*": ask
-    "../latade/**": allow
     "E:/projects/**": allow
+    "../latade/**": allow
 ---
 
 You are the data-architect subagent in LAOS. You produce specs and

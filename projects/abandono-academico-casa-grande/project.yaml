@@ -1,72 +1,54 @@
 name: abandono-academico-casa-grande
 description: |
-  Pipeline de Previsao de Abandono Academico — Universidade Casa Grande.
-  Projeto DataMission com 3 fases (+ possivel fase 4 de dashboard + simulacao).
-  Fase 1: preparar ambiente, fetch dataset, treinar modelo baseline.
-  Fase 2: Capturar dados via API — formato parametrizado + HTTP handling (CONCLUÍDA)
-  Fase 3: (a definir pelo briefing da DataMission)
-  Fase 4 (opcional): dashboard com conclusoes e simulacao interativa
-  verificando variaveis importantes e avaliando o quanto mexer em cada uma
-  melhora ou piora o abandono.
+  Pipeline de Previsao de Abandono Academico — Dataset OULAD.
+  Open University Learning Analytics Dataset (32.593 alunos, 7 modulos, 2013-2014).
+  Target: final_result (Pass/Fail/Withdrawn/Distinction) → binarizado como dropout.
+  Features: demografia, registros, interacoes VLE (temporal), avaliacoes.
+  Dataset real, publicado em Sci. Data (Nature), CC-BY 4.0.
 
-workflow: null # ad-hoc, segue fases da DataMission
+workflow: null # ad-hoc
 
-external_delivery: true # projeto publico para avaliacao automatizada
+external_delivery: true
 
 repo: laurentaf/abandono-academico-casa-grande
 repo_url: https://github.com/laurentaf/abandono-academico-casa-grande
 
 needs:
-  - data          # ingestao API, profiling, SQL → latade
+  - data          # ingestao CSV, profiling, SQL → latade
   - etl           # pipeline bronze→silver→gold → latade
   - ml            # modelo preditivo scikit-learn → laecon
   - predictive-modeling # classificacao de abandono → laecon
   - data-quality  # validacao de dados, guards → latade
-  # Fase 4 (condicional):
-  # - dashboard   # UI com conclusoes + simulacao → ladesign
+  - dashboard     # UI com conclusoes + simulacao → ladesign
 
 deliverables:
-  # Fase 1
   - src/main.py
+  - src/model.pkl
   - requirements.txt
   - .gitignore
-  - data/.gitkeep
-  - reports/.gitkeep
-  # Fase 2
+  - data/oulad/ (7 CSVs OULAD)
   - artifacts/data/model.md
+  - artifacts/data/etl_oulad.sql
+  - artifacts/data/oulad.duckdb
   - artifacts/dq/checks.md
-  # Transversal
   - README.md
-# Runtime outputs (gitignored — gerados por src/main.py)
-# - data/dataset.parquet
-# - data/raw.csv
-# - src/model.pkl
-# - reports/model_metrics.md
-  # Fase 4 (opcional)
-  # - artifacts/dashboard/
+  - artifacts/dashboard/index.html
 
 inputs:
   - brief
-  - api_endpoint
-  - project_id
-  - api_token
+  - dataset_path
 
 input_values:
   brief: |
-    Pipeline de Previsao de Abandono Academico — Universidade Casa Grande.
-    DataMission project ID: 2e4ce469-1a75-45fb-a41e-160196c7b989
-    Dataset: 1000 registros, 7 colunas (student_id, timestamp, course_name,
-    enrollment_status, grade_point_average, attendance_rate, scholarship_percent).
-    Target: enrollment_status (SUSPENDED = abandono?).
-    Fase 1: criar src/main.py com main(), fetch_dataset() via requests,
-    train_model() via scikit-learn; requirements.txt com pandas, scikit-learn,
-    requests, dbt.
-    Nota do dono da DataMission: testar URL com .git no final para economia
-    de custo. Resultado do teste: URL sem .git funciona (200, 63KB parquet);
-    com .git no path do project_id da 422. NAO usar .git.
-  api_endpoint: "https://api.datamission.com.br/projects/{project_id}/dataset?format=parquet"
-  project_id: "2e4ce469-1a75-45fb-a41e-160196c7b989"
-  api_token: "{{DATAMISSION_APIKEY}}" # env var em E:\projects\.env
+    Pipeline de Previsao de Abandono Academico — Dataset OULAD.
+    Fonte: https://analyse.kmi.open.ac.uk/open-dataset (CC-BY 4.0)
+    32.593 alunos, 7 modulos, 22 apresentacoes, 2013-2014.
+    Tabelas: studentInfo, studentRegistration, studentAssessment,
+    studentVle, assessments, courses, vle.
+    Target: final_result → binarizado (Withdrawn=1, outros=0).
+    Features temporais: interacoes VLE diarias (sum_click por dia).
+    Referencia: Kuzilek et al. Sci. Data 4:170171 (2017).
+  dataset_path: "data/oulad/"
 
 stages:
   - id: 1
@@ -117,8 +99,13 @@ stages:
       - main() executa pipeline completa end-to-end com console metrics
       - DataFrame vazio guard continua funcionando (P0)
   - id: 4
-    name: "Dashboard + Conclusoes + Simulacao (opcional)"
+    name: "Dashboard + Conclusoes + Simulacao"
     description: |
       Dashboard interativo com conclusoes e simulacao, verificando variaveis
       importantes e avaliando o quanto mexer em cada uma melhora ou piora
       o abandono. Publicar no GitHub.
+    acceptance_criteria:
+      - Dashboard existe em artifacts/dashboard/index.html
+      - Dashboard mostra conclusoes do modelo (feature importance, metrics)
+      - Dashboard tem simulacao interativa (sliders para variaveis)
+      - Dashboard e visualmente profissional e responsivo

@@ -11,9 +11,8 @@ permission:
     "rm -rf *": deny
   webfetch: allow
   external_directory:
-    "*": ask
-    "../lacouncil/**": allow
     "E:/projects/**": allow
+    "../lacouncil/**": allow
 ---
 
 You are the `workflow-decomposer` subagent in LAOS. You are the **WDL v1

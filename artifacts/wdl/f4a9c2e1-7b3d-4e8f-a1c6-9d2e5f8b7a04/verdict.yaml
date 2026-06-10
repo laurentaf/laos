@@ -1,0 +1,44 @@
+state: READY
+plan_id: f4a9c2e1-7b3d-4e8f-a1c6-9d2e5f8b7a04
+quality_score: 3
+readiness: full
+session_id: f4a9c2e1-7b3d-4e8f-a1c6-9d2e5f8b7a04
+generated_at: "2026-06-09T00:00:00Z"
+contract_version: "1.0.0"
+verified_by: delivery-reviewer
+planner_id: workflow-decomposer
+
+three_q:
+  clear_input: 3
+  validatable_success: 3
+  single_type_of_reasoning: 3
+  total: 3
+
+decomposition:
+  conjunction: false
+  plural_criteria: false
+  multi_owns: false
+  temporal: false
+  signals_fired: 0
+
+tasks:
+  - id: task-1
+    name: dashboard-build
+    description: "Interactive HTML dashboard with model conclusions, simulation sliders, data distribution, and responsive layout"
+    owner_capability: ladesign
+    support_capabilities: [latade, context7]
+    deliverable: artifacts/dashboard/index.html
+
+routing:
+  primary: [ladesign]
+  optional: [latade, context7]
+
+exemption:
+  applied: false
+
+capability_gaps: []
+gaps_acknowledged: null
+
+signature:
+  algorithm: sha256-canonical-json
+  value: 08d7d26226e835e6184d488e931c75c55bd5cad6d22486a56ff28bcdae4f15e6

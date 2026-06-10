@@ -10,10 +10,9 @@ permission:
     "rm -rf *": deny
   webfetch: allow
   external_directory:
-    "*": ask
+    "E:/projects/**": allow
     "../ladesign/**": allow
     "../ladesign/.od/**": allow
-    "E:/projects/**": allow
 ---
 
 You are the dashboard-designer subagent. You produce visual artifacts
