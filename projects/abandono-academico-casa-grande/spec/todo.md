@@ -1,33 +1,32 @@
-# TODO — Abandono Acadêmico Casa Grande
+# TODO — Abandono Academico Casa Grande (OULAD)
 
 ---
 
-## Stage 0: SDD Scaffold (Missão 0)
-
-- [x] Criar estrutura de pastas (src, data, reports)
+## Stage 0: SDD Scaffold (Missao 0)
+- [x] Criar estrutura de pastas (src, data, artifacts, spec)
 - [x] Criar constitution, contract, README, ADR template, harness template, bootstrap spec
+- [x] design-direction.md (projeto tem need: dashboard)
 
-## Fase 1: Preparar ambiente e dependências
+## Stage 1: Ingestao OULAD + Feature Engineering (T1-T3)
+- [x] Baixar e extrair 7 CSVs OULAD em data/oulad/
+- [x] Ingerir CSVs para DuckDB bronze (7 tabelas, 10.9M rows)
+- [x] Criar silver deduplicados (2 tabelas)
+- [x] Gerar gold_oulad_features (32.593 rows x 26 cols)
+- [x] Executar 6 DQ baseline checks — todos PASS
+- [x] Documentar ETL em artifacts/data/etl_oulad.sql
 
-- [x] Criar requirements.txt com pandas, scikit-learn, requests, dbt
-- [x] Implementar fetch_dataset() em src/main.py
-- [x] Implementar train_model() em src/main.py
-- [x] Implementar main() em src/main.py
-- [x] ADR-001: RandomForestClassifier como baseline
-- [x] Validar pipeline end-to-end (rodar `python src/main.py`) — Acc=0.665, F1=0.152 (baseline, melhorar em F2)
+## Stage 2: Modelo Preditivo + Avaliacao (T4-T6)
+- [x] Feature engineering (derived features + null handling)
+- [x] Treinar RF + LR + Dummy baseline (5-fold CV)
+- [x] Avaliar no test set: RF 87.5% acc, 93.7% recall, 0.954 ROC-AUC
+- [x] Testes estatisticos: RF vs Dummy p=0.001 (sig), RF vs LR p=0.084 (ns)
+- [x] Salvar modelo em src/model.pkl
+- [x] Documentar em artifacts/data/model.md
 
-## Fase 2: Capturar dados via API — formato parametrizado + HTTP handling
+## Stage 3: ETL SQL + Documentacao
+- [x] artifacts/data/etl_oulad.sql com pipeline bronze→silver→gold
+- [x] artifacts/data/model.md com schema, metricas, feature importance
 
-- [x] fetch_dataset aceita parametro format (parquet/json/csv)
-- [x] Tratamento de status HTTP (4xx/5xx) com mensagem amigável
-- [x] Salvar dados crus em data/raw.csv
-- [x] Print registra tamanho do arquivo baixado
-- [ ] Validar pipeline end-to-end com novas mudanças
-
-## Fase 3: (aguardar briefing DataMission)
-
-- [ ] TBD
-
-## Fase 4 (opcional): Dashboard + Simulação
-
-- [ ] Dashboard com conclusões e simulação interativa
+## Stage 4: Dashboard + Simulacao
+- [x] Dashboard interativo em artifacts/dashboard/index.html
+- [x] Dashboard atualizado para OULAD (metricas, features, sliders)
