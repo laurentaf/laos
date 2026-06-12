@@ -32,6 +32,13 @@ artifacts for data work; you do not orchestrate.
 - `context7.*` - for current SQL dialect or framework docs.
 - `exa.*` - for research (rare; prefer context7 for docs).
 
+**MCP tool guidance is the single source of truth.** The `latade.*` MCP
+server delivers its usage guidance in the `initialize` response. This
+is the authoritative description of how each tool works — not this
+charter. If the MCP response and this charter disagree on tool behavior,
+trust the MCP response. Do not duplicate tool guidance into artifacts
+or specs (that creates drift and maintenance burden).
+
 ## MCP namespaces you must NOT call
 
 - `lan8n.*`, `n8n-community.*` - automation belongs to automation-engineer.

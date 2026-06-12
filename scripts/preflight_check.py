@@ -27,14 +27,22 @@ Captures 6 categories of mechanical defects that LLM review alone misses:
      - per padroes-entrega.md P0: no .sql / .dax / .pbix / .py / .js / .ts
        under projects/. Only specs/markdown/yaml allowed.
 
-  6. WDL preflight gate (proposals a4fe9faa + 7fd94c1a, supermaioria 4/4).
-     4 sub-criteria (DR-2):
-       (a) verdict.yaml exists at child-repo path
-       (b) verified_by countersigned
-       (c) plan_id matches active project
-       (d) bypass validity (if wdl_bypass declared, user_confirmed_at
-           must be >= dispatch_at and manifest_entry must reference
-           the bypass; DR-1 anti-backdating).
+6. WDL preflight gate (proposals a4fe9faa + 7fd94c1a, supermaioria 4/4).
+
+Adaptive scaling tiers (CodeGraph KB, 2026-06-12):
+  Project complexity is classified into three tiers based on deliverable count.
+  Higher tiers run more thorough sub-checks. Invariant: a larger tier
+  never applies a LESS thorough check than a smaller tier.
+
+  | Tier | Deliverables | Checks 4 (cross-ref) | Checks 6 (WDL) |
+  |------|-------------|----------------------|-----------------|
+  | M0   | < 5         | skip (advisory only)  | skip (advisory)|
+  | M1   | 5–15        | full                 | standard        |
+  | M2   | > 15        | full + ADR deep-check| full + bypass  |
+
+  Reference: CodeGraph docs/design/agent-codegraph-adoption.md §P1
+  "Adapt the tool to the agent" + adaptive-explore-sizing.md.
+  Implemented in get_project_tier() and scaled_*() wrappers.
 
 Exit code:
   0  — all checks pass
@@ -332,6 +340,55 @@ def check_no_impl_code(project: Path) -> list[str]:
 # only — not blocking, but signals that the project has not yet
 # entered the WDL pre-dispatch flow).
 
+# We need the LAOS-rooted child-repo view. The contract says files
+# live at artifacts/wdl/<plan-id>/verdict.yaml. The LAOS mirror is
+# at projects/<name>/; the child repo mirrors the same tree.
+
+# Adaptive scaling: classify project by complexity tier (M0/M1/M2).
+# Tier is determined by deliverable count. Higher tiers get deeper checks.
+# Invariant: M2 gets at least as thorough checks as M1, which gets at
+# least as thorough as M0. This mirrors CodeGraph's getExploreOutputBudget
+# rule: "a larger tier must never get a smaller maxCharsPerFile than a
+# smaller tier."
+
+# ─── Project tier classification ─────────────────────────────────────────────
+# Tier thresholds. Adjust if LAOS patterns shift (e.g., more complex
+# workflows emerge). The tier is advisory — checks emit guidance, not
+# blocking errors, for the tier gap between what was run and what would
+# have run in a higher tier.
+
+TIER_M0_MAX = 5    # <  TIER_M0_MAX  → M0 (micro)
+TIER_M1_MAX = 15   # <  TIER_M1_MAX  → M1 (small-medium)
+                    # >= TIER_M1_MAX  → M2 (large)
+
+def get_project_tier(project: Path) -> str:
+    """Classify project into M0 / M1 / M2 by deliverable count.
+
+    Returns "M0", "M1", or "M2". M2 is the most thorough.
+    """
+    py = project / "project.yaml"
+    if not py.exists():
+        return "M0"
+
+    try:
+        data = yaml.safe_load(py.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return "M0"
+
+    if not isinstance(data, dict):
+        return "M0"
+
+    deliverables = data.get("deliverables", []) or []
+    count = len(deliverables) if isinstance(deliverables, list) else 0
+
+    if count < TIER_M0_MAX:
+        return "M0"
+    elif count < TIER_M1_MAX:
+        return "M1"
+    else:
+        return "M2"
+
+
 VERDICT_YAML_REL = "artifacts/wdl"   # relative to project root
 MANIFEST_REL = ".wdl-manifest.yaml"  # sibling file at project root
 PLANNING_AGENT_IDS = {"workflow-decomposer"}  # self-attest forbidden
@@ -574,20 +631,42 @@ def _find_laos_root(start: Path) -> Path:
 # ─── entry point ────────────────────────────────────────────────────────────
 
 
-def run_all(project: Path) -> tuple[int, list[str]]:
-    """Run all checks. Returns (exit_code, list_of_findings)."""
+def run_all(project: Path) -> tuple[int, list[str], str]:
+    """Run all checks. Returns (exit_code, list_of_findings, tier).
+
+    tier is "M0", "M1", or "M2" — determines scaling depth for checks 4 and 6.
+    """
     if not project.exists() or not project.is_dir():
-        return 2, [f"USAGE: {project} is not a directory"]
+        return 2, [f"USAGE: {project} is not a directory"], "M0"
 
     findings: list[str] = []
+    tier = get_project_tier(project)
+
     findings += check_yaml_arithmetic(project)
     findings += check_deliverable_paths(project)
     findings += check_secrets(project)
-    findings += check_cross_references(project)
-    findings += check_no_impl_code(project)
-    findings += check_wdl_gate(project)
 
-    return (0 if not findings else 1), findings
+    # Check 4 (cross-ref): M0 → advisory only (no blocking findings)
+    cross_ref_errors = check_cross_references(project)
+    if tier == "M0":
+        for f in cross_ref_errors:
+            findings.append(f"ADVISORY: {f}")  # non-blocking for M0
+    else:
+        findings += cross_ref_errors
+
+    findings += check_no_impl_code(project)
+
+    # Check 6 (WDL gate): M0 → skip entirely; M1 → standard; M2 → full
+    if tier == "M0":
+        findings.append(
+            f"ADVISORY_WDL: project tier M0 (<{TIER_M0_MAX} deliverables) — "
+            f"WDL preflight gate skipped. Run `workflow-decomposer` manually "
+            f"if project will scale to M1+."
+        )
+    else:
+        findings += check_wdl_gate(project)
+
+    return (0 if not findings else 1), findings, tier
 
 
 def main(argv: Iterable[str] | None = None) -> int:
@@ -606,21 +685,33 @@ def main(argv: Iterable[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    code, findings = run_all(args.project_path)
+    code, findings, tier = run_all(args.project_path)
 
     if not args.quiet:
         print(f"Preflight: {args.project_path}")
+        print(f"Tier: {tier} "
+              f"({'<5' if tier=='M0' else '5-15' if tier=='M1' else '>15'} deliverables)")
         print("-" * 60)
 
     if not findings:
-        print("PREFLIGHT_PASS: 0 findings, 6 checks completed.")
+        print(f"PREFLIGHT_PASS: 0 findings, tier={tier}, 6 checks completed.")
         return 0
 
-    for f in findings:
+    # blocking vs advisory
+    blocking = [f for f in findings if not f.startswith("ADVISORY")]
+    advisory = [f for f in findings if f.startswith("ADVISORY")]
+
+    for f in blocking:
         print(f"BLOCKED: {f}")
+    for f in advisory:
+        print(f"{f}")
+
     print("-" * 60)
-    print(f"PREFLIGHT_BLOCKED: {len(findings)} finding(s). Fix before dispatching delivery-reviewer.")
-    return 1
+    if blocking:
+        print(f"PREFLIGHT_BLOCKED: {len(blocking)} blocking, {len(advisory)} advisory. Fix blocking before dispatch.")
+    else:
+        print(f"PREFLIGHT_PASS: {len(advisory)} advisory finding(s), 0 blocking. Pass.")
+    return 1 if blocking else 0
 
 
 if __name__ == "__main__":

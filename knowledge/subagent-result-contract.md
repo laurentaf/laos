@@ -93,6 +93,115 @@ The detail file write must complete BEFORE the receipt is returned.
 The orchestrator must never receive a receipt pointing to a non-existent
 file.
 
+## §4 — Suficiência não é steering
+
+**Source:** CodeGraph `CLAUDE.md` §"Retrieval performance & dynamic-dispatch
+coverage" + `docs/design/agent-codegraph-adoption.md` §P1 (adopted 2026-06-12).
+
+**Doutrina central:** quando um subagente (data-architect, dashboard-designer,
+etc.) retorna um output, esse output deve ser **completo o suficiente para
+o orchestrator tomar a próxima decisão sem precisar ler arquivos para confirmar.**
+
+Não tente alcançar isso com prompts mais verbosos no lado do caller.
+Prompt mais verboso **regressa** wall-clock (CodeGraph validated: wording
+variants nunca moveram tool-choice de forma confiável em agentes).
+O que realmente funciona é output suficientemente bom que o caller
+**naturalmente para**.
+
+**O que significa "suficiente" na prática:**
+
+| Subagente | Output suficiente inclui |
+|---|---|
+| `data-architect` | Schema completo, sample rows (se relevante), DQ rules documentadas, SQL pronto para executar — **sem** "confirme executando o SQL" |
+| `dashboard-designer` | Wireframe HTML funcional, tokens referenciados, breakpoints listados — **sem** "abra o arquivo para ver como ficou" |
+| `automation-engineer` | Workflow JSON completo, trigger documentado, SLA definido — **sem** "valide no n8n exportando" |
+| `capability-architect` | Scaffold completo (todos os arquivos), registry atualizado, charter escrito — **sem** "confira se os 17 arquivos estão lá" |
+| `delivery-reviewer` | Checklist com todos os P0 marcados, cada finding com `file:line` acionável — **sem** "leia o padroes-entrega.md para entender o que passou" |
+
+**Anti-pattern que nunca funciona:** no orchestrator prompt, escrever
+"always prefer latade_execute_sql over reading files" ou similar.
+O orchestrator vai ignorar. O subagente não vai mudar de comportamento.
+O tool vai continuar retornando output incompleto.
+
+**O que funciona:** fazer o tool output ser tão bom que ler mais é
+redundante. Para cada tool, pergunte: "o caller consegue tomar a decisão
+só com este output, ou vai precisar ler algo?" Se a segunda, o output
+é insuficiente — e a resposta não é "melhore o prompt", é
+"melhore o tool".
+
+**Teste:** rode `knowledge/eval-methodology.md` com e sem a mudança.
+Se o arm "com" tem menos `mcp__*` calls E menos `Read` pelo orchestrator,
+o output ficou mais suficiente.
+
+## §5 — Erros em formato de sucesso
+
+**Source:** CodeGraph `docs/design/agent-codegraph-adoption.md` §P1
+"Errors teach abandonment" (adopted 2026-06-12).
+
+**Regra:** todo `isError: true` é uma mensagem de **"pare de tentar"**.
+Uma ou duas respostas com `isError: true` no início de uma sessão e o
+agent para completamente de usar o tool — mesmo quando o tool
+funcionaria bem para queries subsequentes.
+
+**Classificação de condições:**
+
+| Condição | Resposta correta | isError? |
+|---|---|---|
+| Segurança: path traversal tentado | `isError: true` com mensagem de recusa | **SIM** — Security refusal |
+| Segurança: segredos detectados | `isError: true` | **SIM** — Security |
+| Tool genuinamente quebrado (crash, panic) | `isError: true` com retry hint | **SIM** — genuine malfuncion |
+| Projeto não indexado | `status: ok + "não indexado ainda, rode `codegraph init` primeiro"` | **NÃO** — esperado/recuperável |
+| Símbolo não encontrado | `status: ok + listagem do que existe (você quis dizer X?)` | **NÃO** — esperado/recuperável |
+| Arquivo não no índice | `status: ok + `file not indexed: <path>. Read it directly.` | **NÃO** — esperado/recuperável |
+| Workspace vazio (sem .codegraph/) | `tools/list` retorna [] + 2 linhas "inactive" | **NÃO** — ausência é o sinal |
+| Dados insuficientes para processar | `status: ok + guidance` de como obter os dados | **NÃO** — esperado/recuperável |
+
+**Padrão de resposta esperada/recuperável (success-shaped error):**
+
+```yaml
+# Projeto não indexado
+status: ok
+summary: "Projeto não indexado — codegraph serve não encontra .codegraph/"
+details_path: ""
+task_id: ""
+# O caller sabe o que fazer (não é erro, é estado)
+
+# Símbolo não encontrado — sugira alternativas
+status: ok
+summary: "Symbol 'FooBar' não encontrado. Encontrados: FooBarService (3 calls), fooBar (variable). Quer explorar um destes?"
+details_path: ""
+task_id: ""
+
+# Arquivo não no índice
+status: ok
+summary: "src/auth.py não está no índice. O arquivo existe em disco — leia diretamente ou rode codegraph sync."
+details_path: ""
+task_id: ""
+```
+
+**O que NÃO fazer nunca:**
+```yaml
+# ERRADO — o caller não sabe o que fazer
+status: error
+summary: "Symbol not found"
+
+# ERRADO — isError para condição esperada
+isError: true
+message: "Symbol not found"
+
+# ERRADO — isError para condição recuperável
+isError: true
+message: "execute_sql failed: table not found. Run load_csv_to_bronze first."
+```
+
+**A regra prática:** se o caller pode fazer algo concreto sobre o
+problema (rodar init, read arquivo diretamente, corrigir input), é
+`status: ok + guidance`. Só é `isError` quando o caller **não pode
+fazer nada** além de parar de tentar ou escalar.
+
+** delivery-reviewer valida isso?** Sim — P0-21 em `padroes-entrega.md`
+valida que cada tool response segue esta regra.
+
 ## Examples
 
 ### Successful dispatch

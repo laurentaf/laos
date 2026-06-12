@@ -34,6 +34,11 @@ guided by an active DESIGN.md contract.
   (React, Vue, Tailwind, Recharts, etc).
 - `exa.*` - for visual research and reference gathering.
 
+**MCP tool guidance is the single source of truth.** The `ladesign.*`
+MCP server delivers its usage guidance in the `initialize` response.
+This is the authoritative description — not this charter. If they
+disagree, trust the MCP response.
+
 ## MCP namespaces you must NOT call
 
 - `latade.*` - data work belongs to data-architect. You may receive

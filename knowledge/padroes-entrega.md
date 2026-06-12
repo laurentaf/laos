@@ -121,12 +121,45 @@ arquivo.
       YAML+arithmetic, path existence, secret scan, cross-reference
       integrity, no implementation code in LAOS.
 - [ ] **Boot check 6ª dimensão passou (`child-repo-skeleton`).**
-      O orchestrator deve rodar `uv run python scripts/subagent_boot_check.py
-      <subagent> --project-name <name>` antes de cada dispatch. O
-      sub-check `skeleton` (sempre ativo) valida a matriz per-file
-      da Missão 0; o sub-check `first-real-adr` (gated) valida o
-      ADR-mínimo-1 só após o 1º estágio decisório. Se exit ≠ 0,
-      corrigir antes de prosseguir.
+       O orchestrator deve rodar `uv run python scripts/subagent_boot_check.py
+       <subagent> --project-name <name>` antes de cada dispatch. O
+       sub-check `skeleton` (sempre ativo) valida a matriz per-file
+       da Missão 0; o sub-check `first-real-adr` (gated) valida o
+       ADR-mínimo-1 só após o 1º estágio decisório. Se exit ≠ 0,
+       corrigir antes de prosseguir.
+
+### Tool output sufficiency (CodeGraph KB, 2026-06-12)
+
+> **Proveniência:** CodeGraph `docs/design/agent-codegraph-adoption.md` §P1
+> + `docs/SEARCH_QUALITY_LOOP.md` (7-test battery). Adaptado para LAOS.
+
+- [ ] **P0-20 (suficiência de output).** O output de **todo MCP tool**
+       deve ser **completo o suficiente para quem chama parar** — nunca
+       "use Read para confirmar". Se o caller precisa ler um arquivo para
+       confirmar o output do tool, o tool está **insuficiente**.
+       **Doutrina (não negociável):** sufficiency > steering. Tentar
+       corrigir isso com prompts mais verbosos **regressa** wall-clock
+       (CodeGraph validated: wording variants nunca moveram tool-choice
+       de forma confiável; o que move é output realmente completo).
+       Ver `knowledge/subagent-result-contract.md` §4.
+- [ ] **P0-21 (erros em formato de sucesso).** Toda condição esperada/
+       recuperável (projeto não indexado, símbolo não encontrado,
+       arquivo não no índice) retorna **resposta com status: ok + guidance**
+       — não `isError: true`. `isError` é **reservado** para "pare de tentar"
+       (recusa de segurança, malfuncionamento genuíno). One or two
+       `isError` responses e o agent para de chamar o tool entirely.
+       Ver `knowledge/subagent-result-contract.md` §5.
+- [ ] **P0-22 (7-test battery para nova capability MCP).** Quando uma
+       capability MCP nova é adicionada a `registry/capabilities.yaml`,
+       o delivery-reviewer **deve** rodar a 7-test battery (ou
+       justificar N/A por escrito em `spec/adr/`). Battery mínima:
+       (1) `explore` retorna entry points relevantes, (2) `search`
+       encontra símbolo alvo no top-3, (3) `callers`/`callees` tem ≥1
+       resultado em código real, (4) `impact` não é vazio em tipo core,
+       (5) edge kinds estão presentes (`calls`, `imports`, `extends`),
+       (6) node kinds cobrem o esperado para a linguagem, (7) LLM
+       prompt real consegue responder sem Read adicional.
+       Framework: `knowledge/eval-methodology.md` §10.
 
 ## P1 - bloqueia se a entrega for para cliente externo
 

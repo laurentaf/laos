@@ -55,6 +55,11 @@ A meta-agent specialized in one job: **turn an approved LACOUNCIL proposal into 
 - `github.*` — for repo operations on the new capability's GitHub repo (create repo, push scaffold, open tracking issue).
 - `exa.*` — for research when the proposal references unfamiliar libraries (rare).
 
+**MCP tool guidance is the single source of truth.** The `lacouncil.*`
+MCP server delivers its usage guidance in the `initialize` response.
+This is the authoritative description — not this charter. If they
+disagree, trust the MCP response.
+
 ## MCP namespaces you must NOT call
 
 - `latade.*` — data work is `data-architect`'s job.

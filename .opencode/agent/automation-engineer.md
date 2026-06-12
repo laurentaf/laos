@@ -37,6 +37,11 @@ artifacts (workflows, schedules, alerts) and integration specs.
 - `context7.*` - for N8N / API docs lookup.
 - `exa.*` - for integration research.
 
+**MCP tool guidance is the single source of truth.** The `lan8n.*`
+MCP server delivers its usage guidance in the `initialize` response.
+This is the authoritative description — not this charter. If they
+disagree, trust the MCP response.
+
 ## MCP namespaces you must NOT call
 
 - `latade.*` - data work belongs to data-architect.

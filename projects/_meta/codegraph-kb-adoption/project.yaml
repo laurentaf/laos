@@ -1,0 +1,66 @@
+# project.yaml — codegraph-kb-adoption
+# Meta-projeto: replicar KBs do CodeGraph dentro de capacidades existentes da LAOS
+
+proposal_refs:
+  - 518b82d5  # Brief-curto dispatch rule (for guidance on brief size)
+  - dbc88097  # Subagent result contract (already adopted)
+  - f9b636fc  # SDD scaffold Missão 0 (source of this scaffold)
+
+nome: codegraph-kb-adoption
+tipo: meta-projeto
+criado_em: 2026-06-12
+autor: laurent
+status: em_andamento
+
+brief: |
+  Replicar os KBs (knowledge bases) mais valiosos do CodeGraph
+  (colbymchenry/codegraph) dentro das capacidades existentes da LAOS,
+  sem criar um novo capability repo. Foco em 5 padrões de alto impacto:
+  (1) framework de eval A/B, (2) doutrina suficiência-sobre-steer,
+  (3) erros em formato de sucesso, (4) scaling adaptativo por tamanho
+  do projeto, (5) MCP tool guidance como fonte única de verdade.
+  Origem: análise de colbymchenry/codegraph, CLAUDE.md + docs/design/
+  + docs/benchmarks/ (2026-06-12).
+
+needs:
+  - investigation   # análise de padrões do CodeGraph
+  - improvement     # incorporação aos padrões LAOS
+
+deliverables:
+  - knowledge/eval-methodology.md          # Stage 1
+  - knowledge/padroes-entrega.md (extendido) # Stage 2
+  - knowledge/subagent-result-contract.md (extendido) # Stage 3
+  - scripts/preflight_check.py (extendido) # Stage 4
+  - .opencode/agent/*.md (MCP SSoT)        # Stage 5
+  - artifacts/review/checklist.md          # delivery-reviewer output
+
+capabilities_used:
+  - lacouncil     # investigate, create_proposal, detect_patterns
+  - context7      # fetch CodeGraph KB docs
+
+repo: self-hosted  # Meta-projeto, sem child repo. LAOS se modifica.
+
+regime: A  # LACOUNCIL 391a8179 — mudanças estruturais, push mandatory
+
+cross_refs:
+  source_repo: colbymchenry/codegraph
+  source_url: https://github.com/colbymchenry/codegraph
+  analyzed_files:
+    - CLAUDE.md  # Retrieval performance + dynamic-dispatch coverage doctrine
+    - docs/design/agent-codegraph-adoption.md  # P1/P2 resolution patterns
+    - docs/SEARCH_QUALITY_LOOP.md  # 7-test battery for language verification
+    - docs/benchmarks/call-sequence-analysis.md  # A/B eval methodology
+    - docs/benchmarks/codegraph-ab-matrix.md  # eval framework design
+    - docs/design/dynamic-dispatch-coverage-playbook.md  # coverage principles
+  patterns_replicated:
+    - ab_eval_methodology      # Stage 1
+    - sufficiency_not_steering  # Stage 3
+    - success_shaped_errors    # Stage 3
+    - adaptive_scaling         # Stage 4
+    - mcp_s Sot                # Stage 5 (deferred)
+
+constraints:
+  - Nenhum novo capability repo criado
+  - Mudanças só em: knowledge/, scripts/, .opencode/agent/*.md, workflows/
+  - Regime A: commit+push dentro da mesma sessão após G4 sign-off
+  - ADR mínimo: 1 ADR real após Stage 3 (primeiro estágio que produz decisão)
