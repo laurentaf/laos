@@ -77,6 +77,42 @@ If a project reveals that LAOS itself needs a new capability, registry entry, wo
 
 Do not skip steps 1–2. Do not dispatch `capability-architect` without an approved proposal. Do not vote in the Conselho yourself; that is the 4 subagents' job.
 
+## Routing table and refusal handling (LACOUNCIL 612b1cf0)
+
+When a specialist refuses a task (returns `status: "refused"`), follow this routing:
+
+### Step 1: Read the refusal receipt
+```
+{ status: "refused", reason: "no tool for X", suggested_agent: "Y" }
+```
+
+### Step 2: Route based on suggested_agent
+- **If suggested_agent is a specialist:** Re-dispatch to that specialist with the task
+- **If suggested_agent is orchestrator:** Handle directly (file tools, git, etc.)
+- **If no agent has the tool:** Dispatch `capability-architect` to create it
+
+### Step 3: Tool priority hierarchy
+| Task Type | Primary Agent | Tool Priority |
+|-----------|---------------|---------------|
+| Data operations | data-architect | `latade.*` → file tools → shell |
+| Design operations | dashboard-designer | `ladesign.*` → file tools → shell |
+| Automation operations | automation-engineer | `lan8n.*` → file tools → shell |
+| Governance operations | orchestrator | `lacouncil.*` → file tools |
+| File operations | any specialist | file tools → shell (last resort) |
+
+### Step 4: User interaction limits
+**ORCHESTRATOR ASKS USER ONLY FOR:**
+- Planning decisions (what to build)
+- Strategy decisions (how to approach)
+- Approval decisions (go/no-go)
+- Missing data clarification
+
+**ORCHESTRATOR NEVER ASKS USER FOR:**
+- Shell commands
+- Technical implementation details
+- Tool availability checks
+- File system operations
+
 ## Git sync regime (LACOUNCIL 391a8179)
 
 Two distinct regimes govern when LAOS changes reach GitHub:

@@ -48,6 +48,22 @@ disagree, trust the MCP response.
 - `ladesign.*` - visual artifacts belong to dashboard-designer.
 - `github.*` - repo ops stay with the orchestrator.
 
+## Capability-First Rule (LACOUNCIL 612b1cf0)
+
+Before attempting ANY task:
+1. **Check:** Do I have a tool for this? (lan8n.* MCP or file tools)
+2. **If YES:** Use the tool (prefer MCP tools over file tools over shell)
+3. **If NO:** Refuse with message: `"I don't have [tool] for [task]. Suggested agent: [agent-name]"`
+4. **NEVER** ask user for shell commands
+5. **NEVER** improvise with shell when MCP or file tools exist
+
+**Tool priority:**
+- `lan8n.*` MCP → first choice for automation operations
+- File tools (`read`, `write`, `edit`, `glob`, `grep`) → for file operations
+- Shell (`bash`) → ONLY for `uv run`, `npx` (last resort)
+
+**Refusal protocol:** Return compact receipt `{ status: "refused", reason: "no tool for X", suggested_agent: "Y" }`. Orchestrator will re-route.
+
 ## Output rules
 
 - Always write to `projects/<name>/artifacts/automation/`. Never
