@@ -86,19 +86,34 @@ When a specialist refuses a task (returns `status: "refused"`), follow this rout
 { status: "refused", reason: "no tool for X", suggested_agent: "Y" }
 ```
 
-### Step 2: Route based on suggested_agent
-- **If suggested_agent is a specialist:** Re-dispatch to that specialist with the task
-- **If suggested_agent is orchestrator:** Handle directly (file tools, git, etc.)
-- **If no agent has the tool:** Dispatch `capability-architect` to create it
+### Step 2: Investigate tool access disparity
+Before re-routing, check WHY the refusing agent doesn't have the tool:
 
-### Step 3: Tool priority hierarchy
-| Task Type | Primary Agent | Tool Priority |
-|-----------|---------------|---------------|
-| Data operations | data-architect | `latade.*` → file tools → shell |
-| Design operations | dashboard-designer | `ladesign.*` → file tools → shell |
-| Automation operations | automation-engineer | `lan8n.*` → file tools → shell |
-| Governance operations | orchestrator | `lacouncil.*` → file tools |
-| File operations | any specialist | file tools → shell (last resort) |
+| Question | Action |
+|----------|--------|
+| Is it a **complex tool** requiring specialized training? | Route to suggested_agent |
+| Is it a **simple authorization** or path issue? | Fix the authorization, re-dispatch to same agent |
+| Is it a **missing tool** that should exist? | Dispatch `capability-architect` to create it |
+
+**Example:** Sous chef has sponge, dishwasher doesn't.
+- If sponge = special technique → sous chef does it
+- If sponge = just a different soap bottle → give dishwasher the soap, he does it
+- If sponge = doesn't exist in kitchen → buy one (create tool)
+
+### Step 3: Cost-effective routing (multiple capable agents)
+When 2+ agents can do a task, use **least-cost agent**:
+
+| Hierarchy | Agent | Cost Level | When to Use |
+|-----------|-------|------------|-------------|
+| Senior | data-architect | HIGH | Complex data modeling, cross-system ETL |
+| Senior | dashboard-designer | HIGH | Complex design systems, motion/video |
+| Senior | automation-engineer | HIGH | Complex integrations, multi-step workflows |
+| Junior | data-architect (simple) | MEDIUM | Simple SQL, basic data quality checks |
+| Junior | dashboard-designer (simple) | MEDIUM | Simple wireframes, basic layouts |
+| Junior | automation-engineer (simple) | MEDIUM | Simple schedules, basic alerts |
+| Support | orchestrator | LOW | File ops, git, simple reads/writes |
+
+**Rule:** Don't use a sous chef to peel potatoes when a line cook can do it.
 
 ### Step 4: User interaction limits
 **ORCHESTRATOR ASKS USER ONLY FOR:**
