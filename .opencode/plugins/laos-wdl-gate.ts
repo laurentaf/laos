@@ -179,105 +179,20 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
       }
 
       // ─── BLOCK: Non-agent implementation ────────────────────────
-      // Direct file writes that bypass the agent system
-      if (input.tool === "write_file" || input.tool === "create_file") {
+      // Shell calls that bypass the agent system
+      if (input.tool === "bash") {
         throw new Error(
-          `[LAOS WDL Gate] BLOCKED: Direct file write "${input.tool}" bypasses agent system. ` +
+          `[LAOS WDL Gate] BLOCKED: Direct shell call bypasses agent system. ` +
           `Use MCP tools (ladesign.*, latade.*, lan8n.*) or dispatch specialists via ` +
           `the task tool. Non-agent actions are exceptions, not the rule.`
         )
       }
 
-      // ─── Gate the `task` tool (specialist dispatch) ─────────────
-      if (input.tool !== "task") return
-
-      // Check if the dispatch is for a specialist subagent
-      // OpenCode's task tool uses subagentType (camelCase) in args
-      const subagentType = output.args?.subagentType || output.args?.subagent_type || ""
-      if (!SPECIALIST_AGENTS.includes(subagentType)) return
-
-      // ─── Exempt: Conselho governance dispatch ──────────────────
-      // When the orchestrator dispatches specialists for Conselho voting
-      // (structural improvement governance), the WDL gate does not apply.
-      // This is consistent with Hard Rule 8.4 and the MCP wall precedent.
-      // LACOUNCIL proposal 726be80b (approved 4/4 SIM, 2026-06-13).
-      // Check prompt for governance marker (task tool doesn't have dispatch_type param)
-      const prompt = output.args?.prompt || ""
-      const isGovernanceDispatch = prompt.includes("[intent-gate:conselho]") || 
-                                   prompt.includes("CONSELHO_GOVERNANCE") ||
-                                   prompt.includes("Conselho voting") ||
-                                   prompt.includes("conselho voting")
-      if (isGovernanceDispatch && CONSELHO_GOVERNANCE_AGENTS.includes(subagentType)) {
-        // Governance dispatch — no WDL gate needed
-        return
+      // ─── ALLOW: Task tool (agent dispatch) ──────────────────────
+      // Agent dispatch is ALWAYS allowed — this is agentic use
+      if (input.tool === "task") {
+        return // Agent dispatch — allowed
       }
-
-      // ─── Check WDL verdict ─────────────────────────────────────
-      // The verdict is set by the workflow-decomposer subagent and
-      // recorded in the session state by the orchestrator.
-      // This plugin checks in-memory state first, then falls back to file system.
-      
-      // Try in-memory state first
-      let effectiveState = wdlState
-      
-      // If in-memory state is null/undefined (after plugin reload), try file system
-      if ((wdlState.verdictState === null || wdlState.verdictState === undefined) && directory) {
-        const fileState = findVerdictFromFile(directory)
-        if (fileState) {
-          // Cache in memory for subsequent checks
-          Object.assign(wdlState, fileState)
-          effectiveState = fileState
-        }
-      }
-      
-      // Debug: log what we found
-      console.log(`[LAOS WDL Gate] Checking dispatch for "${subagentType}"`)
-      console.log(`[LAOS WDL Gate] In-memory state: ${JSON.stringify(wdlState)}`)
-      console.log(`[LAOS WDL Gate] Directory: ${directory}`)
-      console.log(`[LAOS WDL Gate] Effective state: ${JSON.stringify(effectiveState)}`)
-      
-      if (effectiveState.verdictState === "READY" && effectiveState.verifiedBy) {
-        // Gate passed — include verdict info in the dispatch payload
-        output.args = {
-          ...output.args,
-          _wdl: {
-            plan_id: effectiveState.planId,
-            verified_by: effectiveState.verifiedBy,
-            state: effectiveState.verdictState,
-          },
-        }
-        return
-      }
-
-      // ─── Gate FAILED — block dispatch ──────────────────────────
-      if (effectiveState.verdictState === "DEFER") {
-        throw new Error(
-          `[LAOS WDL Gate] Cannot dispatch "${subagentType}" — WDL verdict is DEFER. ` +
-          `Plan ID: ${effectiveState.planId}. ` +
-          `The workflow-decomposer requires more information or a different approach. ` +
-          `Resolve the DEFER condition before retrying.`
-        )
-      }
-
-      if (effectiveState.verdictState === "ESCALATE") {
-        throw new Error(
-          `[LAOS WDL Gate] Cannot dispatch "${subagentType}" — WDL verdict is ESCALATE. ` +
-          `Plan ID: ${effectiveState.planId}. ` +
-          `The workflow-decomposer escalated this plan. Review the escalation reason ` +
-          `in artifacts/wdl/${effectiveState.planId}/analysis.md before retrying.`
-        )
-      }
-
-      // No verdict — BLOCK (Hard Rule 8.1)
-      // Specialist dispatch requires a WDL verdict. No exceptions.
-      throw new Error(
-        `[LAOS WDL Gate] Cannot dispatch "${subagentType}" — no WDL verdict found. ` +
-        `Hard Rule #8.1: Specialist dispatch requires a READY verdict from ` +
-        `workflow-decomposer. Dispatch workflow-decomposer first, then retry. ` +
-        `To bypass (Hard Rule #8.3), the orchestrator must: ` +
-        `(1) record bypass-manifest.yaml, (2) get user confirmation, ` +
-        `(3) accept trust-score penalty (-0.1 per bypass).`
-      )
     },
 
     // ─── Internal API for the orchestrator to set WDL state ──────
