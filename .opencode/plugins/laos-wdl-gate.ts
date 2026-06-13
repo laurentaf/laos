@@ -1,35 +1,28 @@
 /**
- * LAOS WDL Gate — Enforces agentic architecture compliance
+ * LAOS WDL Gate — Enforces agentic architecture
  *
- * Provenance:
- *   - Hard Rule #8 (AGENTS.md): "WDL preflight gate is mandatory before
- *     specialist dispatch."
- *   - LACOUNCIL a4fe9faa: WDL v1 proposal (supermaioria 4/4, 2026-06-06)
- *   - LACOUNCIL 7fd94c1a: Charter P0 for workflow-decomposer
- *   - workflows/wdl-contract.yaml: Operating contract for WDL v1
+ * Core principle: Tasks are DONE, not blocked. Orchestrator routes, never asks.
  *
- * Architecture enforcement:
- *   1. BLOCK non-agent actions (orchestrator writing SQL, dashboards, n8n directly)
- *   2. ALLOW agentic use (MCP tools like ladesign.* that dispatch to agents)
- *   3. ENFORCE that work goes through the agent system, not around it
+ * What this plugin ALLOWS (always):
+ *   - Agent dispatch via `task` tool — always, never blocked
+ *   - Specialist work — never blocked
+ *   - MCP tools — never blocked
+ *   - File tools for orchestrator — never blocked
+ *   - Research tools — never blocked
+ *   - GitHub MCP — never blocked
+ *   - Toolchain (git, uv, npx, python) — never blocked
  *
- * What this plugin blocks:
- *   - Shell calls (except toolchain: git, uv, npx, python)
- *   - Direct implementation work bypassing agents
+ * What this plugin BLOCKS:
+ *   - Shell calls that bypass the agent system
+ *   - Direct implementation by orchestrator (should dispatch instead)
  *
- * What this plugin allows:
- *   - MCP tool calls (ladesign.*, latade.*, lan8n.*) — agentic use
- *   - Agent dispatch via `task` tool — always allowed
- *   - lacouncil.* structural work (exempt per Hard Rule 8.4)
- *   - File tools (read, glob, grep) for orchestrator
- *   - Research tools (context7, exa)
- *   - GitHub MCP operations
- *   - Toolchain operations (git, uv, npx, python)
+ * What this plugin NEVER does:
+ *   - Ask user for guidance
+ *   - Block agent dispatch
+ *   - Block specialist work
+ *   - Create decision paralysis
  *
- * Shell policy:
- *   - Shell = blocked by default
- *   - Exceptions require justification (see knowledge/kitchen-hierarchy.md)
- *   - Toolchain ops (git, uv, npx, python) = always allowed
+ * The orchestrator routes tasks. The user is never consulted on HOW.
  */
 
 import type { Plugin } from "@opencode-ai/plugin"
@@ -60,65 +53,71 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
       input: { tool: string; sessionID: string; callID: string },
       output: { args: any }
     ) => {
-      // ─── Exempt: lacouncil.* structural work ───────────────────
-      if (WDL_EXEMPT_TOOLS.some(t => input.tool === t || input.tool.startsWith("lacouncil_"))) {
-        return // WDL gate does not apply
+      // ─── ALWAYS ALLOW: Agent dispatch ───────────────────────────
+      // Agent dispatch is the primary path. Never block.
+      if (input.tool === "task") {
+        return // Always allowed
       }
 
-      // ─── AGENTIC USE: MCP tools that dispatch to agents ────────
+      // ─── ALWAYS ALLOW: Specialist and MCP tools ─────────────────
+      // Specialists do their work. Orchestrator routes, never blocks.
       if (AGENTIC_MCP_NAMESPACES.some(ns => input.tool.startsWith(ns))) {
-        return // Agentic use — allowed
+        return // Agentic use — always allowed
       }
 
-      // ─── BLOCK: Shell calls (non-agent) ──────────────────────────
+      // ─── ALWAYS ALLOW: lacouncil.* structural work ───────────────
+      if (WDL_EXEMPT_TOOLS.some(t => input.tool === t || input.tool.startsWith("lacouncil_"))) {
+        return // Structural work — always allowed
+      }
+
+      // ─── ALWAYS ALLOW: File tools for orchestrator ──────────────
+      // Orchestrator needs file tools to operate
+      if (["read", "glob", "grep", "list", "edit", "write", "write_file", "create_file"].includes(input.tool)) {
+        return // File tools — always allowed
+      }
+
+      // ─── ALWAYS ALLOW: Research tools ───────────────────────────
+      if (["webfetch", "context7_query_docs", "context7_resolve_library_id", 
+           "exa_web_search_exa", "exa_web_fetch_exa"].includes(input.tool)) {
+        return // Research tools — always allowed
+      }
+
+      // ─── ALWAYS ALLOW: GitHub MCP ────────────────────────────────
+      if (input.tool.startsWith("github_")) {
+        return // GitHub MCP — always allowed
+      }
+
+      // ─── ALWAYS ALLOW: Read-only data tools ──────────────────────
+      if (input.tool === "latade_inspect_table" || 
+          input.tool === "latade_generate_schema_preview" ||
+          input.tool === "latade_health" ||
+          input.tool === "latade_list_supported_operations") {
+        return // Data inspection — always allowed
+      }
+
+      // ─── BLOCK: Shell calls (non-agent work) ─────────────────────
+      // Shell bypasses the agent system. Block it.
       if (input.tool === "bash") {
         const command = output.args?.command || ""
         
-        // Allow toolchain operations (infrastructure, not implementation)
+        // Allow toolchain (infrastructure, not implementation)
         if (command.startsWith("git ") || command.startsWith("uv ") || 
             command.startsWith("npx ") || command.startsWith("python ")) {
-          return // Toolchain operations — allowed
+          return // Toolchain — always allowed
         }
         
-        // Shell blocked by default
-        // See knowledge/kitchen-hierarchy.md for justified shell policy
+        // Shell blocked — route through agent instead
+        // NEVER ask user for guidance
         throw new Error(
-          `[LAOS WDL Gate] BLOCKED: Shell "${command.substring(0, 50)}..." bypasses agent system. ` +
+          `[LAOS WDL Gate] Shell "${command.substring(0, 30)}..." blocked. ` +
           `Use MCP tools (ladesign.*, latade.*, lan8n.*) or dispatch specialists via ` +
-          `the task tool. Non-agent actions are exceptions, not the rule.`
+          `the task tool. Orchestrator routes — user is never asked.`
         )
       }
 
-      // ─── ALLOW: Agent dispatch (always allowed) ──────────────────
-      if (input.tool === "task") {
-        return // Agent dispatch — always allowed
-      }
-
-      // ─── ALLOW: File tools (orchestrator infrastructure) ─────────
-      if (["read", "glob", "grep", "list", "edit", "write", "write_file", "create_file"].includes(input.tool)) {
-        return // File tools — allowed for orchestrator
-      }
-
-      // ─── ALLOW: Research tools ───────────────────────────────────
-      if (["webfetch", "context7_query_docs", "context7_resolve_library_id", 
-           "exa_web_search_exa", "exa_web_fetch_exa"].includes(input.tool)) {
-        return // Research tools — allowed
-      }
-
-      // ─── ALLOW: GitHub MCP ───────────────────────────────────────
-      if (input.tool.startsWith("github_")) {
-        return // GitHub MCP — allowed
-      }
-
-      // ─── ALLOW: Read-only data tools ─────────────────────────────
-      if (input.tool === "latade_inspect_table" || 
-          input.tool === "latade_generate_schema_preview" ||
-          input.tool === "latade_health") {
-        return // Data inspection — allowed
-      }
-
-      // Default: allow all other tools
-      // WDL gate is permissive for agentic actions, strict for non-agent actions
+      // ─── Default: ALLOW ──────────────────────────────────────────
+      // WDL gate is permissive. Tasks are done, not blocked.
+      return
     },
   }
 }
