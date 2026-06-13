@@ -66,6 +66,22 @@ integration:
 alerts:
   primary: [lan8n]
 
+# ─── Career / job search needs (NEW: lacareerops) ──────────────
+
+career-evaluation:
+  primary: [lacareerops]
+  optional: [context7]
+
+cv-generation:
+  primary: [lacareerops]
+
+job-scan:
+  primary: [lacareerops]
+  optional: [context7]
+
+career-tracker:
+  primary: [lacareerops]
+
 # ─── Modeling & ML needs (NEW: laecon) ───────────────────────
 
 ml:

@@ -1,0 +1,168 @@
+# project.yaml — Meta-projeto: criação da capability LACAREEROPS
+#
+# Capability nova: job search optimization via career-ops CLI.
+# Wrapper MCP com 5 tools: evaluate, generate_pdf, scan_portals,
+# batch_process, tracker_list.
+#
+# Proposta LACOUNCIL: 2f1ccd2d-7d0a-44fc-8382-24c3e16ebd0c
+# Estratégia: supermaioria (IMPORTANT/registry, threshold 0.95)
+# Resultado: APROVADA 2026-06-13 (3/4 SIM + 1 ABSTENCAO)
+# Votos: dashboard-designer (SIM), automation-engineer (SIM), delivery-reviewer (SIM), data-architect (ABSTENCAO — incerteza sobre pipeline compatibility)
+
+name: lacareerops-capability
+tipo: meta-projeto
+
+brief: |
+  Criar a capability LACAREEROPS (github.com/laurentaf/lacareerops, repo privado)
+  para job search optimization integrada ao LAOS. Oferece avaliação estruturada de
+  ofertas (salary, remote, equity, benefits), geração de CVs ATS-optimized via
+  Playwright/PDF, escaneamento de portais de emprego, processamento em batch,
+  e tracking de candidaturas. Cada usuário configura seus próprios cv.md e
+  profile.yml — repo privado por dados sensíveis (salary history, career trajectory).
+
+needs:
+  - improvement
+  - governance
+  - investigation
+  - automation
+
+capabilities_used:
+  - lacouncil
+  - context7
+  - github
+
+dominio_primario: improvement
+  # O meta-projeto é improvement (criar capability nova), mas a
+  # capability LACAREEROPS resultante é domínio automation/career.
+
+repo: https://github.com/laurentaf/lacareerops
+
+# Proposta LACOUNCIL
+lacouncil_proposal: 2f1ccd2d-7d0a-44fc-8382-24c3e16ebd0c
+lacouncil_estrategia: supermaioria
+lacouncil_resultado: aprovada
+lacouncil_data_aprovacao: 2026-06-13
+lacouncil_votos:
+  dashboard-designer: sim
+  automation-engineer: sim
+  delivery-reviewer: sim
+  data-architect: abstencao
+
+deliverables:
+  # === GitHub repo (nova — repo privado) ===
+  - path: https://github.com/laurentaf/lacareerops
+    type: capability_repo
+    description: Repo privado da capability LACAREEROPS com MCP server,
+                 config templates, README
+    validation: G1 (MCP smoke) + G2 (registry entry) + G3 (routing)
+    status: entregue_2026-06-13
+
+  - path: https://github.com/laurentaf/lacareerops/mcp/server.py
+    type: mcp_server
+    description: MCP server Python com 5 tools (health + list_supported_operations
+                 + 3 operacionais) — wrappers chamando career-ops CLI via subprocess
+    validation: G1 (health + list_supported_operations smoke)
+    status: entregue_2026-06-13
+
+  - path: https://github.com/laurentaf/lacareerops/pyproject.toml
+    type: deps
+    description: pyproject.toml com mcp, subprocess, pathlib, PyYAML (CareerOps wrapper)
+    validation: uv sync exit 0
+    status: entregue_2026-06-13
+
+  - path: https://github.com/laurentaf/lacareerops/README.md
+    type: docs
+    description: README com ≥400 chars — como instalar, configurar cv.md/profile.yml,
+                 rodar MCP server, usar tools
+    validation: ≥ 400 chars + instruções reproduzíveis
+    status: entregue_2026-06-13
+
+  - path: https://github.com/laurentaf/lacareerops/config/profile.example.yml
+    type: config_template
+    description: Profile template (experience, skills, target_roles, salary_expectation)
+    validation: YAML válido + placeholders documentados
+    status: entregue_2026-06-13
+
+  - path: https://github.com/laurentaf/lacareerops/config/cv.example.md
+    type: cv_template
+    description: CV markdown template (ATS-optimized estrutura)
+    validation: Markdown válido com ATS sections
+    status: entregue_2026-06-13
+
+  - path: https://github.com/laurentaf/lacareerops/.gitignore
+    type: gitignore
+    description: .gitignore com .env, *.log, __pycache__, .venv
+    validation: gitignore cobre segredos + venv
+    status: entregue_2026-06-13
+
+  # === Mudanças estruturais em LAOS ===
+  - path: registry/capabilities.yaml
+    type: registry
+    description: Entry lacareerops (status=BASIC, kind=domain, repo=github,
+                 owns: career.evaluation, career.cv-pdf, career.portal-scan,
+                 career.batch, career.tracker)
+    validation: G2 + delivery-reviewer
+    status: atualizado_2026-06-13
+
+  - path: registry/needs-to-capabilities.yaml
+    type: registry
+    description: Rotas: career-evaluation, cv-generation, job-scan, automation
+                 → lacareerops (primary)
+    validation: G3 + delivery-reviewer
+    status: atualizado_2026-06-13
+
+  - path: .opencode/opencode.jsonc
+    type: mcp_config
+    description: Entry mcp.lacareerops pointing to career-ops MCP server
+    validation: MCP server reachable
+    status: atualizado_2026-06-13
+
+  - path: projects/_meta/capability-evolution/lacareerops.md
+    type: tracking
+    description: Tracking BASIC com timeline, gates, condições, roadmap
+    validation: delivery-reviewer
+    status: entregue_2026-06-13
+
+  - path: projects/_meta/adr/ADR-XXX-lacareerops-creation.md
+    type: adr
+    description: ADR documentando rationale (proposta, contexto, alternativas,
+                 consequências) — formato ADR-001
+    validation: G8 + delivery-reviewer
+    status: entregue_2026-06-13
+
+  - path: knowledge/handoff-lacareerops.md
+    type: knowledge
+    description: Handoff Boundaries para lacareerops (G2 requirement)
+    validation: domain specialist review (automation-engineer)
+    status: entregue_2026-06-13
+
+estado: G1_G2_G3_entregue
+  # G1 (MCP smoke): delivered
+  # G2 (registry entry): delivered
+  # G3 (routing): delivered
+  # G8 (ADR): delivered
+  # G4 BASIC sign-off: pending delivery-reviewer
+  # G6 capability-evolution: delivered
+  # Próximo: G4 BASIC sign-off via delivery-reviewer
+
+criado_em: 2026-06-13
+
+# Capability status (tracking BASIC)
+capability_status:
+  name: lacareerops
+  initial_status: BASIC
+  current_status: BASIC
+  target_status: STABLE
+  deadline_basica_to_stable: 2026-07-13
+  gates:
+    G1: completed_2026-06-13
+    G2: completed_2026-06-13
+    G3: completed_2026-06-13
+    G4: pending__delivery_reviewer_signoff
+    G5: pending__target_2026-07-13
+    G6: completed_2026-06-13
+    G7: pending__target_2026-07-13
+    G8: completed_2026-06-13
+  conditions_total: 5
+  conditions_completed: 0
+  conditions_blocking_stable: 5

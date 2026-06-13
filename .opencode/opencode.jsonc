@@ -75,6 +75,19 @@
       }
     },
 
+    // LACAREEROPS — job search optimization (career-ops CLI wrapper).
+    // Repo: github.com/laurentaf/lacareerops (PRIVATE).
+    // 7 MCP tools: health, list, evaluate, generate_pdf, scan_portals,
+    // batch_process, tracker_list. Uses Node.js career-ops CLI + Python
+    // subprocess wrapper. Each user configures their own profile.yml + cv.md.
+    // Status: BASIC (2026-06-13). Deadline STABLE: 2026-07-13.
+    "lacareerops": {
+      "type": "local",
+      "command": ["uv", "run", "python", "E:\\projects\\lacareerops\\mcp\\server.py"],
+      "enabled": true,
+      "env": {}
+    },
+
     // LAENGINE — game development capability (sports simulation, match engine).
     "laengine": {
       "type": "local",
@@ -196,7 +209,8 @@
       "../ladesign/**": "allow",
       "../laengine/**": "allow",
       "../lacouncil/**": "allow",
-      "../laecon/**": "allow"
+      "../laecon/**": "allow",
+      "E:/projects/lacareerops/**": "allow"
     }
   }
 }

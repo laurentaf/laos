@@ -147,6 +147,36 @@ capabilities:
       Backed by DuckDB in memoria/lacouncil.duckdb (tabelas: propostas,
       projetos_registrados, verbetes_conhecimento, trust_scores).
 
+  - id: lacareerops
+    kind: domain
+    mcp_server: lacareerops
+    repo: https://github.com/laurentaf/lacareerops
+    status: basic
+    owns:
+      - career.evaluation
+      - career.cv-pdf
+      - career.portal-scan
+      - career.batch
+      - career.tracker
+    notes: |
+      Job search optimization capability for LAOS. Repo: PRIVATE
+      (github.com/laurentaf/lacareerops) — contém dados sensíveis
+      (CV, salary history, career trajectory).
+      Exposes 7 MCP tools: health, list_supported_operations,
+      career_ops_evaluate, career_ops_generate_pdf, career_ops_scan_portals,
+      career_ops_batch_process, career_ops_tracker_list.
+      Engine: career-ops CLI (Node.js) via subprocess wrapper.
+      STATUS: BASIC — scaffold entregue 2026-06-13. 30 dias para
+      STABLE (deadline 2026-07-13).
+      Tracking: projects/_meta/capability-evolution/lacareerops.md
+      Meta-projeto: projects/_meta/lacareerops/project.yaml
+      ADR: projects/_meta/adr/ADR-003-lacareerops-creation.md
+      Proposta LACOUNCIL: 2f1ccd2d-7d0a-44fc-8382-24c3e16ebd0c
+      (aprovada 3/4 SIM + 1 ABSTENCAO, supermaioria).
+      Privacy: repo PRIVADO. Cada usuário configura config/profile.yml
+      e config/cv.md localmente. Sem external API calls com dados do usuário.
+      Domain specialist reviewer: automation-engineer (G3).
+
   - id: ladesign
     kind: domain
     mcp_server: ladesign
