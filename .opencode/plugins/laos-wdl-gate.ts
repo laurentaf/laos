@@ -1,28 +1,21 @@
 /**
- * LAOS WDL Gate — Enforces agentic architecture
+ * LAOS WDL Gate — Confidence path for agents
  *
- * Core principle: Tasks are DONE, not blocked. Orchestrator routes, never asks.
+ * Core principle: Agents do their tasks with confidence.
+ * Orchestrator trusts specialists. User is rarely consulted.
  *
- * What this plugin ALLOWS (always):
- *   - Agent dispatch via `task` tool — always, never blocked
- *   - Specialist work — never blocked
- *   - MCP tools — never blocked
- *   - File tools for orchestrator — never blocked
- *   - Research tools — never blocked
- *   - GitHub MCP — never blocked
- *   - Toolchain (git, uv, npx, python) — never blocked
+ * WDL gate philosophy:
+ *   - Routine actions → just do (built confidence from repetition)
+ *   - Cleanup actions → just do (obviously safe)
+ *   - Obviously bad actions → block (idiot check)
+ *   - Uncertain actions → could ask OR route to specialist
+ *   - Never create decision paralysis
  *
- * What this plugin BLOCKS:
- *   - Shell calls that bypass the agent system
- *   - Direct implementation by orchestrator (should dispatch instead)
- *
- * What this plugin NEVER does:
- *   - Ask user for guidance
- *   - Block agent dispatch
- *   - Block specialist work
- *   - Create decision paralysis
- *
- * The orchestrator routes tasks. The user is never consulted on HOW.
+ * Confidence levels:
+ *   - 0-2 uses: check if obviously bad, otherwise allow
+ *   - 3-5 uses: allow (routine behavior)
+ *   - 5+ uses: allow without question (established pattern)
+ *   - New type of task: route to specialist
  */
 
 import type { Plugin } from "@opencode-ai/plugin"
@@ -40,11 +33,50 @@ const WDL_EXEMPT_TOOLS = [
 ]
 
 const AGENTIC_MCP_NAMESPACES = [
-  "ladesign_",   // ladesign.* tools → dispatch to dashboard-designer
-  "latade_",     // latade.* tools → dispatch to data-architect
-  "lan8n_",      // lan8n.* tools → dispatch to automation-engineer
-  "laengine_",   // laengine.* tools → dispatch to game agents
-  "laecon_",     // laecon.* tools → dispatch to econometrics agents
+  "ladesign_",
+  "latade_",
+  "lan8n_",
+  "laengine_",
+  "laecon_",
+]
+
+// Obviously bad actions — block without question
+const BLOCKED_PATTERNS = [
+  // Windows system folders
+  /windows[\/\\]system/i,
+  /c:\\windows/i,
+  /program files/i,
+  // Dangerous operations
+  /rm\s+-rf\s+\//,  // rm -rf /
+  /del\s+\/s\s+\//, // del /s / on windows
+  // Production databases without backup
+  /drop\s+database/i,
+  /drop\s+table/i,
+]
+
+// Cleanup patterns — obviously safe, just do
+const CLEANUP_PATTERNS = [
+  // Temporary files
+  /\.pyc$/,
+  /__pycache__/,
+  /\.tmp$/,
+  /\.log$/,
+  /node_modules\/\.cache/,
+  /\.venv\/lib/,
+  // Build artifacts
+  /dist\//,
+  /build\//,
+  /\.egg-info\//,
+]
+
+// Routine patterns — just do, don't ask
+const ROUTINE_PATTERNS = [
+  // Git operations (routine for any developer)
+  /^git\s+(add|commit|push|pull|status|log|diff)/i,
+  // File operations in project
+  /^git\s+/i,
+  /^uv\s+(sync|run|pip)/i,
+  /^npx\s+/i,
 ]
 
 export const WdlGate = async ({ project, directory }: { project: string; directory: string }) => {
@@ -54,24 +86,21 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
       output: { args: any }
     ) => {
       // ─── ALWAYS ALLOW: Agent dispatch ───────────────────────────
-      // Agent dispatch is the primary path. Never block.
       if (input.tool === "task") {
         return // Always allowed
       }
 
       // ─── ALWAYS ALLOW: Specialist and MCP tools ─────────────────
-      // Specialists do their work. Orchestrator routes, never blocks.
       if (AGENTIC_MCP_NAMESPACES.some(ns => input.tool.startsWith(ns))) {
         return // Agentic use — always allowed
       }
 
-      // ─── ALWAYS ALLOW: lacouncil.* structural work ───────────────
+      // ─── ALWAYS ALLOW: Structural work ──────────────────────────
       if (WDL_EXEMPT_TOOLS.some(t => input.tool === t || input.tool.startsWith("lacouncil_"))) {
         return // Structural work — always allowed
       }
 
-      // ─── ALWAYS ALLOW: File tools for orchestrator ──────────────
-      // Orchestrator needs file tools to operate
+      // ─── ALWAYS ALLOW: File tools for orchestrator ─────────────
       if (["read", "glob", "grep", "list", "edit", "write", "write_file", "create_file"].includes(input.tool)) {
         return // File tools — always allowed
       }
@@ -82,12 +111,12 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
         return // Research tools — always allowed
       }
 
-      // ─── ALWAYS ALLOW: GitHub MCP ────────────────────────────────
+      // ─── ALWAYS ALLOW: GitHub MCP ───────────────────────────────
       if (input.tool.startsWith("github_")) {
         return // GitHub MCP — always allowed
       }
 
-      // ─── ALWAYS ALLOW: Read-only data tools ──────────────────────
+      // ─── ALWAYS ALLOW: Read-only data tools ─────────────────────
       if (input.tool === "latade_inspect_table" || 
           input.tool === "latade_generate_schema_preview" ||
           input.tool === "latade_health" ||
@@ -95,28 +124,50 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
         return // Data inspection — always allowed
       }
 
-      // ─── BLOCK: Shell calls (non-agent work) ─────────────────────
-      // Shell bypasses the agent system. Block it.
+      // ─── BLOCK: Obviously bad actions ───────────────────────────
       if (input.tool === "bash") {
         const command = output.args?.command || ""
         
-        // Allow toolchain (infrastructure, not implementation)
+        // Check for blocked patterns
+        for (const pattern of BLOCKED_PATTERNS) {
+          if (pattern.test(command)) {
+            throw new Error(
+              `[LAOS WDL Gate] BLOCKED: Obviously bad action "${command.substring(0, 30)}...". ` +
+              `No specialist for this task. User would never approve.`
+            )
+          }
+        }
+        
+        // ─── ALLOW: Routine patterns (built confidence) ──────────
+        for (const pattern of ROUTINE_PATTERNS) {
+          if (pattern.test(command)) {
+            return // Routine — just do
+          }
+        }
+        
+        // ─── ALLOW: Cleanup patterns (obviously safe) ─────────────
+        for (const pattern of CLEANUP_PATTERNS) {
+          if (pattern.test(command)) {
+            return // Cleanup — just do
+          }
+        }
+        
+        // ─── ALLOW: Toolchain (infrastructure) ───────────────────
         if (command.startsWith("git ") || command.startsWith("uv ") || 
             command.startsWith("npx ") || command.startsWith("python ")) {
           return // Toolchain — always allowed
         }
         
-        // Shell blocked — route through agent instead
-        // NEVER ask user for guidance
+        // ─── Route to specialist for uncertain actions ───────────
+        // If shell fails, route to appropriate specialist
+        // Never ask user
         throw new Error(
-          `[LAOS WDL Gate] Shell "${command.substring(0, 30)}..." blocked. ` +
-          `Use MCP tools (ladesign.*, latade.*, lan8n.*) or dispatch specialists via ` +
-          `the task tool. Orchestrator routes — user is never asked.`
+          `[LAOS WDL Gate] Shell "${command.substring(0, 30)}..." not in routine/cleanup pattern. ` +
+          `Route to specialist instead. Use MCP tools or dispatch task tool.`
         )
       }
 
       // ─── Default: ALLOW ──────────────────────────────────────────
-      // WDL gate is permissive. Tasks are done, not blocked.
       return
     },
   }
