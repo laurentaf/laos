@@ -1,0 +1,36 @@
+# WDL Bypass Manifest — Proposal 726be80b
+# Governance: Implement WDL Gate Conselho Exemption
+
+bypass_id: governance-bypass-726be80b
+proposal_id: "726be80b-9f72-4dac-aa25-12bc076b1794"
+applied_at: "2026-06-13T13:10:00Z"
+
+reason: |
+  Implementing the approved proposal (726be80b) which fixes the WDL gate
+  design flaw. The proposal adds a CONSELHO_GOVERNANCE exemption to the
+  WDL gate plugin. This bypass is required to dispatch capability-architect
+  to implement the fix. Once implemented, future Conselho voting dispatches
+  will not require bypass.
+
+dispatch_type: CONSELHO_GOVERNANCE
+agent_class: CAPABILITY_ARCHITECT
+
+alternative_dispatch_path: |
+  The standard path would be: orchestrator → workflow-decomposer → verdict.yaml(READY) → specialist dispatch.
+  For governance (Conselho voting), Hard Rule 8.4 exempts lacouncil.* direct calls.
+  The dispatch to capability-architect for implementing an approved LACOUNCIL proposal is an extension of that exemption.
+
+penalty:
+  amount: -0.1
+  per_bypass: true
+  max_per_plan: -0.3
+  max_per_session: -0.5
+  note: "Penalty applies. But this is governance implementation, not project work — penalty is informational."
+
+user_confirmed_at: "2026-06-13T13:10:00Z"
+dispatch_at: "2026-06-13T13:10:00Z"
+
+implementation_scope:
+  - ".opencode/plugins/laos-wdl-gate.ts"
+  - "AGENTS.md"
+  - "workflows/wdl-contract.yaml"

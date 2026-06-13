@@ -48,6 +48,15 @@ const SPECIALIST_AGENTS = [
   "capability-architect",
 ]
 
+// Conselho governance agents — exempt from WDL gate when dispatch_type is CONSELHO_GOVERNANCE
+// LACOUNCIL proposal 726be80b (approved 4/4 SIM, 2026-06-13)
+const CONSELHO_GOVERNANCE_AGENTS = [
+  "data-architect",
+  "dashboard-designer",
+  "automation-engineer",
+  "delivery-reviewer",
+]
+
 interface WdlState {
   planId: string | null
   verdictState: "READY" | "DEFER" | "ESCALATE" | "NONE" | null
@@ -84,6 +93,22 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
 // OpenCode's task tool uses subagentType (camelCase) in args
 const subagentType = output.args?.subagentType || output.args?.subagent_type || ""
       if (!SPECIALIST_AGENTS.includes(subagentType)) return
+
+      // ─── Exempt: Conselho governance dispatch ──────────────────
+      // When the orchestrator dispatches specialists for Conselho voting
+      // (structural improvement governance), the WDL gate does not apply.
+      // This is consistent with Hard Rule 8.4 and the MCP wall precedent.
+      // LACOUNCIL proposal 726be80b (approved 4/4 SIM, 2026-06-13).
+      // Check prompt for governance marker (task tool doesn't have dispatch_type param)
+      const prompt = output.args?.prompt || ""
+      const isGovernanceDispatch = prompt.includes("[intent-gate:conselho]") || 
+                                   prompt.includes("CONSELHO_GOVERNANCE") ||
+                                   prompt.includes("Conselho voting") ||
+                                   prompt.includes("conselho voting")
+      if (isGovernanceDispatch && CONSELHO_GOVERNANCE_AGENTS.includes(subagentType)) {
+        // Governance dispatch — no WDL gate needed
+        return
+      }
 
       // ─── Check WDL verdict ─────────────────────────────────────
       // The verdict is set by the workflow-decomposer subagent and

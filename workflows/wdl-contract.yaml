@@ -80,6 +80,26 @@ triggers:
         G-VERDICT-7 (DR condition 4). Exemption scope is enumerable
         and testable in preflight. Narrative exemptions are forbidden.
 
+    - description: |
+        Conselho governance dispatches. When the orchestrator dispatches
+        specialists for Conselho voting (structural improvement governance),
+        the WDL gate does not apply. This is consistent with Hard Rule 8.4
+        and the MCP wall precedent.
+      scope:
+        dispatch_types:
+          - CONSELHO_GOVERNANCE
+        agent_allowlist:
+          - data-architect
+          - dashboard-designer
+          - automation-engineer
+          - delivery-reviewer
+      rationale: |
+        Conselho voting is structural improvement governance, not project
+        work. The WDL gate was designed for project specialist dispatch,
+        not governance dispatch. The MCP wall already has a Conselho voting
+        exception; the WDL gate should be consistent.
+        LACOUNCIL proposal 726be80b (approved 4/4 SIM, 2026-06-13).
+
 # ─── 2. verdicts ─────────────────────────────────────────────────────
 # Tri-state. Merged from β (tri-state) + δ (exemption observability)
 # + α (capability gap visibility).

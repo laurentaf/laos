@@ -1,0 +1,77 @@
+{
+  "plan_id": "governance-726be80b",
+  "project": "LAOS",
+  "dispatch_type": "CONSELHO_GOVERNANCE",
+  "created_at": "2026-06-13T10:07:00Z",
+  "generated_at": "2026-06-13T10:07:00Z",
+  "contract_version": "1.0.0",
+  "wdl_version": 1,
+  "needs": [
+    "improvement"
+  ],
+  "proposal_ref": {
+    "id": "726be80b-9f72-4dac-aa25-12bc076b1794",
+    "title": "WDL Gate: Add Conselho Governance Exemption",
+    "domain": "laos",
+    "strategy": "maioria",
+    "status": "rascunho"
+  },
+  "stages": [
+    {
+      "name": "analysis",
+      "description": "3-Q scoring + decomposition analysis",
+      "capabilities": ["lacouncil"],
+      "subagent": "workflow-decomposer",
+      "status": "complete"
+    },
+    {
+      "name": "verdict",
+      "description": "Emit tri-state verdict with scope conflict identification",
+      "capabilities": ["lacouncil"],
+      "subagent": "workflow-decomposer",
+      "status": "complete"
+    }
+  ],
+  "three_q": {
+    "clear_input": 3,
+    "validatable_success": 3,
+    "single_type_of_reasoning": 3,
+    "total": 3
+  },
+  "decomposition": {
+    "conjunction": false,
+    "plural_criteria": false,
+    "multi_owns": false,
+    "temporal": false,
+    "signals_fired": 0
+  },
+  "scope_conflicts": [
+    {
+      "id": "WDL-R5-violation",
+      "description": "Workflow-decomposer cannot call lacouncil.register_vote(). WDL-R5 explicitly forbids voting.",
+      "severity": "blocking"
+    },
+    {
+      "id": "proposal-not-ready",
+      "description": "Proposal 726be80b is in rascunho status. Voting requires em_consulta.",
+      "severity": "blocking"
+    },
+    {
+      "id": "wrong-agent",
+      "description": "This is structural improvement governance — exempt from WDL gate. Orchestrator should handle directly.",
+      "severity": "routing"
+    }
+  ],
+  "resolution": {
+    "action": "re-route_to_orchestrator",
+    "steps": [
+      "Transition proposal 726be80b from rascunho to em_consulta",
+      "Orchestrator calls lacouncil.register_vote() for data-architect",
+      "Orchestrator calls lacouncil.register_vote() for dashboard-designer",
+      "Orchestrator calls lacouncil.register_vote() for automation-engineer",
+      "Orchestrator calls lacouncil.tally_votes() after all votes cast"
+    ],
+    "exemption_applies": true,
+    "exemption_basis": "triggers.exempt — orchestrator direct lacouncil.* for structural improvement"
+  }
+}

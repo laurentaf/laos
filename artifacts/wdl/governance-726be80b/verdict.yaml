@@ -1,0 +1,56 @@
+state: DEFER
+plan_id: governance-726be80b
+block_reason: ambiguous_triggers
+reason: |
+  This request is structural improvement governance (CONSELHO voting),
+  which is EXEMPT from the WDL gate per §triggers.exempt. The
+  orchestrator should handle this directly:
+
+  1. Transition proposal 726be80b from rascunho to em_consulta
+  2. Call lacouncil.register_vote() for each Conselho member:
+     - data-architect
+     - dashboard-designer
+     - automation-engineer
+  3. Call lacouncil.tally_votes() after all votes cast
+
+  The workflow-decomposer cannot execute voting (WDL-R5 violation)
+  and should not be dispatched for exempt governance work.
+suggested_resolution: |
+  Re-route to orchestrator direct lacouncil.* invocation.
+  No WDL gate needed — this is exempt structural improvement work.
+quality_score: 3
+readiness: full
+verified_by: workflow-decomposer
+timestamp: "2026-06-13T10:07:00Z"
+session_id: governance-726be80b
+generated_at: 2026-06-13T10:07:00Z
+contract_version: "1.0.0"
+wdl_version: 1
+
+scope_conflicts:
+  - id: WDL-R5-violation
+    description: "Workflow-decomposer cannot call lacouncil.register_vote(). WDL-R5 explicitly forbids voting."
+    severity: blocking
+  - id: proposal-not-ready
+    description: "Proposal 726be80b is in rascunho status. Voting requires em_consulta."
+    severity: blocking
+  - id: wrong-agent
+    description: "This is structural improvement governance — exempt from WDL gate. Orchestrator should handle directly."
+    severity: routing
+
+exemption:
+  applied: false
+  reason: "Request falls under triggers.exempt scope (orchestrator direct lacouncil.* for structural improvement). WDL gate should not be applied. The decomposer was dispatched in error."
+  signals_evaluated:
+    - conjunction: false
+    - plural_criteria: false
+    - multi_owns: false
+    - temporal: false
+
+capability_gaps: []
+
+prior_verdicts: []
+
+signature:
+  algorithm: sha256-canonical-json
+  value: "pending"

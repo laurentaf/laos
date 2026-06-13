@@ -231,18 +231,20 @@ export const PluginName = async ({ project, client, $, directory, worktree }) =>
 
 ### MCP Wall — agent-to-namespace mapping
 
-| Agent | Allowed MCP namespaces | Blocked |
-|-------|----------------------|---------|
-| orchestrator | all | (none — trust-based) |
-| data-architect | `latade.*` | `lacouncil.*`, `ladesign.*`, `lan8n.*`, `laecon.*`, `laengine.*`, `n8n-community.*` |
-| dashboard-designer | `ladesign.*` | `lacouncil.*`, `latade.*`, `lan8n.*`, `laecon.*`, `laengine.*`, `n8n-community.*` |
-| automation-engineer | `lan8n.*`, `n8n-community.*` | `lacouncil.*`, `latade.*`, `ladesign.*`, `laecon.*`, `laengine.*` |
-| delivery-reviewer | all (read-only) | write operations (enforced by laos-guards) |
-| capability-architect | `lacouncil.*`, `github.*` | `latade.*`, `ladesign.*`, `lan8n.*`, `laecon.*`, `laengine.*`, `n8n-community.*` |
-| workflow-decomposer | `lacouncil.*` + platform MCPs | all domain MCPs (WDL-R1 wall) |
-| chief-data-scientist | `latade.*` (read-only) | `ladesign.*`, `lan8n.*`, `laecon.*`, `laengine.*`, `lacouncil.*`, `n8n-community.*` |
-| chief-designer | `ladesign.*` (read-only) | `latade.*`, `lan8n.*`, `laecon.*`, `laengine.*`, `lacouncil.*`, `n8n-community.*` |
-| chief-engineer | `lan8n.*`, `latade.*` (read-only) | `ladesign.*`, `laecon.*`, `laengine.*`, `lacouncil.*`, `n8n-community.*` |
+| Agent | Allowed MCP namespaces | Blocked | Tool-level exceptions |
+|-------|----------------------|---------|----------------------|
+| orchestrator | all | (none — trust-based) | — |
+| data-architect | `latade.*` | `lacouncil.*`, `ladesign.*`, `lan8n.*`, `laecon.*`, `laengine.*`, `n8n-community.*` | `lacouncil.register_vote`, `get_proposal`, `get_trust_scores`, `health`, `list_proposals`, `list_supported_operations` |
+| dashboard-designer | `ladesign.*` | `lacouncil.*`, `latade.*`, `lan8n.*`, `laecon.*`, `laengine.*`, `n8n-community.*` | `lacouncil.register_vote`, `get_proposal`, `get_trust_scores`, `health`, `list_proposals`, `list_supported_operations` |
+| automation-engineer | `lan8n.*`, `n8n-community.*` | `lacouncil.*`, `latade.*`, `ladesign.*`, `laecon.*`, `laengine.*` | `lacouncil.register_vote`, `get_proposal`, `get_trust_scores`, `health`, `list_proposals`, `list_supported_operations` |
+| delivery-reviewer | all (read-only) | write operations (enforced by laos-guards) | — |
+| capability-architect | `lacouncil.*`, `github.*` | `latade.*`, `ladesign.*`, `lan8n.*`, `laecon.*`, `laengine.*`, `n8n-community.*` | — |
+| workflow-decomposer | `lacouncil.*` + platform MCPs | all domain MCPs (WDL-R1 wall) | — |
+| chief-data-scientist | `latade.*` (read-only) | `ladesign.*`, `lan8n.*`, `laecon.*`, `laengine.*`, `lacouncil.*`, `n8n-community.*` | — |
+| chief-designer | `ladesign.*` (read-only) | `latade.*`, `lan8n.*`, `laecon.*`, `laengine.*`, `lacouncil.*`, `n8n-community.*` | — |
+| chief-engineer | `lan8n.*`, `latade.*` (read-only) | `ladesign.*`, `laecon.*`, `laengine.*`, `lacouncil.*`, `n8n-community.*` | — |
+
+> **Conselho voting exception (2026-06-12):** Domain subagents (`data-architect`, `dashboard-designer`, `automation-engineer`) are Conselho members and need `lacouncil.register_vote()` to deliberate. The MCP Wall blocks `lacouncil.*` at namespace level but whitelists these 6 specific tools via `allowedTools` in `laos-mcp-wall.ts`. All other `lacouncil.*` tools (`create_proposal`, `implement_proposal`, `investigate`, `record_project`, `detect_patterns`, `update_trust_score`, `tally_votes`) remain blocked — structural work is orchestrator-only.
 
 **Known limitation:** OpenCode doesn't expose the active agent name in hook inputs. The MCP wall plugin uses an internal `_setAgent` API called by `laos-dispatch.ts` when dispatching specialists. If `_setAgent` hasn't been called, the wall falls back to permissive mode (logs warning, doesn't block).
 
@@ -372,6 +374,22 @@ READY verdict, it must (a) record `bypass-manifest.yaml` with
 `reason`, `alternative_dispatch_path`, `user_confirmed_at`,
 `dispatch_at`; (b) obtain user confirmation; (c) pay the trust-score
 penalty (`-0.1/-0.3/-0.5` per 8.2).
+
+#### Conselho Governance Exemption (LACOUNCIL 726be80b)
+
+When the orchestrator dispatches specialists for Conselho voting (structural improvement governance), the WDL preflight gate does NOT apply. This exemption is consistent with Hard Rule 8.4 (exemption scope for lacouncil.* structural work).
+
+**Conditions:**
+- `dispatch_type: "CONSELHO_GOVERNANCE"` in the `task` tool args
+- `subagentType` is a Conselho member (`data-architect`, `dashboard-designer`, `automation-engineer`, `delivery-reviewer`)
+
+**Why no penalty:**
+The trust-score penalty exists to discourage bypassing the WDL gate for **project work**. Conselho voting is **not project work** — it's the governance layer's own operations. Penalizing the orchestrator for legitimate governance dispatch defeats the purpose.
+
+**Precedent:**
+- Hard Rule 8.4 (exemption scope for lacouncil.* structural work)
+- MCP Wall Conselho voting exception (laos-mcp-wall.ts lines 53-60)
+- Existing bypass manifest `governance-bypass-3473c12b` (which documented this exact issue)
 
 ### LACOUNCIL (structural improvement) workflow
 
