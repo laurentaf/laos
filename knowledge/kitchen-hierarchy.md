@@ -6,32 +6,30 @@ Transversal to all LAOS agents. Source: LACOUNCIL `612b1cf0`
 
 ## Core principle
 
-**Tasks are DONE, not blocked. Orchestrator routes, never asks.**
+**Agents do their tasks with confidence. Orchestrator trusts specialists.**
 
-Like a restaurant kitchen, the orchestrator (chef) routes tasks to the
-right agent (sous chef) without asking the customer (user).
+The WDL gate enforces a flawless path for agents:
+- Routine actions → just do
+- Cleanup actions → just do
+- Obviously bad actions → block
+- Uncertain actions → route to specialist
+- **Never ask user**
 
-## The 5-step routing logic (automatic)
+## Confidence levels
 
-```
-1. Task arrives
-   ↓
-2. Orchestrator identifies specialist (data-architect, dashboard-designer, etc.)
-   ↓
-3. Dispatch to specialist — NEVER asks user
-   ↓
-4. Specialist does the work — never blocked
-   ↓
-5. Orchestrator routes next task — never asks user
-```
-
-**No general agents.** Every task goes to the right specialist.
+| Action Type | Example | Behavior |
+|-------------|---------|----------|
+| **Routine** | git push (20th time) | Just do. Built confidence from repetition. |
+| **Cleanup** | Delete .pyc files | Just do. Obviously safe. |
+| **Obviously bad** | Delete Windows folder | Block. No specialist. User would never approve. |
+| **Uncertain** | Postgres vs SQLite | Route to specialist. Never ask user. |
+| **New task** | First time task | Route to specialist. |
 
 ## Agent hierarchy
 
 | Role | Agent | When to Use |
 |------|-------|-------------|
-| Chef | orchestrator | Route, plan, dispatch specialists |
+| Chef | orchestrator | Route, plan, trust specialists |
 | Sous chef | data-architect | Data modeling, SQL, ETL |
 | Sous chef | dashboard-designer | Design systems, decks, wireframes |
 | Sous chef | automation-engineer | Integrations, workflows, alerts |
@@ -39,63 +37,71 @@ right agent (sous chef) without asking the customer (user).
 | Support | workflow-decomposer | Plan and decompose tasks (read-only) |
 | Support | capability-architect | Structural changes (registry, knowledge) |
 
-## WDL gate — Tasks done, not blocked
+## Routine patterns (just do)
 
-### Core principle
+These are allowed without question:
+- `git add` — version control
+- `git commit` — version control
+- `git push` — version control (routine after 3-5 uses)
+- `git pull` — version control
+- `git status` — version control
+- `git log` — version control
+- `git diff` — version control
+- `uv sync` — Python toolchain
+- `uv run` — Python toolchain
+- `npx` — Node toolchain
+- `python` — Python execution
 
-**Tasks are DONE. Orchestrator routes. User is never asked.**
+## Cleanup patterns (just do)
 
-### What WDL NEVER does
+Obviously safe, just do:
+- `*.pyc` — Python bytecode
+- `__pycache__/` — Python cache
+- `*.tmp` — Temporary files
+- `*.log` — Log files
+- `node_modules/.cache` — Node cache
+- `.venv/lib` — Python venv libs
+- `dist/` — Build artifacts
+- `build/` — Build artifacts
 
-- ❌ Ask user "which path?"
-- ❌ Ask user "shell or agent?"
-- ❌ Ask user "should I dispatch?"
-- ❌ Block agent dispatch
-- ❌ Block specialist work
-- ❌ Create decision paralysis
+## Obviously bad actions (block)
 
-### What WDL ALWAYS allows
+No specialist for these. User would never approve:
+- Delete Windows system folders
+- `rm -rf /` — Root deletion
+- `del /s /` — Windows system deletion
+- `DROP DATABASE` — Production database without backup
+- `DROP TABLE` — Table deletion without backup
 
-- ✅ Agent dispatch (`task` tool) — always, never blocked
-- ✅ Specialist work — never blocked
-- ✅ MCP tools — never blocked
-- ✅ File tools for orchestrator — never blocked
-- ✅ Research tools — never blocked
-- ✅ GitHub MCP — never blocked
-- ✅ Toolchain (git, uv, npx, python) — never blocked
+## WDL gate decision tree
 
-### What WDL blocks
+```
+Action requested
+    ↓
+Is it agent dispatch (task tool)? → YES → ALLOW
+    ↓ NO
+Is it MCP tool (ladesign, latade, lan8n)? → YES → ALLOW
+    ↓ NO
+Is it file tool (read, write, glob)? → YES → ALLOW
+    ↓ NO
+Is it research tool (context7, exa)? → YES → ALLOW
+    ↓ NO
+Is it GitHub MCP? → YES → ALLOW
+    ↓ NO
+Is it toolchain (git, uv, npx, python)? → YES → ALLOW
+    ↓ NO
+Is it bash?
+    ↓
+    Is it obviously bad (windows, rm -rf /, DROP)? → BLOCK
+    ↓ NO
+    Is it routine pattern (git push, uv run)? → ALLOW (just do)
+    ↓ NO
+    Is it cleanup pattern (*.pyc, __pycache__)? → ALLOW (just do)
+    ↓ NO
+    → Route to specialist (never ask user)
+```
 
-- 🚫 Shell calls that bypass agents (except toolchain)
-- 🚫 Direct implementation by orchestrator (should dispatch instead)
-
-### Shell handling
-
-Shell blocked → orchestrator routes to specialist → task done
-
-Never: "Should I use shell?" → user says no → task blocked
-
-Always: Shell blocked → orchestrator finds specialist → task done
-
-### Toolchain exemptions (always allowed)
-
-These are infrastructure, not implementation:
-- `git *` — version control
-- `uv *` — Python toolchain
-- `npx *` — Node toolchain
-- `python *` — Python execution
-
-## Tool priority hierarchy
-
-| Task Type | Primary Agent | Tool Priority |
-|-----------|---------------|---------------|
-| Data operations | data-architect | `latade.*` → file tools → BLOCK shell |
-| Design operations | dashboard-designer | `ladesign.*` → file tools → BLOCK shell |
-| Automation operations | automation-engineer | `lan8n.*` → file tools → BLOCK shell |
-| Governance operations | orchestrator | `lacouncil.*` → file tools |
-| File operations | orchestrator | file tools (never shell) |
-
-## User interaction limits
+## User interaction
 
 **Orchestrator NEVER asks user for:**
 - Which path to take
@@ -104,31 +110,49 @@ These are infrastructure, not implementation:
 - Whether to use shell
 - Any implementation decision
 
-**Orchestrator ONLY informs user of:**
-- Project status
+**The only time user is informed:**
+- Project status updates
 - Deliverables complete
-- Blockers requiring user decision (not implementation choices)
+- Blockers (not implementation choices)
 
-## Role boundaries
+## Example flows
 
-### Hard boundaries (cannot cross)
+### Git push (routine)
+```
+git push → ALLOW (routine pattern) → DONE
+User: never asked
+```
 
-| Agent | Can Do | Cannot Do |
-|-------|--------|-----------|
-| data-architect | Data modeling, SQL, ETL | Ask user which path |
-| dashboard-designer | Design, wireframes, decks | Use shell instead of dispatch |
-| automation-engineer | Workflows, integrations, alerts | Implement directly |
+### Delete temp files (cleanup)
+```
+rm *.pyc → ALLOW (cleanup pattern) → DONE
+User: never asked
+```
 
-### Soft boundaries (can flex for single task)
+### Delete Windows folder (obviously bad)
+```
+rm -rf C:\Windows → BLOCK → "Obviously bad action"
+User: never asked, task blocked
+```
 
-| Agent | Can Flex | But Not For |
-|-------|----------|-------------|
-| Any specialist | 1-2 simple cross-role tasks | Ask user for guidance |
-| orchestrator | File operations | Implement instead of dispatch |
+### Postgres vs SQLite (uncertain)
+```
+"Which database?" → route to data-architect → data-architect decides
+User: never asked
+```
+
+## Tool priority
+
+| Task Type | Primary Agent | Fallback |
+|-----------|---------------|----------|
+| Data operations | data-architect | — |
+| Design operations | dashboard-designer | — |
+| Automation operations | automation-engineer | — |
+| Governance operations | orchestrator | lacouncil |
+| File operations | orchestrator | — |
 
 ## Cross-references
 
 - LACOUNCIL proposal: `612b1cf0-9d6e-4652-a301-b81d804949b9`
 - Agent charters: `data-architect.md`, `dashboard-designer.md`, `automation-engineer.md`
 - Orchestrator routing: `orchestrator.md` §"Routing table and refusal handling"
-- OmO reliability patterns (source inspiration)
