@@ -139,16 +139,16 @@ Orchestrator reads refusal and routes accordingly.
 The WDL gate enforces that work goes through the agent system:
 
 **BLOCKED (non-agent actions):**
-- Direct file writes (`write_file`, `create_file`)
-- Specialist dispatch without WDL verdict
+- `bash` (shell) — always blocked, forces agent use
 
 **ALLOWED (agentic use):**
+- `task` tool (agent dispatch) — always allowed
 - MCP tools (`ladesign.*`, `latade.*`, `lan8n.*`) — dispatch to agents internally
 - `lacouncil.*` structural work (exempt per Hard Rule 8.4)
 - Conselho governance dispatch
 
-**The principle:** Calling `ladesign.*` and it dispatches to a `ladesign` agent
-is agentic use. Writing SQL directly is non-agent use. WDL blocks the latter.
+**The principle:** Agents = good (always allowed). Shell = bad (always blocked).
+MCP tools = agentic use (always allowed).
 
 ## Cross-references
 
