@@ -1,5 +1,5 @@
 /**
- * LAOS WDL Gate — Enforces the WDL preflight gate before specialist dispatch
+ * LAOS WDL Gate — Enforces agentic architecture compliance
  *
  * Provenance:
  *   - Hard Rule #8 (AGENTS.md): "WDL preflight gate is mandatory before
@@ -8,18 +8,19 @@
  *   - LACOUNCIL 7fd94c1a: Charter P0 for workflow-decomposer
  *   - workflows/wdl-contract.yaml: Operating contract for WDL v1
  *
- * This plugin enforces mechanically what was previously orchestrator-prompt-only:
- *   1. BLOCK dispatch of specialist subagents (via the `task` tool) unless
- *      a valid WDL verdict.yaml exists with state: READY.
- *   2. Verify that verdict.yaml has verified_by populated (Hard Rule 8.1).
- *   3. Record bypass-manifest.yaml if the orchestrator overrides (Hard Rule 8.3),
- *      requiring user confirmation.
- *   4. Track bypass penalties (Hard Rule 8.2: -0.1 per bypass, -0.3 max per plan-id).
+ * Architecture enforcement:
+ *   1. BLOCK non-agent actions (orchestrator writing SQL, dashboards, n8n directly)
+ *   2. ALLOW agentic use (MCP tools like ladesign.* that dispatch to agents)
+ *   3. ENFORCE that work goes through the agent system, not around it
  *
- * Exemption (Hard Rule 8.4): The orchestrator's own lacouncil.* calls for
- * structural improvement work are exempt from the WDL gate. The 9 exempt
- * tools are: investigate, create_proposal, get_proposal, list_proposals,
- * register_vote, tally_votes, implement_proposal, record_project, detect_patterns.
+ * What this plugin blocks:
+ *   - Direct implementation by orchestrator (SQL, dashboards, n8n workflows)
+ *   - Non-agent work that bypasses the specialist system
+ *
+ * What this plugin allows:
+ *   - MCP tool calls (ladesign.*, latade.*, lan8n.*) — agentic use
+ *   - Agent dispatch via `task` tool (with WDL verdict)
+ *   - lacouncil.* structural work (exempt per Hard Rule 8.4)
  *
  * File system fallback: When in-memory state is null (after plugin reload),
  * the plugin reads verdict.yaml from artifacts/wdl/<plan-id>/verdict.yaml.
@@ -30,6 +31,7 @@ import type { Plugin } from "@opencode-ai/plugin"
 import { readFileSync, existsSync } from "fs"
 import { join } from "path"
 
+// Tools that are EXEMPT from WDL gate (structural improvement work)
 const WDL_EXEMPT_TOOLS = [
   "lacouncil_investigate",
   "lacouncil_create_proposal",
@@ -42,6 +44,27 @@ const WDL_EXEMPT_TOOLS = [
   "lacouncil_detect_patterns",
 ]
 
+// MCP tools that are AGENTIC (dispatch to agents internally)
+// These should be ALLOWED, not blocked
+const AGENTIC_MCP_NAMESPACES = [
+  "ladesign_",   // ladesign.* tools → dispatch to dashboard-designer
+  "latade_",     // latade.* tools → dispatch to data-architect
+  "lan8n_",      // lan8n.* tools → dispatch to automation-engineer
+  "laengine_",   // laengine.* tools → dispatch to game agents
+  "laecon_",     // laecon.* tools → dispatch to econometrics agents
+]
+
+// Non-agent implementation tools that should be BLOCKED
+// These bypass the agent system and do work directly
+const NON_AGENT_IMPLEMENTATION_TOOLS = [
+  // Direct file writes that should go through agents
+  "write_file",
+  "create_file",
+  // Shell commands that implement work directly
+  "execute_command", // Generic shell — needs context check
+]
+
+// Specialist agents that require WDL verdict
 const SPECIALIST_AGENTS = [
   "data-architect",
   "dashboard-designer",
@@ -148,12 +171,29 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
         return // WDL gate does not apply
       }
 
-      // ─── Only gate the `task` tool (specialist dispatch) ───────
+      // ─── AGENTIC USE: MCP tools that dispatch to agents ────────
+      // These are ALLOWED — they dispatch to agents internally
+      // Example: ladesign.* dispatches to dashboard-designer
+      if (AGENTIC_MCP_NAMESPACES.some(ns => input.tool.startsWith(ns))) {
+        return // Agentic use — allowed
+      }
+
+      // ─── BLOCK: Non-agent implementation ────────────────────────
+      // Direct file writes that bypass the agent system
+      if (input.tool === "write_file" || input.tool === "create_file") {
+        throw new Error(
+          `[LAOS WDL Gate] BLOCKED: Direct file write "${input.tool}" bypasses agent system. ` +
+          `Use MCP tools (ladesign.*, latade.*, lan8n.*) or dispatch specialists via ` +
+          `the task tool. Non-agent actions are exceptions, not the rule.`
+        )
+      }
+
+      // ─── Gate the `task` tool (specialist dispatch) ─────────────
       if (input.tool !== "task") return
 
-// Check if the dispatch is for a specialist subagent
-// OpenCode's task tool uses subagentType (camelCase) in args
-const subagentType = output.args?.subagentType || output.args?.subagent_type || ""
+      // Check if the dispatch is for a specialist subagent
+      // OpenCode's task tool uses subagentType (camelCase) in args
+      const subagentType = output.args?.subagentType || output.args?.subagent_type || ""
       if (!SPECIALIST_AGENTS.includes(subagentType)) return
 
       // ─── Exempt: Conselho governance dispatch ──────────────────
@@ -228,14 +268,16 @@ const subagentType = output.args?.subagentType || output.args?.subagent_type || 
         )
       }
 
-      // No verdict at all — Lenient mode: allow dispatch with warning
-      // Instead of blocking, log a warning and allow the dispatch to proceed.
-      // This ensures agents can be called even without WDL verdicts.
-      console.warn(
-        `[LAOS WDL Gate] WARNING: No WDL verdict found for "${subagentType}". ` +
-        `Dispatching without WDL gate. Hard Rule #8.1 bypassed (lenient mode).`
+      // No verdict — BLOCK (Hard Rule 8.1)
+      // Specialist dispatch requires a WDL verdict. No exceptions.
+      throw new Error(
+        `[LAOS WDL Gate] Cannot dispatch "${subagentType}" — no WDL verdict found. ` +
+        `Hard Rule #8.1: Specialist dispatch requires a READY verdict from ` +
+        `workflow-decomposer. Dispatch workflow-decomposer first, then retry. ` +
+        `To bypass (Hard Rule #8.3), the orchestrator must: ` +
+        `(1) record bypass-manifest.yaml, (2) get user confirmation, ` +
+        `(3) accept trust-score penalty (-0.1 per bypass).`
       )
-      return
     },
 
     // ─── Internal API for the orchestrator to set WDL state ──────
