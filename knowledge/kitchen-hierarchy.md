@@ -6,43 +6,32 @@ Transversal to all LAOS agents. Source: LACOUNCIL `612b1cf0`
 
 ## Core principle
 
-Like a restaurant kitchen, LAOS agents have roles, capabilities,
-and cost levels. The orchestrator (chef) routes tasks to the
-right agent (sous chef, support, etc.) based on:
+**Tasks are DONE, not blocked. Orchestrator routes, never asks.**
 
-1. **Capability** — Can the agent do this?
-2. **Tool availability** — Does the agent have the right tool?
-3. **Cost** — Is this the cheapest agent who can do it?
-4. **Volume** — Should the senior do it or delegate?
+Like a restaurant kitchen, the orchestrator (chef) routes tasks to the
+right agent (sous chef) without asking the customer (user).
 
-## The 5-step routing logic
+## The 5-step routing logic (automatic)
 
 ```
-1. Agent receives task
+1. Task arrives
    ↓
-2. Check capability: Can I do this?
-   ├── YES → Find tool → Execute
-   └── NO → Refuse + report to orchestrator
+2. Orchestrator identifies specialist (data-architect, dashboard-designer, etc.)
    ↓
-3. Orchestrator investigates tool access
-   ├── Complex tool → Route to agent with tool
-   ├── Simple auth issue → Fix auth, re-dispatch
-   └── Missing tool → Create it
+3. Dispatch to specialist — NEVER asks user
    ↓
-4. Cost-effective routing (multiple capable agents)
-   ├── 1-2 tasks → Senior does it (faster)
-   └── 3+ tasks → Delegate to junior (cheaper)
+4. Specialist does the work — never blocked
    ↓
-5. Role boundaries
-   ├── HARD: Can't cross (waiter can't peel potatoes)
-   └── SOFT: Can flex for 1 task (sous chef peels 1 potato)
+5. Orchestrator routes next task — never asks user
 ```
+
+**No general agents.** Every task goes to the right specialist.
 
 ## Agent hierarchy
 
 | Role | Agent | When to Use |
 |------|-------|-------------|
-| Chef | orchestrator | Route, plan, file ops, research via MCP |
+| Chef | orchestrator | Route, plan, dispatch specialists |
 | Sous chef | data-architect | Data modeling, SQL, ETL |
 | Sous chef | dashboard-designer | Design systems, decks, wireframes |
 | Sous chef | automation-engineer | Integrations, workflows, alerts |
@@ -50,137 +39,43 @@ right agent (sous chef, support, etc.) based on:
 | Support | workflow-decomposer | Plan and decompose tasks (read-only) |
 | Support | capability-architect | Structural changes (registry, knowledge) |
 
-**No general agents.** Every task has a specialist home.
+## WDL gate — Tasks done, not blocked
 
-**If no specialist fits:**
-1. Orchestrator handles directly (file ops, git, research via MCP)
-2. Task is too vague → clarify with user
-3. Task is infrastructure → orchestrator handles
+### Core principle
 
-**The principle:** General agents are a code smell. If you need one, you're routing wrong.
+**Tasks are DONE. Orchestrator routes. User is never asked.**
 
-## Tool access investigation
+### What WDL NEVER does
 
-When Agent A has tool but Agent B doesn't, orchestrator investigates:
+- ❌ Ask user "which path?"
+- ❌ Ask user "shell or agent?"
+- ❌ Ask user "should I dispatch?"
+- ❌ Block agent dispatch
+- ❌ Block specialist work
+- ❌ Create decision paralysis
 
-| Cause | Action |
-|-------|--------|
-| Complex tool requiring training | Route to Agent A |
-| Simple authorization issue | Fix auth, re-dispatch to Agent B |
-| Missing tool entirely | Create via capability-architect |
+### What WDL ALWAYS allows
 
-**Example:** Sous chef has sponge, dishwasher doesn't.
-- Sponge = special technique → sous chef does it
-- Sponge = different soap bottle → give dishwasher the soap
-- Sponge = doesn't exist → buy one (create tool)
+- ✅ Agent dispatch (`task` tool) — always, never blocked
+- ✅ Specialist work — never blocked
+- ✅ MCP tools — never blocked
+- ✅ File tools for orchestrator — never blocked
+- ✅ Research tools — never blocked
+- ✅ GitHub MCP — never blocked
+- ✅ Toolchain (git, uv, npx, python) — never blocked
 
-## Task volume threshold
+### What WDL blocks
 
-| Volume | Action | Reason |
-|--------|--------|--------|
-| 1-2 tasks | Senior does it directly | Faster than calling junior |
-| 3+ tasks | Senior delegates to junior | Senior's time is more expensive |
+- 🚫 Shell calls that bypass agents (except toolchain)
+- 🚫 Direct implementation by orchestrator (should dispatch instead)
 
-**Example:** Sous chef peels 1 potato = fast. Sous chef peels 3 potatoes = call line cook.
+### Shell handling
 
-## Role boundaries
+Shell blocked → orchestrator routes to specialist → task done
 
-### Hard boundaries (cannot cross)
+Never: "Should I use shell?" → user says no → task blocked
 
-| Agent | Can Do | Cannot Do |
-|-------|--------|-----------|
-| data-architect | Data modeling, SQL, ETL | Serve tables (design), Cook (automation) |
-| dashboard-designer | Design, wireframes, decks | Peel potatoes (data), Cook (automation) |
-| automation-engineer | Workflows, integrations, alerts | Serve tables (design), Prep data (data) |
-| orchestrator | Route, plan, file ops | Do specialist work (unless bypass) |
-
-### Soft boundaries (can flex for single task)
-
-| Agent | Can Flex | But Not For |
-|-------|----------|-------------|
-| Any specialist | 1-2 simple cross-role tasks | Batch work outside their role |
-| orchestrator | Simple file operations | Complex specialist work |
-
-**Examples:**
-- Waiter CAN'T peel potatoes (hard boundary — no capability)
-- Line cook CAN'T serve tables (hard boundary — no role)
-- Sous chef CAN peel 1 potato (soft boundary — fast)
-- Sous chef SHOULD NOT peel 10 potatoes (delegate to line cook)
-
-## Refusal protocol
-
-When agent refuses, return compact receipt:
-```json
-{
-  "status": "refused",
-  "reason": "no tool for X",
-  "suggested_agent": "Y"
-}
-```
-
-Orchestrator reads refusal and routes accordingly.
-
-## User interaction limits
-
-**Orchestrator asks user ONLY for:**
-- Planning decisions (what to build)
-- Strategy decisions (how to approach)
-- Approval decisions (go/no-go)
-- Missing data clarification
-
-**Orchestrator NEVER asks user for:**
-- Shell commands
-- Technical implementation details
-- Tool availability checks
-- File system operations
-
-## Tool priority hierarchy
-
-| Task Type | Primary Agent | Tool Priority |
-|-----------|---------------|---------------|
-| Data operations | data-architect | `latade.*` → file tools → shell |
-| Design operations | dashboard-designer | `ladesign.*` → file tools → shell |
-| Automation operations | automation-engineer | `lan8n.*` → file tools → shell |
-| Governance operations | orchestrator | `lacouncil.*` → file tools |
-| File operations | orchestrator | file tools → shell (last resort) |
-
-## Shell policy (strict)
-
-**Shell = blocked by default. Exceptions require justification.**
-
-### The 5-step shell check
-
-1. **"I want a shell"** → BLOCK (always)
-
-2. **Justified shell** (evaluate truth):
-   Agent must prove they tried ALL of:
-   - [ ] All specialists (data-architect, dashboard-designer, automation-engineer)
-   - [ ] MCP tools (which, latade, ladesign, lan8n, context7, exa)
-   - [ ] Orchestrator file tools (read, write, edit, glob, grep)
-   - [ ] Python scripts in venv
-   - [ ] Context7/exa research
-   - [ ] KB lookup (knowledge/)
-   - [ ] Task is unique (not in any project: ladesign, latade, lan8n, laecon, laengine)
-   - [ ] Only single use
-
-   If ALL criteria met → ALLOW
-   If ANY criteria missing → BLOCK
-
-3. **Usage tracking** (future):
-   - Register shell usage: command hash (30 chars) + count
-   - First 3-4 uses for same task type → ALLOW (grace period)
-   - 5th use for same 30 chars → BLOCK + ask user:
-     - "Create a new project with this capacity?"
-     - "Create an agent for this task?"
-
-4. **User interaction (never ask which path)**:
-   - User will always deny shell requests
-   - Ask: "Does WDL allow this?"
-   - If not → find another path
-
-5. **Never ask user which path**:
-   - Never say "do you want shell or agent?"
-   - User says no to shell → WDL decides → orchestrator finds alternative
+Always: Shell blocked → orchestrator finds specialist → task done
 
 ### Toolchain exemptions (always allowed)
 
@@ -190,18 +85,46 @@ These are infrastructure, not implementation:
 - `npx *` — Node toolchain
 - `python *` — Python execution
 
-## WDL gate allowed/blocked summary
+## Tool priority hierarchy
 
-| Tool | Status | Reason |
-|------|--------|--------|
-| `task` (agent dispatch) | ALLOW | Agentic use |
-| `ladesign.*`, `latade.*`, `lan8n.*` | ALLOW | Agentic use (dispatch to agents) |
-| `lacouncil.*` | ALLOW | Structural work (exempt) |
-| File tools (read, write, glob, grep) | ALLOW | Orchestrator infrastructure |
-| Research tools (context7, exa) | ALLOW | Orchestrator infrastructure |
-| GitHub MCP | ALLOW | Repo operations |
-| `git *`, `uv *`, `npx *`, `python *` | ALLOW | Toolchain |
-| `bash` (other) | BLOCK | Non-agent work |
+| Task Type | Primary Agent | Tool Priority |
+|-----------|---------------|---------------|
+| Data operations | data-architect | `latade.*` → file tools → BLOCK shell |
+| Design operations | dashboard-designer | `ladesign.*` → file tools → BLOCK shell |
+| Automation operations | automation-engineer | `lan8n.*` → file tools → BLOCK shell |
+| Governance operations | orchestrator | `lacouncil.*` → file tools |
+| File operations | orchestrator | file tools (never shell) |
+
+## User interaction limits
+
+**Orchestrator NEVER asks user for:**
+- Which path to take
+- Which agent to use
+- Whether to dispatch
+- Whether to use shell
+- Any implementation decision
+
+**Orchestrator ONLY informs user of:**
+- Project status
+- Deliverables complete
+- Blockers requiring user decision (not implementation choices)
+
+## Role boundaries
+
+### Hard boundaries (cannot cross)
+
+| Agent | Can Do | Cannot Do |
+|-------|--------|-----------|
+| data-architect | Data modeling, SQL, ETL | Ask user which path |
+| dashboard-designer | Design, wireframes, decks | Use shell instead of dispatch |
+| automation-engineer | Workflows, integrations, alerts | Implement directly |
+
+### Soft boundaries (can flex for single task)
+
+| Agent | Can Flex | But Not For |
+|-------|----------|-------------|
+| Any specialist | 1-2 simple cross-role tasks | Ask user for guidance |
+| orchestrator | File operations | Implement instead of dispatch |
 
 ## Cross-references
 
