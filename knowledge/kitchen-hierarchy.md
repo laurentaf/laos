@@ -134,6 +134,16 @@ Orchestrator reads refusal and routes accordingly.
 | Governance operations | orchestrator | `lacouncil.*` → file tools |
 | File operations | any specialist | file tools → shell (last resort) |
 
+## WDL gate lenient mode
+
+The WDL gate now operates in **lenient mode**:
+- When a verdict exists (READY/DEFER/ESCALATE), it's respected
+- When no verdict exists, dispatch proceeds with a warning
+- This ensures agents can be called more often, not less
+
+The gate still blocks on DEFER/ESCALATE (hard failures), but allows
+dispatch when no verdict is found (soft failure → warning only).
+
 ## Cross-references
 
 - LACOUNCIL proposal: `612b1cf0-9d6e-4652-a301-b81d804949b9`
