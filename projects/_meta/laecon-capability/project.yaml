@@ -107,9 +107,9 @@ deliverables:
 
   - path: ../laecon/CONSTITUTION.md
     type: constitution
-    description: Constitution com 9 artigos (skeleton entregue 2026-06-04; conteúdo completo até 2026-06-14, G4)
+    description: Constitution com 10 artigos (completa — 926 linhas, +464 desde o skeleton; entregue 2026-06-13, G4)
     validation: G4 (delivery-reviewer valida formato + conteúdo)
-    status: skeleton_entregue
+    status: entregue_2026-06-13
 
   - path: ../laecon/laecon/mcp/server.py
     type: mcp_server
@@ -305,12 +305,13 @@ sdd_artifacts:
   plan: projects/_meta/capability-evolution/laecon.md
   tasks: projects/_meta/adr/ADR-002-laecon-creation.md
 
-estado: M0_entregue_com_libs_instaladas
+estado: G4_entregue
   # M0 (scaffold BASIC) entregue 2026-06-04.
   # pyproject.toml expandido com principais libs Python da área
   # (solicitação do usuário: econometria + ML interpretável + principais
   # bibliotecas). `uv sync --extra full` validado exit 0.
-  # Próximo milestone: G4 (Constitution completa) até 2026-06-14.
+  # G4 (Constitution completa) entregue 2026-06-13 (926 linhas, Art. 4/6/7/9 expandidos).
+  # Próximo milestone: G5 (SDD templates) até 2026-06-24.
 
 criado_em: 2026-06-04
 
@@ -332,7 +333,7 @@ capability_status:
     G1: completed_2026-06-04
     G2: completed_2026-06-04
     G3: completed_2026-06-04
-    G4: in_progress_2026-06-04__target_2026-06-14
+    G4: completed_2026-06-13
     G5: pending__target_2026-06-24
     G6: pending__target_2026-07-04
     G7: pending__target_2026-07-04
