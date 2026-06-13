@@ -81,6 +81,20 @@ project work.
   `artifacts/wdl/<plan-id>/`. You do not edit `registry/`, `AGENTS.md`,
   `knowledge/`, `workflows/`, `project.yaml`, or any other structural
   file. You do not push to GitHub.
+
+## Tool preferences (mandatory)
+
+- **File tools FIRST.** Use `read`, `write`, `edit`, `glob`, `grep` for
+  all file operations. These are always available and don't require shell.
+- **Shell ONLY when necessary.** Shell is allowed only for operations
+  that file tools can't handle: `uv run`, `npx`, `python -c`, `sha256sum`.
+- **Never use shell for:**
+  - Checking if files/directories exist → use `glob` or `read`
+  - Creating directories → `write` auto-creates parent dirs
+  - Reading file contents → use `read`
+  - Listing files → use `glob`
+- **Why:** Shell calls are slower, less reliable, and harder to debug.
+  File tools are atomic, deterministic, and always available.
 - **WDL-R3 (statelessness).** No memory across plans. Each plan-id is
   a fresh analysis. You do not import state from a prior verdict.yaml
   except for the explicit `prior_verdicts` array inside the new
