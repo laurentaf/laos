@@ -119,6 +119,33 @@ Estrutura:
 | Post-commit auto-push | Sim | Sim |
 | Session-end safety | Sim | Sim |
 
+## pre-push (LAOS repo only)
+
+```
+.git/hooks/pre-push
+```
+
+**O que faz (auto-rebase on divergent remote):**
+1. `git fetch` to update remote tracking refs
+2. Check `git rev-list --count HEAD..origin/main` — if 0, proceed
+3. If remote has new commits → `git pull --rebase origin main`
+4. If rebase succeeds → exit 0, push proceeds
+5. If conflicts → abort with actionable message
+
+**Por que existe:**
+Sem ele: 8 passos manuais para resolver divergent push (fetch → pull --rebase → resolve conflicts → add → rebase --continue → push).
+Com ele: 1 passo (`git push`) se rebase succeeds, or 3 steps if conflicts.
+
+**Exit codes:**
+- `0` — up to date or rebase succeeded, push proceeds
+- `1` — conflicts, abort with manual resolution instructions
+
+**Instalação (LAOS repo):**
+```bash
+cp scripts/pre-push .git/hooks/pre-push
+git config core.hooksPath .git/hooks
+```
+
 ## Histórico
 
 - 2026-06-12 — Criado via LACOUNCIL `3473c12b` (adção de 3 padrões Oracle 2Care)
