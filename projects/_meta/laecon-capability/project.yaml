@@ -334,7 +334,7 @@ capability_status:
     G2: completed_2026-06-04
     G3: completed_2026-06-04
     G4: completed_2026-06-13
-    G5: pending__target_2026-06-24
+    G5: completed_2026-06-13
     G6: pending__target_2026-07-04
     G7: pending__target_2026-07-04
     G8: completed_2026-06-04  # ADR-002 entregue, formato ADR-001 aceito (DR-5)

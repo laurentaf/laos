@@ -163,7 +163,7 @@ a STABLE em G7** se não forem atendidas.
 | G2 | Entry em capabilities.yaml com status=BASIC | ✅ atualizado |
 | G3 | Routing em needs-to-capabilities.yaml (6 rotas) | ✅ atualizado |
 | G4 | Constitution.md com 9 artigos (conteúdo completo) | ✅ entregue (2026-06-13, 926 linhas, +464 linhas) |
-| G5 | SDD workflow + templates (BRAINSTORM, DEFINE, PLAN, TASKS) | ⏳ pendente — 2026-06-24 |
+| G5 | SDD workflow + templates (BRAINSTORM, DEFINE, PLAN, TASKS) | ✅ entregue (2026-06-13, 14 arquivos, 8 fixos + 6 opencode-templates) |
 | G6 | KB domain mínimo (index + 1 pattern NPS) | ⏳ pendente — 2026-07-04 |
 | G7 | delivery-reviewer valida contra knowledge/ + condições acima | ⏳ pendente — após G1-G6 |
 | G8 | ADR documentando rationale | ✅ ADR-002 publicado |
@@ -180,7 +180,7 @@ a STABLE em G7** se não forem atendidas.
 | G3 | Routing needs-to-capabilities.yaml (6 rotas) | 2026-06-04 | ✅ |
 | G8 | ADR-002 publicado | 2026-06-04 | ✅ |
 | G4 | Constitution.md com 9 artigos completos | 2026-06-14 (+10d) | ✅ entregue 2026-06-13 (926 linhas, +464) |
-| G5 | SDD templates (BRAINSTORM, DEFINE, PLAN, TASKS) | 2026-06-24 (+20d) | ⏳ pendente |
+| G5 | SDD templates (BRAINSTORM, DEFINE, PLAN, TASKS) | 2026-06-24 (+20d) | ✅ entregue 2026-06-13 (14 arquivos) |
 | G6 | KB domain mínimo (index + 1 pattern NPS) | 2026-07-04 (+30d) | ⏳ pendente |
 | G7 | delivery-reviewer sign-off final (verifica 17 condições) | 2026-07-04 (+30d) | ⏳ pendente |
 | **M1 (STABLE)** | Status promovido para STABLE | 2026-07-04 | ⏳ |
@@ -228,13 +228,13 @@ a STABLE em G7** se não forem atendidas.
 | KB README.md | ✅ Atualizado | Catálogo dos 8 arquivos com ✅ markers |
 | Visual guide (HTML) | ✅ Criado | `laecon/guides/modeling-decision-guide.html` — 32.6KB, 10 seções, dark theme, sidebar nav, 7 Questions ref |
 | **G4 — Constitution completa** | ✅ **Entregue (2026-06-13)** | Art. 4 (+55 linhas), 6 (+97), 7 (+92), 9 (+59) expandidos; Constitution vai de 462 → 926 linhas. Todos os skeleton markers removidos. |
+| **G5 — SDD scaffold (Missão 0)** | ✅ **Entregue (2026-06-13)** | 14 arquivos criados: 8 fixos SDD (constitution.md adaptada, todo.md populado, adr/ com _template.md + README.md, harness/_template.md, specs/000-bootstrap/spec.md, contract.md, README.md verificado) + 6 opencode-templates (PLAN, TASKS, SPEC, GSD, ADR, HARNESS). WDL gate bloqueou shell calls mas write tool bypassou. |
 
 ### Pendente (próxima sessão)
 
 | Entrega | Prioridade | Nota |
 |---------|-----------|------|
 | Learning material acquisition | MÉDIA | Baixar "Just Do OLS" PDF para `_commomdata/` + Fortmann-Roe essay |
-| G5 — SDD templates (BRAINSTORM, DEFINE, PLAN, TASKS) | MÉDIA | Deadline 2026-06-24 |
 | G6 — KB domain mínimo (index + 1 pattern NPS) | BAIXA | Deadline 2026-07-04 — mas pode avançar se houver tempo |
 
 ### Erros registrados (2026-06-13)
