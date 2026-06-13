@@ -1,0 +1,41 @@
+state: READY
+plan_id: test-gate-001
+project: laecon-capability
+readiness: full
+quality_score: 3
+wdl_version: 1
+contract_version: "1.0.0"
+generated_at: "2026-06-13T00:00:00Z"
+session_id: test-session-001
+planner_id: workflow-decomposer
+verified_by: delivery-reviewer
+
+three_q:
+  clear_input: 3
+  validatable_success: 3
+  single_type_of_reasoning: 3
+
+decomposition_signals:
+  conjunction: false
+  plural_criteria: false
+  multi_owns: false
+  temporal: false
+
+exemption:
+  applied: true
+  reason: "Test gate: single dispatchable need, no decomposition signals, 3/3 on 3-Q."
+  signals_evaluated:
+    conjunction: false
+    plural_criteria: false
+    multi_owns: false
+    temporal: false
+
+capability_gaps: []
+
+gaps_acknowledged: null
+
+prior_verdicts: []
+
+signature:
+  algorithm: sha256-canonical-json
+  value: "PLACEHOLDER_SIGNATURE_TO_BE_COMPUTED"

@@ -1,0 +1,97 @@
+{
+  "plan_id": "laecon-kb-guide-20260613",
+  "project": "laecon-capability",
+  "created_at": "2026-06-13T11:10:00Z",
+  "needs": [
+    {
+      "need": "improvement",
+      "capability": "lacouncil",
+      "note": "Proposal 2505af1e already approved"
+    },
+    {
+      "need": "data",
+      "capability": "latade",
+      "note": "KB reference files are about data modeling methods"
+    },
+    {
+      "need": "design",
+      "capability": "ladesign",
+      "note": "Visual guide is a design artifact"
+    }
+  ],
+  "stages": [
+    {
+      "name": "kb-population",
+      "capabilities": ["latade"],
+      "subagent": "data-architect",
+      "description": "Create 8 reference files in ../laecon/kb/references/ extracting values from Constitution Art. 10 §3, plus update kb/README.md.",
+      "deliverables": [
+        "../laecon/kb/references/gujarati-porter.md",
+        "../laecon/kb/references/hosmer-lemeshow.md",
+        "../laecon/kb/references/long-1997.md",
+        "../laecon/kb/references/breiman-2001-rf.md",
+        "../laecon/kb/references/friedman-2001-gbm.md",
+        "../laecon/kb/references/shap-lime.md",
+        "../laecon/kb/references/cross-validation.md",
+        "../laecon/kb/references/model-selection.md",
+        "../laecon/kb/README.md"
+      ],
+      "success_criteria": [
+        "All 8 .md files exist at specified paths",
+        "Each file contains reference values extracted from Constitution Art. 10 §3",
+        "kb/README.md updated with index of reference files"
+      ]
+    },
+    {
+      "name": "visual-guide",
+      "capabilities": ["ladesign"],
+      "subagent": "dashboard-designer",
+      "description": "Create a single HTML file covering basic statistics → OLS → GLM → ordered models → validation → feature selection → trees → interpretability → advanced roadmap. Focus on Python packages, parameters, when-to-use decisions.",
+      "deliverables": [
+        "Single HTML file in project artifacts"
+      ],
+      "success_criteria": [
+        "Single HTML file exists",
+        "Covers all 9 topic areas in specified sequence",
+        "Python-package focus (not formula-heavy)",
+        "When-to-use decision framework present",
+        "Not example-focused"
+      ]
+    }
+  ],
+  "three_q": {
+    "clear_input": 3,
+    "validatable_success": 3,
+    "single_type_of_reasoning": 2,
+    "total": 8,
+    "floor_applied": 2,
+    "rationale": "Mixed reasoning types (extract for KB, synthesize for guide) across two deliverables. Each sub-task is 3/3 independently."
+  },
+  "decomposition_signals": {
+    "conjunction": {
+      "fires": true,
+      "evidence": "Implicit 'and' between KB files and visual guide deliverables"
+    },
+    "plural_criteria": {
+      "fires": false,
+      "evidence": "Single success criterion per deliverable"
+    },
+    "multi_owns": {
+      "fires": true,
+      "evidence": "KB files → data-architect (latade), visual guide → dashboard-designer (ladesign). Cross-capability split required."
+    },
+    "temporal": {
+      "fires": false,
+      "evidence": "Independent deliverables, no implied sequence"
+    },
+    "signals_fired": 2,
+    "detect_patterns_required": true
+  },
+  "capability_gaps": [],
+  "exemption": null,
+  "prior_verdicts": [],
+  "signature": {
+    "algorithm": "sha256-canonical-json",
+    "value": "85ce4a43ed2f9a6c1e856d68c74e628daacc87698d058b3b63786e9297122b2d"
+  }
+}

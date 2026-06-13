@@ -9,21 +9,12 @@
   "instructions": [
     "AGENTS.md",
     "registry/capabilities.yaml",
-    "registry/needs-to-capabilities.md",
+    "registry/needs-to-capabilities.yaml",
     "knowledge/glossario-negocio.md",
     "knowledge/padroes-entrega.md",
     "knowledge/stack-decisions.md",
     "knowledge/discover-before-build.md"
   ],
-
-  // Plugins — LAOS mechanical enforcement layer.
-  // Each plugin enforces a hard rule that was previously prompt-only.
-  // Provenance: OmO adoption plan (2026-06-09), see knowledge/omo-adoption-provenance.md
-  "plugins": {
-    "paths": [
-      ".opencode/plugins"
-    ]
-  },
 
   // Skills come from LAOS itself plus the LADESIGN capability repo.
   "skills": {

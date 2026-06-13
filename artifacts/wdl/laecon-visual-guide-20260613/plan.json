@@ -1,0 +1,154 @@
+{
+  "plan_id": "laecon-visual-guide-20260613",
+  "project": "laecon",
+  "created_at": "2026-06-13T12:04:00Z",
+  "contract_version": "1.0.0",
+  "wdl_version": 1,
+  "generated_at": "2026-06-13T12:04:00Z",
+  "session_id": "laecon-visual-guide-session-001",
+
+  "needs": ["econometrics"],
+
+  "request_summary": "Create a single-page interactive HTML visual guide at laecon/guides/modeling-decision-guide.html covering 10 sections (OLS/GLS/WLS, logit/probit, ordered/grouped logit, GLM, panel data, time series, decision trees, random forest, gradient boosting, SHAP) with when-to-use, Python packages, key parameters, references, and decision flowcharts.",
+
+  "decomposed_tasks": [
+    {
+      "task_id": "visual-guide-author",
+      "description": "Author a single-page interactive HTML reference guide with 10 sections covering basic stats through advanced ML, grounded in existing KB files and LAECON Constitution Art. 10.",
+      "owner_capability": "laecon",
+      "routing": {
+        "primary": ["laecon"],
+        "optional": ["context7"]
+      },
+      "deliverable": {
+        "path": "laecon/guides/modeling-decision-guide.html",
+        "type": "html_reference_guide",
+        "sections": [
+          "OLS/GLS/WLS",
+          "Logit/Probit",
+          "Ordered/Grouped Logit",
+          "GLM",
+          "Panel Data",
+          "Time Series",
+          "Decision Trees",
+          "Random Forest",
+          "Gradient Boosting",
+          "SHAP"
+        ],
+        "fields_per_section": [
+          "when_to_use",
+          "python_package",
+          "key_parameters",
+          "reference",
+          "decision_flowchart"
+        ]
+      }
+    }
+  ],
+
+  "stages": [
+    {
+      "stage": 1,
+      "name": "content_synthesis",
+      "description": "Synthesize existing KB files into section-by-section content for the guide"
+    },
+    {
+      "stage": 2,
+      "name": "html_authoring",
+      "description": "Author single-page interactive HTML with navigation, flowcharts, and styling"
+    },
+    {
+      "stage": 3,
+      "name": "validation",
+      "description": "Verify 10 sections, 5 fields each, navigation works, references correct"
+    }
+  ],
+
+  "three_q": {
+    "clear_input": 3,
+    "validatable_success": 3,
+    "single_type_of_reasoning": 3,
+    "total": 9,
+    "max_possible": 9,
+    "readiness_floor_applied": 2,
+    "full_readiness_floor_applied": 3,
+    "result": "full"
+  },
+
+  "decomposition_signals": {
+    "conjunction": false,
+    "plural_criteria": false,
+    "multi_owns": false,
+    "temporal": false,
+    "signals_fired": 0,
+    "simple_task_exemption_eligible": true
+  },
+
+  "content_sources": [
+    {
+      "file": "laecon/kb/gujarati-porter.md",
+      "covers": ["OLS/GLS/WLS", "GLM", "Panel Data", "Time Series"],
+      "citation": "Gujarati & Porter, Basic Econometrics 5th ed, 2009"
+    },
+    {
+      "file": "laecon/kb/hosmer-lemeshow.md",
+      "covers": ["Logit/Probit"],
+      "citation": "Hosmer & Lemeshow, Applied Logistic Regression, 2000"
+    },
+    {
+      "file": "laecon/kb/long-1997.md",
+      "covers": ["Ordered/Grouped Logit"],
+      "citation": "J. Scott Long, Regression Models for Categorical and Limited Dependent Variables, 1997"
+    },
+    {
+      "file": "laecon/kb/breiman-2001-rf.md",
+      "covers": ["Decision Trees", "Random Forest"],
+      "citation": "Breiman, Random Forests, 2001"
+    },
+    {
+      "file": "laecon/kb/friedman-2001-gbm.md",
+      "covers": ["Gradient Boosting"],
+      "citation": "Friedman, Greedy Function Approximation (GBM), 2001"
+    },
+    {
+      "file": "laecon/kb/shap-lime.md",
+      "covers": ["SHAP"],
+      "citation": "Lundberg & Lee, A Unified Approach to Interpreting Model Predictions (SHAP), 2017"
+    }
+  ],
+
+  "capability_gaps": [],
+
+  "exemption": {
+    "applied": true,
+    "reason": "Single dispatchable need (one HTML file, 10 structural sections of a single guide). No decomposition signals fire. 3/3 on 3-Q.",
+    "signals_evaluated": {
+      "conjunction": false,
+      "plural_criteria": false,
+      "multi_owns": false,
+      "temporal": false
+    }
+  },
+
+  "prior_verdicts": [
+    {
+      "plan_id": "laecon-kb-guide-20260613",
+      "state": "READY",
+      "readiness": "partial",
+      "relation": "KB guide completed; visual guide is a separate deliverable in the same LAECON session"
+    }
+  ],
+
+  "execution_recommendation": {
+    "dispatch_type": "general",
+    "specialist_required": false,
+    "rationale": "Single-file HTML authoring grounded in existing KB content. No data work, no dashboard design, no automation. Orchestrator can author directly or dispatch general agent."
+  },
+
+  "quality_score": 1.0,
+
+  "signature": {
+    "algorithm": "sha256-canonical-json",
+    "value": "d087b67252d0862fc61fc752995ee572785b096d51a5f4371524f2fcd1d26412"
+  }
+}

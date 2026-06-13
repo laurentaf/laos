@@ -1,0 +1,14 @@
+# Bypass Manifest — laecon-kb-guide-20260613
+# Generated: 2026-06-13T12:15:00Z
+
+plan_id: laecon-kb-guide-20260613
+reason: "WDL gate plugin not detecting existing READY verdict file. Verdict exists at artifacts/wdl/laecon-kb-guide-20260613/verdict.yaml with state=READY, quality_score=0.89. Plugin path resolution issue suspected."
+alternative_dispatch_path: "Direct dispatch with verdict.yaml in payload"
+user_confirmed_at: "2026-06-13T12:15:00Z"
+dispatch_at: "pending_user_confirmation"
+penalty: -0.1
+dispatches:
+  - agent: data-architect
+    task: "Populate LAECON KB reference files (8 files from Constitution Art. 10 §3)"
+  - agent: dashboard-designer
+    task: "Create LAECON visual decision guide (basic stats → advanced ML)"

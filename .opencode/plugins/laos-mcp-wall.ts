@@ -49,7 +49,23 @@ const PLATFORM_MCPS = ["context7", "exa", "github"]
 
 // Agent → allowed MCP namespaces
 // Synced with AGENTS.md §"MCP Wall — agent-to-namespace mapping"
-const AGENT_MCP_WALLS: Record<string, { allowed: string[]; blocked: string[] }> = {
+//
+// Conselho voting exception (LACOUNCIL proposal, 2026-06-12):
+// Domain subagents (data-architect, dashboard-designer, automation-engineer)
+// are Conselho members and MUST be able to call lacouncil.register_vote(),
+// lacouncil.get_proposal(), and lacouncil.get_trust_scores() to deliberate.
+// All other lacouncil.* tools (create_proposal, implement_proposal, etc.)
+// remain blocked — structural improvement work is orchestrator-only.
+const CONSELHO_VOTE_TOOLS = [
+  "lacouncil.register_vote",
+  "lacouncil.get_proposal",
+  "lacouncil.get_trust_scores",
+  "lacouncil.health",
+  "lacouncil.list_proposals",
+  "lacouncil.list_supported_operations",
+]
+
+const AGENT_MCP_WALLS: Record<string, { allowed: string[]; blocked: string[]; allowedTools?: string[] }> = {
   "workflow-decomposer": {
     allowed: ["lacouncil", "context7", "exa", "github"],
     blocked: ["latade", "ladesign", "lan8n", "laecon", "laengine", "n8n-community"],
@@ -57,14 +73,17 @@ const AGENT_MCP_WALLS: Record<string, { allowed: string[]; blocked: string[] }> 
   "data-architect": {
     allowed: ["latade", "context7", "exa", "github"],
     blocked: ["lacouncil", "ladesign", "lan8n", "laecon", "laengine", "n8n-community"],
+    allowedTools: CONSELHO_VOTE_TOOLS, // Conselho member — can vote + read proposals
   },
   "dashboard-designer": {
     allowed: ["ladesign", "context7", "exa", "github"],
     blocked: ["lacouncil", "latade", "lan8n", "laecon", "laengine", "n8n-community"],
+    allowedTools: CONSELHO_VOTE_TOOLS, // Conselho member — can vote + read proposals
   },
   "automation-engineer": {
     allowed: ["lan8n", "n8n-community", "context7", "exa", "github"],
     blocked: ["lacouncil", "latade", "ladesign", "laecon", "laengine"],
+    allowedTools: CONSELHO_VOTE_TOOLS, // Conselho member — can vote + read proposals
   },
   "delivery-reviewer": {
     // Read-only access to ALL MCPs — reviewer needs latade.execute_sql etc. to validate data artifacts.
@@ -127,6 +146,14 @@ export const McpWall = async ({ project, directory }: { project: string; directo
       if (!wall) return // Unknown agent — don't block (orchestrator handles)
 
       if (wall.blocked.includes(namespace)) {
+        // Check tool-level exception (Conselho voting tools)
+        // Tool names use underscore separator in OpenCode: lacouncil_register_vote
+        const toolNameWithDot = toolName.replace("_", ".")
+        const isAllowedTool = wall.allowedTools?.some(
+          allowed => toolName === allowed.replace(".", "_") || toolNameWithDot === allowed
+        )
+        if (isAllowedTool) return // Tool-level exception — allow (Conselho voting)
+
         throw new Error(
           `[LAOS MCP Wall] Agent "${currentAgent}" must NOT call ${namespace}.* tools. ` +
           `Allowed namespaces: [${wall.allowed.join(", ")}]. ` +

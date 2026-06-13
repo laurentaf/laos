@@ -1,0 +1,10 @@
+bypass_id: laecon-visual-guide-bypass-001
+plan_id: laecon-visual-guide-20260613
+reason: "WDL gate plugin path resolution bug — verdict READY exists at artifacts/wdl/laecon-visual-guide-20260613/verdict.yaml but plugin cannot detect it. Same issue as previous session (documented in capability-evolution/laecon.md)."
+alternative_dispatch_path: "general (WDL recommendation) overridden to dashboard-designer (user correction)"
+verdict_state: READY
+verdict_exists: true
+user_confirmed_at: "2026-06-13T12:30:00Z"
+dispatch_at: "2026-06-13T12:30:00Z"
+trust_score_penalty: -0.1
+session_id: laecon-visual-guide-session-001

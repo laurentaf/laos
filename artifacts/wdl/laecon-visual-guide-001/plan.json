@@ -1,0 +1,20 @@
+{
+  "plan_id": "laecon-visual-guide-001",
+  "project": "laecon-capability",
+  "created_at": "2026-06-13T00:00:00Z",
+  "needs": ["design"],
+  "stages": [
+    {
+      "name": "visual-guide-html",
+      "agent": "dashboard-designer",
+      "subagent": "dashboard-designer",
+      "capabilities": ["ladesign"],
+      "deliverable": "E:/projects/laecon/guides/modeling-decision-guide.html",
+      "description": "Create single-file HTML visual guide — modeling decision guide for econometrics + ML"
+    }
+  ],
+  "simple_task_exemption": {
+    "applied": true,
+    "reason": "Single deliverable, single capability, no decomposition"
+  }
+}

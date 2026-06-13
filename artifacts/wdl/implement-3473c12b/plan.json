@@ -1,0 +1,64 @@
+{
+  "plan_id": "implement-3473c12b",
+  "project": "LAOS-meta",
+  "needs": ["improvement"],
+  "deliverables": [
+    "knowledge/child-repo-hooks.md",
+    "scripts/child-repo-hooks.sh",
+    "knowledge/tool-permission-model.md",
+    "knowledge/discover-before-build.md",
+    "scripts/subagent_boot_check.py"
+  ],
+  "capabilities_routed": ["lacouncil"],
+  "stages": [
+    {
+      "stage": 1,
+      "deliverable": "knowledge/child-repo-hooks.md",
+      "description": "Hook table documentation for child-repo lifecycle (pre-commit, post-commit, session-end)"
+    },
+    {
+      "stage": 1,
+      "deliverable": "scripts/child-repo-hooks.sh",
+      "description": "Executable hook script for child-repo lifecycle management"
+    },
+    {
+      "stage": 2,
+      "deliverable": "knowledge/tool-permission-model.md",
+      "description": "Tool permission model formalizing 'existing = allow, new = ask' principle"
+    },
+    {
+      "stage": 3,
+      "deliverable": "knowledge/discover-before-build.md",
+      "description": "Update to add cross-reference to tool-permission-model"
+    },
+    {
+      "stage": 3,
+      "deliverable": "scripts/subagent_boot_check.py",
+      "description": "Update 5th dimension to add cross-reference to discover-before-build"
+    }
+  ],
+  "decomposition": {
+    "conjunction": false,
+    "plural_criteria": false,
+    "multi_owns": false,
+    "temporal": false,
+    "signals_fired": 0,
+    "decomposition_needed": false
+  },
+  "granularity": {
+    "clear_input": 3,
+    "validatable_success": 3,
+    "single_type_of_reasoning": 3,
+    "total": 3,
+    "readiness": "full"
+  },
+  "regime": "A",
+  "session_id": "2026-06-12-LAOS-meta-implement-3473c12b",
+  "created_at": "2026-06-12T17:39:00Z",
+  "generated_at": "2026-06-12T17:39:00Z",
+  "contract_version": "1.0.0",
+  "signature": {
+    "algorithm": "sha256-canonical-json",
+    "value": "4B27C97C49A32CF769F8CB1A7CB0BA5809BD5F5C756BF1CF4B5CCAA9F849571F"
+  }
+}

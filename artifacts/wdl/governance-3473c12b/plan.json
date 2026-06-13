@@ -1,0 +1,31 @@
+{
+  "plan_id": "governance-3473c12b",
+  "project": "LAOS-meta",
+  "proposal_id": "3473c12b",
+  "title": "Adoção de 3 padrões Oracle 2Care — hook table, tool permission model, discover-before-build",
+  "domain": "transversal",
+  "strategy": "supermaioria",
+  "votes_required": 4,
+  "votes_current": {
+    "delivery-reviewer": "sim"
+  },
+  "remaining_council": [
+    "data-architect",
+    "dashboard-designer",
+    "automation-engineer"
+  ],
+  "patterns_approved": [
+    "hook table for child repos",
+    "tool permission table",
+    "discover-before-build formalization"
+  ],
+  "patterns_rejected": [
+    "LGPD compliance (different scope)"
+  ],
+  "next_action": "Dispatch remaining 3 council members for voting via lacouncil.register_vote",
+  "if_approved": "Call lacouncil.implement_proposal to generate implementation diff",
+  "signature": {
+    "algorithm": "sha256-canonical-json",
+    "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

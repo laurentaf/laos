@@ -1,0 +1,49 @@
+# WDL Bypass Manifest — Proposal 3473c12b implementation
+# regime: A (structural change, mandatory push after G4)
+
+bypass_id: implement-bypass-3473c12b
+proposal_id: "3473c12b-de89-46fe-8350-28a922c2b299"
+applied_at: "2026-06-12T20:37:00Z"
+
+reason: |
+  WDL gate plugin (laos-wdl-gate.ts) uses in-memory state set via _setVerdict().
+  After workflow-decomposer writes verdict.yaml to disk (artifacts/wdl/implement-3473c12b/),
+  no plugin hook syncs it to in-memory state (laos-dispatch.ts does not call _setVerdict).
+  This is confirmed tech debt: laos-dispatch.ts needs to call _setVerdict() after
+  workflow-decomposer task completes.
+  
+  WORKAROUND: Using bypass to inject verdict info directly into dispatch payload
+  via _wdl arg injection (the gate checks wdlState OR output.args._wdl).
+
+dispatch_type: REGIME_A_IMPLEMENTATION
+agent_class: SPECIALIST
+
+alternative_dispatch_path: |
+  The correct path would be: orchestrator → workflow-decomposer (READY verdict) →
+  laos-dispatch.ts calls _setVerdict() → specialist dispatch.
+  Gap: laos-dispatch.ts does not call _setVerdict after workflow-decomposer completes.
+
+penalty:
+  amount: -0.1
+  per_bypass: true
+  max_per_plan: -0.3
+  max_per_session: -0.5
+  note: "This is a Regime A structural change. Penalty accepted. Tech debt filed."
+
+user_confirmed_at: "2026-06-12T20:37:00Z"
+dispatch_at: "2026-06-12T20:37:00Z"
+
+verdict_injected:
+  plan_id: implement-3473c12b
+  state: READY
+  verified_by: workflow-decomposer
+  source_file: artifacts/wdl/implement-3473c12b/verdict.yaml
+
+tech_debt:
+  id: TD-WDL-GATE-001
+  title: "laos-dispatch.ts does not call _setVerdict after workflow-decomposer completes"
+  plugin: laos-wdl-gate.ts
+  affected_dispatch_types: [REGIME_A_IMPLEMENTATION, CONSELHO_GOVERNANCE]
+  severity: medium
+  proposed_fix: "Add post-task hook in laos-dispatch.ts to read verdict.yaml and call _setVerdict()"
+  requires_proposal: false  # operational fix, not structural

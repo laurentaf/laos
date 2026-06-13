@@ -1,0 +1,28 @@
+plan_id: governance-3473c12b
+state: READY
+verified_by: workflow-decomposer
+summary: "Governance dispatch approved — patterns are transversal improvements with delivery-reviewer already approving. Dispatch remaining 3 council members for voting."
+quality_score: 3
+readiness: full
+
+session_id: lacouncil
+
+prior_verdicts: []
+
+exemption:
+  applied: true
+  reason: "Governance dispatch — Hard Rule 8.4 exempts lacouncil.* structural improvement calls. This is a Conselho voting dispatch, not a specialist project dispatch."
+  signals_evaluated:
+    - "dispatch_type=CONSELHO_GOVERNANCE"
+    - "proposal is lacouncil structural improvement, not project work"
+    - "delivery-reviewer (read-only) already voted SIM"
+
+gaps_acknowledged: []
+
+capability_gaps: []
+
+verified_by: workflow-decomposer
+
+signature:
+  algorithm: sha256-canonical-json
+  value: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

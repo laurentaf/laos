@@ -1,0 +1,14 @@
+plan_id: laecon-visual-guide-001
+project: laecon-capability
+state: READY
+verified_by: workflow-decomposer
+timestamp: 2026-06-13T00:00:00Z
+wdl_version: 1
+simple_task_exemption:
+  applied: true
+  reason: Single deliverable (HTML file), single capability (ladesign), no decomposition signals
+  signals_evaluated: [conjunction, plural_criteria, multi_owns, temporal]
+  signals_fired: 0
+recommended_agent: dashboard-designer
+capability: ladesign
+risk: low

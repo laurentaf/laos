@@ -1,0 +1,7 @@
+plan_id: laecon-visual-guide-001
+reason: WDL verdict.yaml exists at correct path but gate plugin cannot locate it — likely path resolution issue. Simple task exemption applies (0/4 decomposition signals, 3/3 on 3-Q).
+alternative_dispatch_path: direct-dispatch-with-bypass
+user_confirmed_at: 2026-06-13T00:00:00Z
+dispatch_at: 2026-06-13T00:00:00Z
+penalty: -0.1
+penalty_reason: Hard Rule 8.2 — single bypass, plan-level cap -0.3 not hit

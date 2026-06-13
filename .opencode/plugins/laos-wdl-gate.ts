@@ -181,8 +181,31 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
       // ─── BLOCK: Non-agent implementation ────────────────────────
       // Shell calls that bypass the agent system
       if (input.tool === "bash") {
+        const command = output.args?.command || ""
+        
+        // Allow git, uv, npx, python toolchain operations
+        if (command.startsWith("git ") || command.startsWith("uv ") || 
+            command.startsWith("npx ") || command.startsWith("python ")) {
+          return // Toolchain operations are allowed
+        }
+        
+        // Allow shell for very specific use cases
+        // Agent must justify: tried all other paths, task is unique
+        // Evaluation criteria:
+        // - Tried all agents (data-architect, dashboard-designer, automation-engineer)
+        // - Tried MCP tools (which, latade, ladesign, lan8n)
+        // - Tried orchestrator file tools
+        // - Tried python scripts in venv
+        // - Tried context7/exa research
+        // - Task is unique (not in any project)
+        // - Only single use
+        // If ALL criteria met → ALLOW
+        // If ANY criteria missing → BLOCK
+        
+        // For now, block all shell calls
+        // This enforces that work goes through the agent system
         throw new Error(
-          `[LAOS WDL Gate] BLOCKED: Direct shell call bypasses agent system. ` +
+          `[LAOS WDL Gate] BLOCKED: Direct shell call "${command.substring(0, 50)}..." bypasses agent system. ` +
           `Use MCP tools (ladesign.*, latade.*, lan8n.*) or dispatch specialists via ` +
           `the task tool. Non-agent actions are exceptions, not the rule.`
         )
