@@ -144,21 +144,64 @@ Orchestrator reads refusal and routes accordingly.
 | Governance operations | orchestrator | `lacouncil.*` → file tools |
 | File operations | orchestrator | file tools → shell (last resort) |
 
-## WDL gate architecture enforcement
+## Shell policy (strict)
 
-The WDL gate enforces that work goes through the agent system:
+**Shell = blocked by default. Exceptions require justification.**
 
-**BLOCKED (non-agent actions):**
-- `bash` (shell) — always blocked, forces agent use
+### The 5-step shell check
 
-**ALLOWED (agentic use):**
-- `task` tool (agent dispatch) — always allowed
-- MCP tools (`ladesign.*`, `latade.*`, `lan8n.*`) — dispatch to agents internally
-- `lacouncil.*` structural work (exempt per Hard Rule 8.4)
-- Conselho governance dispatch
+1. **"I want a shell"** → BLOCK (always)
 
-**The principle:** Agents = good (always allowed). Shell = bad (always blocked).
-MCP tools = agentic use (always allowed).
+2. **Justified shell** (evaluate truth):
+   Agent must prove they tried ALL of:
+   - [ ] All specialists (data-architect, dashboard-designer, automation-engineer)
+   - [ ] MCP tools (which, latade, ladesign, lan8n, context7, exa)
+   - [ ] Orchestrator file tools (read, write, edit, glob, grep)
+   - [ ] Python scripts in venv
+   - [ ] Context7/exa research
+   - [ ] KB lookup (knowledge/)
+   - [ ] Task is unique (not in any project: ladesign, latade, lan8n, laecon, laengine)
+   - [ ] Only single use
+
+   If ALL criteria met → ALLOW
+   If ANY criteria missing → BLOCK
+
+3. **Usage tracking** (future):
+   - Register shell usage: command hash (30 chars) + count
+   - First 3-4 uses for same task type → ALLOW (grace period)
+   - 5th use for same 30 chars → BLOCK + ask user:
+     - "Create a new project with this capacity?"
+     - "Create an agent for this task?"
+
+4. **User interaction (never ask which path)**:
+   - User will always deny shell requests
+   - Ask: "Does WDL allow this?"
+   - If not → find another path
+
+5. **Never ask user which path**:
+   - Never say "do you want shell or agent?"
+   - User says no to shell → WDL decides → orchestrator finds alternative
+
+### Toolchain exemptions (always allowed)
+
+These are infrastructure, not implementation:
+- `git *` — version control
+- `uv *` — Python toolchain
+- `npx *` — Node toolchain
+- `python *` — Python execution
+
+## WDL gate allowed/blocked summary
+
+| Tool | Status | Reason |
+|------|--------|--------|
+| `task` (agent dispatch) | ALLOW | Agentic use |
+| `ladesign.*`, `latade.*`, `lan8n.*` | ALLOW | Agentic use (dispatch to agents) |
+| `lacouncil.*` | ALLOW | Structural work (exempt) |
+| File tools (read, write, glob, grep) | ALLOW | Orchestrator infrastructure |
+| Research tools (context7, exa) | ALLOW | Orchestrator infrastructure |
+| GitHub MCP | ALLOW | Repo operations |
+| `git *`, `uv *`, `npx *`, `python *` | ALLOW | Toolchain |
+| `bash` (other) | BLOCK | Non-agent work |
 
 ## Cross-references
 
