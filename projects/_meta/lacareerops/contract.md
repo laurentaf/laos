@@ -10,7 +10,7 @@
 
 **Name:** lacareerops
 **Kind:** domain (automation/career)
-**Repo:** github.com/laurentaf/lacareerops (PRIVATE)
+**Repo:** github.com/laurentaf/career-ops (PRIVATE fork of santifer/career-ops)
 **Status:** BASIC
 
 ### What was created

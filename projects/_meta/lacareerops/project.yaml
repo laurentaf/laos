@@ -13,7 +13,7 @@ name: lacareerops-capability
 tipo: meta-projeto
 
 brief: |
-  Criar a capability LACAREEROPS (github.com/laurentaf/lacareerops, repo privado)
+  Criar a capability LACAREEROPS (github.com/laurentaf/career-ops, repo privado fork de santifer/career-ops)
   para job search optimization integrada ao LAOS. Oferece avaliação estruturada de
   ofertas (salary, remote, equity, benefits), geração de CVs ATS-optimized via
   Playwright/PDF, escaneamento de portais de emprego, processamento em batch,
@@ -35,7 +35,7 @@ dominio_primario: improvement
   # O meta-projeto é improvement (criar capability nova), mas a
   # capability LACAREEROPS resultante é domínio automation/career.
 
-repo: https://github.com/laurentaf/lacareerops
+repo: https://github.com/laurentaf/career-ops
 
 # Proposta LACOUNCIL
 lacouncil_proposal: 2f1ccd2d-7d0a-44fc-8382-24c3e16ebd0c
@@ -50,46 +50,46 @@ lacouncil_votos:
 
 deliverables:
   # === GitHub repo (nova — repo privado) ===
-  - path: https://github.com/laurentaf/lacareerops
+  - path: https://github.com/laurentaf/career-ops
     type: capability_repo
     description: Repo privado da capability LACAREEROPS com MCP server,
                  config templates, README
     validation: G1 (MCP smoke) + G2 (registry entry) + G3 (routing)
     status: entregue_2026-06-13
 
-  - path: https://github.com/laurentaf/lacareerops/mcp/server.py
+  - path: https://github.com/laurentaf/career-ops/mcp/server.py
     type: mcp_server
     description: MCP server Python com 5 tools (health + list_supported_operations
                  + 3 operacionais) — wrappers chamando career-ops CLI via subprocess
     validation: G1 (health + list_supported_operations smoke)
     status: entregue_2026-06-13
 
-  - path: https://github.com/laurentaf/lacareerops/pyproject.toml
+  - path: https://github.com/laurentaf/career-ops/pyproject.toml
     type: deps
     description: pyproject.toml com mcp, subprocess, pathlib, PyYAML (CareerOps wrapper)
     validation: uv sync exit 0
     status: entregue_2026-06-13
 
-  - path: https://github.com/laurentaf/lacareerops/README.md
+  - path: https://github.com/laurentaf/career-ops/README.md
     type: docs
     description: README com ≥400 chars — como instalar, configurar cv.md/profile.yml,
                  rodar MCP server, usar tools
     validation: ≥ 400 chars + instruções reproduzíveis
     status: entregue_2026-06-13
 
-  - path: https://github.com/laurentaf/lacareerops/config/profile.example.yml
+  - path: https://github.com/laurentaf/career-ops/config/profile.example.yml
     type: config_template
     description: Profile template (experience, skills, target_roles, salary_expectation)
     validation: YAML válido + placeholders documentados
     status: entregue_2026-06-13
 
-  - path: https://github.com/laurentaf/lacareerops/config/cv.example.md
+  - path: https://github.com/laurentaf/career-ops/config/cv.example.md
     type: cv_template
     description: CV markdown template (ATS-optimized estrutura)
     validation: Markdown válido com ATS sections
     status: entregue_2026-06-13
 
-  - path: https://github.com/laurentaf/lacareerops/.gitignore
+  - path: https://github.com/laurentaf/career-ops/.gitignore
     type: gitignore
     description: .gitignore com .env, *.log, __pycache__, .venv
     validation: gitignore cobre segredos + venv

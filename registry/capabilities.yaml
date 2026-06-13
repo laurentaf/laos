@@ -150,7 +150,7 @@ capabilities:
   - id: lacareerops
     kind: domain
     mcp_server: lacareerops
-    repo: https://github.com/laurentaf/lacareerops
+    repo: https://github.com/laurentaf/career-ops
     status: basic
     owns:
       - career.evaluation
@@ -159,14 +159,14 @@ capabilities:
       - career.batch
       - career.tracker
     notes: |
-      Job search optimization capability for LAOS. Repo: PRIVATE
-      (github.com/laurentaf/lacareerops) — contém dados sensíveis
-      (CV, salary history, career trajectory).
+      Job search optimization capability for LAOS. Repo: PRIVATE fork
+      (github.com/laurentaf/career-ops, forked from santifer/career-ops) —
+      contém dados sensíveis (CV, salary history, career trajectory).
       Exposes 7 MCP tools: health, list_supported_operations,
       career_ops_evaluate, career_ops_generate_pdf, career_ops_scan_portals,
-      career_ops_batch_process, career_ops_tracker_list.
+      career_ops_batch_process, career_ops_tracker.
       Engine: career-ops CLI (Node.js) via subprocess wrapper.
-      STATUS: BASIC — scaffold entregue 2026-06-13. 30 dias para
+      STATUS: BASIC — fork entregue 2026-06-13. 30 dias para
       STABLE (deadline 2026-07-13).
       Tracking: projects/_meta/capability-evolution/lacareerops.md
       Meta-projeto: projects/_meta/lacareerops/project.yaml
@@ -176,6 +176,7 @@ capabilities:
       Privacy: repo PRIVADO. Cada usuário configura config/profile.yml
       e config/cv.md localmente. Sem external API calls com dados do usuário.
       Domain specialist reviewer: automation-engineer (G3).
+      Fork relationship: upstream = santifer/career-ops.
 
   - id: ladesign
     kind: domain

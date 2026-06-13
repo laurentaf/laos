@@ -19,7 +19,7 @@
 - [PASS] lacareerops entry in registry/capabilities.yaml — status: basic
 - [PASS] needs-to-capabilities.yaml routing — career-evaluation, cv-generation, job-scan, career-tracker → lacareerops
 - [PASS] opencode.jsonc MCP config — type: local, uv run python command
-- [PASS] GitHub repo is private — laurentaf/lacareerops confirmed private
+- [PASS] GitHub repo is private — laurentaf/career-ops confirmed private (fork of santifer/career-ops)
 - [PASS] MCP server has all 7 tools — health, list_supported_operations + 5 career_ops tools
 - [PASS] ADR exists — ADR-003-lacareerops-creation.md
 

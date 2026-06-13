@@ -76,14 +76,14 @@
     },
 
     // LACAREEROPS — job search optimization (career-ops CLI wrapper).
-    // Repo: github.com/laurentaf/lacareerops (PRIVATE).
+    // Repo: github.com/laurentaf/career-ops (PRIVATE fork of santifer/career-ops).
     // 7 MCP tools: health, list, evaluate, generate_pdf, scan_portals,
-    // batch_process, tracker_list. Uses Node.js career-ops CLI + Python
+    // batch_process, tracker. Uses Node.js career-ops CLI + Python
     // subprocess wrapper. Each user configures their own profile.yml + cv.md.
     // Status: BASIC (2026-06-13). Deadline STABLE: 2026-07-13.
     "lacareerops": {
       "type": "local",
-      "command": ["uv", "run", "python", "E:\\projects\\lacareerops\\mcp\\server.py"],
+      "command": ["uv", "run", "python", "E:/projects/career-ops/mcp/server.py"],
       "enabled": true,
       "env": {}
     },
@@ -210,7 +210,7 @@
       "../laengine/**": "allow",
       "../lacouncil/**": "allow",
       "../laecon/**": "allow",
-      "E:/projects/lacareerops/**": "allow"
+      "E:/projects/career-ops/**": "allow"
     }
   }
 }

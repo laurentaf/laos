@@ -2,7 +2,7 @@
 
 **Status:** BASIC
 **Date:** 2026-06-13
-**Owner:** github.com/laurentaf/lacareerops (repo privado)
+**Owner:** github.com/laurentaf/career-ops (repo privado fork de santifer/career-ops)
 
 ---
 
