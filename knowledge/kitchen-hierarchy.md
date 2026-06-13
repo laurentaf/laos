@@ -134,15 +134,21 @@ Orchestrator reads refusal and routes accordingly.
 | Governance operations | orchestrator | `lacouncil.*` → file tools |
 | File operations | any specialist | file tools → shell (last resort) |
 
-## WDL gate lenient mode
+## WDL gate architecture enforcement
 
-The WDL gate now operates in **lenient mode**:
-- When a verdict exists (READY/DEFER/ESCALATE), it's respected
-- When no verdict exists, dispatch proceeds with a warning
-- This ensures agents can be called more often, not less
+The WDL gate enforces that work goes through the agent system:
 
-The gate still blocks on DEFER/ESCALATE (hard failures), but allows
-dispatch when no verdict is found (soft failure → warning only).
+**BLOCKED (non-agent actions):**
+- Direct file writes (`write_file`, `create_file`)
+- Specialist dispatch without WDL verdict
+
+**ALLOWED (agentic use):**
+- MCP tools (`ladesign.*`, `latade.*`, `lan8n.*`) — dispatch to agents internally
+- `lacouncil.*` structural work (exempt per Hard Rule 8.4)
+- Conselho governance dispatch
+
+**The principle:** Calling `ladesign.*` and it dispatches to a `ladesign` agent
+is agentic use. Writing SQL directly is non-agent use. WDL blocks the latter.
 
 ## Cross-references
 
