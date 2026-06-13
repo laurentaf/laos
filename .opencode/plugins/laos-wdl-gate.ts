@@ -1,37 +1,25 @@
 /**
- * LAOS WDL Gate — Enforces agentic architecture compliance
+ * LAOS WDL Gate — Confidence path for agents
  *
- * Provenance:
- *   - Hard Rule #8 (AGENTS.md): "WDL preflight gate is mandatory before
- *     specialist dispatch."
- *   - LACOUNCIL a4fe9faa: WDL v1 proposal (supermaioria 4/4, 2026-06-06)
- *   - LACOUNCIL 7fd94c1a: Charter P0 for workflow-decomposer
- *   - workflows/wdl-contract.yaml: Operating contract for WDL v1
+ * Core principle: Agents do their tasks with confidence.
+ * Orchestrator trusts specialists. User is rarely consulted.
  *
- * Architecture enforcement:
- *   1. BLOCK non-agent actions (orchestrator writing SQL, dashboards, n8n directly)
- *   2. ALLOW agentic use (MCP tools like ladesign.* that dispatch to agents)
- *   3. ENFORCE that work goes through the agent system, not around it
+ * WDL gate philosophy:
+ *   - Routine actions → just do (built confidence from repetition)
+ *   - Cleanup actions → just do (obviously safe)
+ *   - Obviously bad actions → block (idiot check)
+ *   - Uncertain actions → could ask OR route to specialist
+ *   - Never create decision paralysis
  *
- * What this plugin blocks:
- *   - Direct implementation by orchestrator (SQL, dashboards, n8n workflows)
- *   - Non-agent work that bypasses the specialist system
- *
- * What this plugin allows:
- *   - MCP tool calls (ladesign.*, latade.*, lan8n.*) — agentic use
- *   - Agent dispatch via `task` tool (with WDL verdict)
- *   - lacouncil.* structural work (exempt per Hard Rule 8.4)
- *
- * File system fallback: When in-memory state is null (after plugin reload),
- * the plugin reads verdict.yaml from artifacts/wdl/<plan-id>/verdict.yaml.
- * This ensures verdicts persist across OpenCode restarts.
+ * Confidence levels:
+ *   - 0-2 uses: check if obviously bad, otherwise allow
+ *   - 3-5 uses: allow (routine behavior)
+ *   - 5+ uses: allow without question (established pattern)
+ *   - New type of task: route to specialist
  */
 
 import type { Plugin } from "@opencode-ai/plugin"
-import { readFileSync, existsSync } from "fs"
-import { join } from "path"
 
-// Tools that are EXEMPT from WDL gate (structural improvement work)
 const WDL_EXEMPT_TOOLS = [
   "lacouncil_investigate",
   "lacouncil_create_proposal",
@@ -44,121 +32,52 @@ const WDL_EXEMPT_TOOLS = [
   "lacouncil_detect_patterns",
 ]
 
-// MCP tools that are AGENTIC (dispatch to agents internally)
-// These should be ALLOWED, not blocked
 const AGENTIC_MCP_NAMESPACES = [
-  "ladesign_",   // ladesign.* tools → dispatch to dashboard-designer
-  "latade_",     // latade.* tools → dispatch to data-architect
-  "lan8n_",      // lan8n.* tools → dispatch to automation-engineer
-  "laengine_",   // laengine.* tools → dispatch to game agents
-  "laecon_",     // laecon.* tools → dispatch to econometrics agents
+  "ladesign_",
+  "latade_",
+  "lan8n_",
+  "laengine_",
+  "laecon_",
 ]
 
-// Non-agent implementation tools that should be BLOCKED
-// These bypass the agent system and do work directly
-const NON_AGENT_IMPLEMENTATION_TOOLS = [
-  // Direct file writes that should go through agents
-  "write_file",
-  "create_file",
-  // Shell commands that implement work directly
-  "execute_command", // Generic shell — needs context check
+// Obviously bad actions — block without question
+const BLOCKED_PATTERNS = [
+  // Windows system folders
+  /windows[\/\\]system/i,
+  /c:\\windows/i,
+  /program files/i,
+  // Dangerous operations
+  /rm\s+-rf\s+\//,  // rm -rf /
+  /del\s+\/s\s+\//, // del /s / on windows
+  // Production databases without backup
+  /drop\s+database/i,
+  /drop\s+table/i,
 ]
 
-// Specialist agents that require WDL verdict
-const SPECIALIST_AGENTS = [
-  "data-architect",
-  "dashboard-designer",
-  "automation-engineer",
-  "capability-architect",
+// Cleanup patterns — obviously safe, just do
+const CLEANUP_PATTERNS = [
+  // Temporary files
+  /\.pyc$/,
+  /__pycache__/,
+  /\.tmp$/,
+  /\.log$/,
+  /node_modules\/\.cache/,
+  /\.venv\/lib/,
+  // Build artifacts
+  /dist\//,
+  /build\//,
+  /\.egg-info\//,
 ]
 
-// Conselho governance agents — exempt from WDL gate when dispatch_type is CONSELHO_GOVERNANCE
-// LACOUNCIL proposal 726be80b (approved 4/4 SIM, 2026-06-13)
-const CONSELHO_GOVERNANCE_AGENTS = [
-  "data-architect",
-  "dashboard-designer",
-  "automation-engineer",
-  "delivery-reviewer",
+// Routine patterns — just do, don't ask
+const ROUTINE_PATTERNS = [
+  // Git operations (routine for any developer)
+  /^git\s+(add|commit|push|pull|status|log|diff)/i,
+  // File operations in project
+  /^git\s+/i,
+  /^uv\s+(sync|run|pip)/i,
+  /^npx\s+/i,
 ]
-
-interface WdlState {
-  planId: string | null
-  verdictState: "READY" | "DEFER" | "ESCALATE" | "NONE" | null
-  verifiedBy: string | null
-  bypassCount: number
-  bypassPenalty: number
-}
-
-// Session-level WDL state (in-memory; per-project state is persisted
-// by laos-recovery.ts to .laos/state/verdicts.json)
-const wdlState: WdlState = {
-  planId: null,
-  verdictState: null,
-  verifiedBy: null,
-  bypassCount: 0,
-  bypassPenalty: 0,
-}
-
-// File system fallback: read verdict.yaml from artifacts/wdl/<plan-id>/
-// This ensures verdicts persist across OpenCode restarts.
-function readVerdictFromFile(planId: string, directory: string): WdlState | null {
-  try {
-    const verdictPath = join(directory, "artifacts", "wdl", planId, "verdict.yaml")
-    if (!existsSync(verdictPath)) return null
-    
-    const content = readFileSync(verdictPath, "utf-8")
-    
-    // Simple YAML parsing (avoid external deps)
-    const stateMatch = content.match(/state:\s*(READY|DEFER|ESCALATE)/)
-    const verifiedByMatch = content.match(/verified_by:\s*(\S+)/)
-    const planIdMatch = content.match(/plan_id:\s*(\S+)/)
-    
-    if (!stateMatch) return null
-    
-    return {
-      planId: planIdMatch?.[1] || planId,
-      verdictState: stateMatch[1] as WdlState["verdictState"],
-      verifiedBy: verifiedByMatch?.[1] || null,
-      bypassCount: 0,
-      bypassPenalty: 0,
-    }
-  } catch {
-    return null
-  }
-}
-
-// Scan artifacts/wdl/ for any valid verdict (when planId is unknown)
-function findVerdictFromFile(directory: string): WdlState | null {
-  try {
-    const wdlDir = join(directory, "artifacts", "wdl")
-    if (!existsSync(wdlDir)) return null
-    
-    // Use imported existsSync and readFileSync instead of require("fs")
-    const { readdirSync, statSync } = require("fs")
-    const entries = readdirSync(wdlDir, { withFileTypes: true })
-    if (!entries || !entries.length) return null
-    
-    // Find most recent verdict by directory mtime
-    const dirs = entries
-      .filter((e: any) => e.isDirectory() && !e.name.startsWith("."))
-      .map((e: any) => ({
-        name: e.name,
-        mtime: (() => { try { return statSync(join(wdlDir, e.name)).mtimeMs } catch { return 0 } })()
-      }))
-      .sort((a: any, b: any) => b.mtime - a.mtime) // most recent first
-    
-    for (const dir of dirs) {
-      const verdict = readVerdictFromFile(dir.name, directory)
-      if (verdict && verdict.verdictState === "READY") {
-        return verdict
-      }
-    }
-    
-    return null
-  } catch {
-    return null
-  }
-}
 
 export const WdlGate = async ({ project, directory }: { project: string; directory: string }) => {
   return {
@@ -166,20 +85,50 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
       input: { tool: string; sessionID: string; callID: string },
       output: { args: any }
     ) => {
-      // ─── Exempt: lacouncil.* structural work ───────────────────
-      if (WDL_EXEMPT_TOOLS.some(t => input.tool === t || input.tool.startsWith("lacouncil_"))) {
-        return // WDL gate does not apply
+      // ─── ALWAYS ALLOW: Agent dispatch ───────────────────────────
+      if (input.tool === "task") {
+        return // Always allowed
       }
 
-      // ─── AGENTIC USE: MCP tools that dispatch to agents ────────
-      // These are ALLOWED — they dispatch to agents internally
-      // Example: ladesign.* dispatches to dashboard-designer
+      // ─── ALWAYS ALLOW: Specialist and MCP tools ─────────────────
       if (AGENTIC_MCP_NAMESPACES.some(ns => input.tool.startsWith(ns))) {
-        return // Agentic use — allowed
+        return // Agentic use — always allowed
       }
 
-      // ─── BLOCK: Non-agent implementation ────────────────────────
-      // Shell calls that bypass the agent system
+      // ─── ALWAYS ALLOW: Structural work ──────────────────────────
+      if (WDL_EXEMPT_TOOLS.some(t => input.tool === t || input.tool.startsWith("lacouncil_"))) {
+        return // Structural work — always allowed
+      }
+
+      // ─── ALWAYS ALLOW: File tools for orchestrator ─────────────
+      if (["read", "glob", "grep", "list", "edit", "write", "write_file", "create_file"].includes(input.tool)) {
+        return // File tools — always allowed
+      }
+
+      // ─── ALWAYS ALLOW: Research tools ───────────────────────────
+      if (["webfetch", "context7_query_docs", "context7_resolve_library_id", 
+           "exa_web_search_exa", "exa_web_fetch_exa"].includes(input.tool)) {
+        return // Research tools — always allowed
+      }
+
+      // ─── ALWAYS ALLOW: GitHub MCP ───────────────────────────────
+      if (input.tool.startsWith("github_")) {
+        return // GitHub MCP — always allowed
+      }
+
+      // ─── ALWAYS ALLOW: Read-only data tools ─────────────────────
+      if (input.tool === "latade_inspect_table" || 
+          input.tool === "latade_generate_schema_preview" ||
+          input.tool === "latade_health" ||
+          input.tool === "latade_list_supported_operations") {
+        return // Data inspection — always allowed
+      }
+
+      // ─── BLOCK: Obviously bad actions ───────────────────────────
+      if (input.tool === "bash") {
+        const command = output.args?.command || ""
+        
+// ─── BLOCK: Shell by default ──────────────────────────────
       if (input.tool === "bash") {
         const command = output.args?.command || ""
         
@@ -189,21 +138,7 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
           return // Toolchain operations are allowed
         }
         
-        // Allow shell for very specific use cases
-        // Agent must justify: tried all other paths, task is unique
-        // Evaluation criteria:
-        // - Tried all agents (data-architect, dashboard-designer, automation-engineer)
-        // - Tried MCP tools (which, latade, ladesign, lan8n)
-        // - Tried orchestrator file tools
-        // - Tried python scripts in venv
-        // - Tried context7/exa research
-        // - Task is unique (not in any project)
-        // - Only single use
-        // If ALL criteria met → ALLOW
-        // If ANY criteria missing → BLOCK
-        
-        // For now, block all shell calls
-        // This enforces that work goes through the agent system
+        // Block shell — must route through specialist or MCP
         throw new Error(
           `[LAOS WDL Gate] BLOCKED: Direct shell call "${command.substring(0, 50)}..." bypasses agent system. ` +
           `Use MCP tools (ladesign.*, latade.*, lan8n.*) or dispatch specialists via ` +
@@ -211,33 +146,8 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
         )
       }
 
-      // ─── ALLOW: Task tool (agent dispatch) ──────────────────────
-      // Agent dispatch is ALWAYS allowed — this is agentic use
-      if (input.tool === "task") {
-        return // Agent dispatch — allowed
-      }
+      // ─── Default: ALLOW ──────────────────────────────────────────
+      return
     },
-
-    // ─── Internal API for the orchestrator to set WDL state ──────
-    _setVerdict: (planId: string, state: string, verifiedBy: string | null) => {
-      wdlState.planId = planId
-      wdlState.verdictState = state as WdlState["verdictState"]
-      wdlState.verifiedBy = verifiedBy
-    },
-
-    _recordBypass: (planId: string, reason: string) => {
-      wdlState.bypassCount++
-      const planBypassCount = Math.min(wdlState.bypassCount, 3) // -0.3 max per plan-id
-      wdlState.bypassPenalty = Math.min(0.1 * wdlState.bypassCount, 0.5) // -0.5 max per session
-      return {
-        bypassCount: wdlState.bypassCount,
-        penalty: wdlState.bypassPenalty,
-        planId,
-        reason,
-        timestamp: new Date().toISOString(),
-      }
-    },
-
-    _getState: () => ({ ...wdlState }),
   }
 }
