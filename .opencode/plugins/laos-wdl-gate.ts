@@ -21,13 +21,14 @@
  * tools are: investigate, create_proposal, get_proposal, list_proposals,
  * register_vote, tally_votes, implement_proposal, record_project, detect_patterns.
  *
- * Implementation note: OpenCode's plugin system doesn't have direct filesystem
- * access from within hooks. This plugin uses the `bash` tool via the `$` helper
- * to check for verdict.yaml files. If that's not available, it falls back to
- * a session-level state tracker.
+ * File system fallback: When in-memory state is null (after plugin reload),
+ * the plugin reads verdict.yaml from artifacts/wdl/<plan-id>/verdict.yaml.
+ * This ensures verdicts persist across OpenCode restarts.
  */
 
 import type { Plugin } from "@opencode-ai/plugin"
+import { readFileSync, existsSync } from "fs"
+import { join } from "path"
 
 const WDL_EXEMPT_TOOLS = [
   "lacouncil_investigate",
@@ -75,6 +76,65 @@ const wdlState: WdlState = {
   bypassPenalty: 0,
 }
 
+// File system fallback: read verdict.yaml from artifacts/wdl/<plan-id>/
+// This ensures verdicts persist across OpenCode restarts.
+function readVerdictFromFile(planId: string, directory: string): WdlState | null {
+  try {
+    const verdictPath = join(directory, "artifacts", "wdl", planId, "verdict.yaml")
+    if (!existsSync(verdictPath)) return null
+    
+    const content = readFileSync(verdictPath, "utf-8")
+    
+    // Simple YAML parsing (avoid external deps)
+    const stateMatch = content.match(/state:\s*(READY|DEFER|ESCALATE)/)
+    const verifiedByMatch = content.match(/verified_by:\s*(\S+)/)
+    const planIdMatch = content.match(/plan_id:\s*(\S+)/)
+    
+    if (!stateMatch) return null
+    
+    return {
+      planId: planIdMatch?.[1] || planId,
+      verdictState: stateMatch[1] as WdlState["verdictState"],
+      verifiedBy: verifiedByMatch?.[1] || null,
+      bypassCount: 0,
+      bypassPenalty: 0,
+    }
+  } catch {
+    return null
+  }
+}
+
+// Scan artifacts/wdl/ for any valid verdict (when planId is unknown)
+function findVerdictFromFile(directory: string): WdlState | null {
+  try {
+    const wdlDir = join(directory, "artifacts", "wdl")
+    if (!existsSync(wdlDir)) return null
+    
+    const { readdirSync } = require("fs")
+    const entries = readdirSync(wdlDir, { withFileTypes: true })
+    
+    // Find most recent verdict by directory mtime
+    const dirs = entries
+      .filter((e: any) => e.isDirectory() && !e.name.startsWith("."))
+      .sort((a: any, b: any) => {
+        const aTime = require("fs").statSync(join(wdlDir, a.name)).mtimeMs
+        const bTime = require("fs").statSync(join(wdlDir, b.name)).mtimeMs
+        return bTime - aTime // most recent first
+      })
+    
+    for (const dir of dirs) {
+      const verdict = readVerdictFromFile(dir.name, directory)
+      if (verdict && verdict.verdictState === "READY") {
+        return verdict
+      }
+    }
+    
+    return null
+  } catch {
+    return null
+  }
+}
+
 export const WdlGate = async ({ project, directory }: { project: string; directory: string }) => {
   return {
     "tool.execute.before": async (
@@ -113,36 +173,50 @@ const subagentType = output.args?.subagentType || output.args?.subagent_type || 
       // ─── Check WDL verdict ─────────────────────────────────────
       // The verdict is set by the workflow-decomposer subagent and
       // recorded in the session state by the orchestrator.
-      // This plugin checks the in-memory state.
-      if (wdlState.verdictState === "READY" && wdlState.verifiedBy) {
+      // This plugin checks in-memory state first, then falls back to file system.
+      
+      // Try in-memory state first
+      let effectiveState = wdlState
+      
+      // If in-memory state is null (after plugin reload), try file system
+      if (!wdlState.verdictState && directory) {
+        const fileState = findVerdictFromFile(directory)
+        if (fileState) {
+          // Cache in memory for subsequent checks
+          Object.assign(wdlState, fileState)
+          effectiveState = fileState
+        }
+      }
+      
+      if (effectiveState.verdictState === "READY" && effectiveState.verifiedBy) {
         // Gate passed — include verdict info in the dispatch payload
         output.args = {
           ...output.args,
           _wdl: {
-            plan_id: wdlState.planId,
-            verified_by: wdlState.verifiedBy,
-            state: wdlState.verdictState,
+            plan_id: effectiveState.planId,
+            verified_by: effectiveState.verifiedBy,
+            state: effectiveState.verdictState,
           },
         }
         return
       }
 
       // ─── Gate FAILED — block dispatch ──────────────────────────
-      if (wdlState.verdictState === "DEFER") {
+      if (effectiveState.verdictState === "DEFER") {
         throw new Error(
           `[LAOS WDL Gate] Cannot dispatch "${subagentType}" — WDL verdict is DEFER. ` +
-          `Plan ID: ${wdlState.planId}. ` +
+          `Plan ID: ${effectiveState.planId}. ` +
           `The workflow-decomposer requires more information or a different approach. ` +
           `Resolve the DEFER condition before retrying.`
         )
       }
 
-      if (wdlState.verdictState === "ESCALATE") {
+      if (effectiveState.verdictState === "ESCALATE") {
         throw new Error(
           `[LAOS WDL Gate] Cannot dispatch "${subagentType}" — WDL verdict is ESCALATE. ` +
-          `Plan ID: ${wdlState.planId}. ` +
+          `Plan ID: ${effectiveState.planId}. ` +
           `The workflow-decomposer escalated this plan. Review the escalation reason ` +
-          `in artifacts/wdl/${wdlState.planId}/analysis.md before retrying.`
+          `in artifacts/wdl/${effectiveState.planId}/analysis.md before retrying.`
         )
       }
 
