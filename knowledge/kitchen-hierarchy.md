@@ -8,7 +8,7 @@ Transversal to all LAOS agents. Source: LACOUNCIL `612b1cf0`
 
 Like a restaurant kitchen, LAOS agents have roles, capabilities,
 and cost levels. The orchestrator (chef) routes tasks to the
-right agent (line cook, sous chef, etc.) based on:
+right agent (sous chef, support, etc.) based on:
 
 1. **Capability** — Can the agent do this?
 2. **Tool availability** — Does the agent have the right tool?
@@ -40,14 +40,24 @@ right agent (line cook, sous chef, etc.) based on:
 
 ## Agent hierarchy
 
-| Role | Agent | Cost Level | Can Do | Cannot Do |
-|------|-------|------------|--------|-----------|
-| Chef | orchestrator | — | Route, plan, file ops | Specialist work |
-| Sous chef | data-architect | HIGH | Complex data modeling | Design, automation |
-| Sous chef | dashboard-designer | HIGH | Complex design systems | Data, automation |
-| Sous chef | automation-engineer | HIGH | Complex integrations | Data, design |
-| Line cook | any specialist (simple mode) | MEDIUM | Simple tasks in their domain | Cross-domain work |
-| Support | orchestrator | LOW | File ops, git, reads/writes | Specialist work |
+| Role | Agent | When to Use |
+|------|-------|-------------|
+| Chef | orchestrator | Route, plan, file ops, research via MCP |
+| Sous chef | data-architect | Data modeling, SQL, ETL |
+| Sous chef | dashboard-designer | Design systems, decks, wireframes |
+| Sous chef | automation-engineer | Integrations, workflows, alerts |
+| Support | delivery-reviewer | Validate artifacts (read-only) |
+| Support | workflow-decomposer | Plan and decompose tasks (read-only) |
+| Support | capability-architect | Structural changes (registry, knowledge) |
+
+**No general agents.** Every task has a specialist home.
+
+**If no specialist fits:**
+1. Orchestrator handles directly (file ops, git, research via MCP)
+2. Task is too vague → clarify with user
+3. Task is infrastructure → orchestrator handles
+
+**The principle:** General agents are a code smell. If you need one, you're routing wrong.
 
 ## Tool access investigation
 
@@ -132,7 +142,7 @@ Orchestrator reads refusal and routes accordingly.
 | Design operations | dashboard-designer | `ladesign.*` → file tools → shell |
 | Automation operations | automation-engineer | `lan8n.*` → file tools → shell |
 | Governance operations | orchestrator | `lacouncil.*` → file tools |
-| File operations | any specialist | file tools → shell (last resort) |
+| File operations | orchestrator | file tools → shell (last resort) |
 
 ## WDL gate architecture enforcement
 
