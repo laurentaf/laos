@@ -115,6 +115,42 @@ When 2+ agents can do a task, use **least-cost agent**:
 
 **Rule:** Don't use a sous chef to peel potatoes when a line cook can do it.
 
+### Step 4: Task volume threshold (one vs many)
+
+| Volume | Action | Reason |
+|--------|--------|--------|
+| 1-2 tasks | Senior can do it directly | Faster than calling junior |
+| 3+ tasks | Senior delegates to junior | Senior's time is more expensive |
+
+**Example:** Sous chef peels 1 potato = fast. Sous chef peels 3 potatoes = call line cook.
+
+**Implementation:** When orchestrator sees a batch of similar tasks:
+- Count tasks
+- If ≤ 2: dispatch to senior agent (they handle directly)
+- If ≥ 3: dispatch to junior agent (cost optimization)
+
+### Step 5: Role boundaries (hard vs soft)
+
+**HARD BOUNDARIES (cannot cross):**
+| Agent | Can Do | Cannot Do |
+|-------|--------|-----------|
+| data-architect | Data modeling, SQL, ETL | Serve tables (design), Cook (automation) |
+| dashboard-designer | Design, wireframes, decks | Peel potatoes (data), Cook (automation) |
+| automation-engineer | Workflows, integrations, alerts | Serve tables (design), Prep data (data) |
+| orchestrator | Route, plan, file ops | Do specialist work (unless user says bypass) |
+
+**SOFT BOUNDARIES (can flex for single task):**
+| Agent | Can Flex | But Not For |
+|-------|----------|-------------|
+| Any specialist | 1-2 simple cross-role tasks | Batch work outside their role |
+| orchestrator | Simple file operations | Complex specialist work |
+
+**Example:** 
+- Waiter CAN'T peel potatoes (hard boundary - no capability)
+- Line cook CAN'T serve tables (hard boundary - no role)
+- Sous chef CAN peel 1 potato (soft boundary - fast)
+- Sous chef SHOULD NOT peel 10 potatoes (delegate to line cook)
+
 ### Step 4: User interaction limits
 **ORCHESTRATOR ASKS USER ONLY FOR:**
 - Planning decisions (what to build)
