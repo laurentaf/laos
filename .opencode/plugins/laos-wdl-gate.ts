@@ -127,17 +127,13 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
       // ─── BLOCK: Obviously bad actions ───────────────────────────
       if (input.tool === "bash") {
         const command = output.args?.command || ""
-        
-// ─── BLOCK: Shell by default ──────────────────────────────
-      if (input.tool === "bash") {
-        const command = output.args?.command || ""
-        
+
         // Allow git, uv, npx, python toolchain operations
-        if (command.startsWith("git ") || command.startsWith("uv ") || 
+        if (command.startsWith("git ") || command.startsWith("uv ") ||
             command.startsWith("npx ") || command.startsWith("python ")) {
           return // Toolchain operations are allowed
         }
-        
+
         // Block shell — must route through specialist or MCP
         throw new Error(
           `[LAOS WDL Gate] BLOCKED: Direct shell call "${command.substring(0, 50)}..." bypasses agent system. ` +
