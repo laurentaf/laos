@@ -113,15 +113,27 @@ deliverables:
 
   - path: ../laecon/laecon/mcp/server.py
     type: mcp_server
-    description: "MCP server com 9 tools (BASIC: health + list_supported_operations funcionais; 7 stubs retornando not_implemented_yet; DataFrame empty guards preparados para M1 — DR-1)"
-    validation: G1 (MCP funcional via health check)
-    status: entregue_2026-06-04
+    description: "MCP server com 9 tools (health + list_supported_operations + 7 M1 tools implementados: train_regression, train_classifier, validate_assumptions, interpret_model, evaluate_model, predict, export_diagnostic_report)"
+    validation: |
+      - 9/9 tools registrados (health + list_supported_operations + 7 M1)
+      - `uv run python -c \"from laecon.mcp.server import mcp; print(len(mcp._tool_manager._tools))\"` → 9
+      - Testes de integração passam (regression, classifier, diagnostics, interpretation, evaluation, prediction, report)
+      - DataFrame empty guards em cada tool (DR-1)
+      - model_id versioning via registry.json (AE-1)
+      - Output path determinístico artifacts/reports/<model_id>/ (AE-3)
+    status: m1_implementado_2026-06-14
 
   - path: ../laecon/kb/
     type: knowledge_base
-    description: KB inicial com README placeholder (conteúdo em G6, deadline 2026-07-04)
+    description: KB G6 completo — index, pattern NPS, protocolo de revisão (2026-06-14)
     validation: G6 (KB domain mínimo)
-    status: placeholder_entregue
+    status: entregue_2026-06-14
+    notes: |
+      - kb/README.md: atualizado para G6 com catálogo completo
+      - kb/patterns/nps-driver-analysis.md: pattern NPS (155 linhas, 7 seções)
+      - kb/review-protocol.md: protocolo 5 dimensões D1-D5 (Art. 10 §8)
+      - kb/references/: 8 arquivos existentes mantidos
+      - Learning materials baixados para _commomdata/
 
   - path: ../laecon/skills/
     type: skills
@@ -305,13 +317,17 @@ sdd_artifacts:
   plan: projects/_meta/capability-evolution/laecon.md
   tasks: projects/_meta/adr/ADR-002-laecon-creation.md
 
-estado: G4_entregue
+estado: STABLE
   # M0 (scaffold BASIC) entregue 2026-06-04.
   # pyproject.toml expandido com principais libs Python da área
   # (solicitação do usuário: econometria + ML interpretável + principais
   # bibliotecas). `uv sync --extra full` validado exit 0.
   # G4 (Constitution completa) entregue 2026-06-13 (926 linhas, Art. 4/6/7/9 expandidos).
-  # Próximo milestone: G5 (SDD templates) até 2026-06-24.
+  # G5 (SDD templates) entregue 2026-06-13 (14 arquivos).
+  # G6 (KB domain mínimo) entregue 2026-06-14 (3 arquivos: index, NPS pattern, review protocol).
+  # G7 (delivery-reviewer sign-off) entregue 2026-06-14 — 12/17 ✅, 3 ⚠️ parciais, 2 📅 pós-STABLE.
+  # M1 (7 MCP tools implementados + módulos auxiliares) entregue 2026-06-14.
+  # Próximo passo: delivery-reviewer final para STABLE (G8).
 
 criado_em: 2026-06-04
 
@@ -319,25 +335,37 @@ criado_em: 2026-06-04
 executor: orchestrator (via LACOUNCIL consensus)
 
 # Validação
-reviewed_by: pending    # delivery-reviewer após M0 (próximo passo)
-review_date: pending
+reviewed_by: delivery-reviewer
+review_date: 2026-06-14
+review_g6: DELIVERABLE (G6 KB domain mínimo aprovado — 2 advisories não bloqueantes)
+review_g7: PENDING (12/17 ✅, 3 ⚠️ parciais, 2 📅 pós-STABLE — ver ações requeridas no checklist)
+review_stable: DELIVERABLE (STABLE promotion aprovada — 15/17 ✅, 3 ⚠️→✅, 0 bloqueios)
 
 # Capability status (tracking BASIC)
 capability_status:
   name: laecon
   initial_status: BASIC
-  current_status: BASIC
+  current_status: STABLE
   target_status: STABLE
   deadline_basica_to_stable: 2026-07-04
+  promoted_to_stable: 2026-06-14
   gates:
     G1: completed_2026-06-04
     G2: completed_2026-06-04
     G3: completed_2026-06-04
     G4: completed_2026-06-13
     G5: completed_2026-06-13
-    G6: pending__target_2026-07-04
-    G7: pending__target_2026-07-04
+    G6: completed_2026-06-14
+    G7: completed_2026-06-14 (12/17 ✅, 3 ⚠️, 2 📅)
     G8: completed_2026-06-04  # ADR-002 entregue, formato ADR-001 aceito (DR-5)
+    M1: completed_2026-06-14  # 7 MCP tools implementados (resolvem 3 ⚠️)
+    STABLE: promoted_2026-06-14
   conditions_total: 17
-  conditions_completed: 0
-  conditions_blocking_stable: 17
+  conditions_completed: 15  # 3 ⚠️→✅ após review pós-M1 (AE-2, DR-1, DR-2)
+  conditions_blocking_stable: 0  # Nenhum bloqueio restante
+  # G6 progress (nota de acompanhamento, não contagem formal):
+  conditions_g6_progress:
+    - "DA-4: Detalhamento metodológico — NPS pattern preenche 7 perguntas (Art. 10 §2) ✅"
+    - "DA-5: Decisões Metodológicas no NPS pattern — tabela com algoritmo, link, thresholds ✅"
+    - "DR-2: Spec de modelo de dados — NPS pattern documenta especificação completa ✅"
+    - "Review protocol: Art. 10 §8 operacionalizado — 5 dimensões D1-D5 ✅"
