@@ -102,6 +102,7 @@ const EXPECTED_PLUGINS = [
   "laos-comment-checker.ts",
   "laos-intent-gate.ts",
   "laos-doctor.ts",
+  "laos-infra.ts",
   "laos-plan-format-validator.ts",
   "laos-format-guard.ts",
 ]

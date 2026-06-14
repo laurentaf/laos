@@ -18,7 +18,62 @@
  *   - New type of task: route to specialist
  */
 
-import type { Plugin } from "@opencode-ai/plugin"
+import { readFileSync, existsSync, readdirSync } from "node:fs"
+import { join, resolve } from "node:path"
+
+// ─── laos.infra tools allowlist ─────────────────────────────
+const INFRA_TOOLS = [
+  "laos-doctor",
+  "health_check",
+  "add_tool",
+  "scaffold_mcp",
+  "download_file",
+  "validate_agent",
+]
+
+// ─── Known agent registry (runtime from .opencode/agent/) ────
+const AGENT_TYPES: Record<string, "primary" | "subagent" | "evaluator"> = {
+  orchestrator: "primary",
+  "data-architect": "subagent",
+  "dashboard-designer": "subagent",
+  "automation-engineer": "subagent",
+  "delivery-reviewer": "subagent",
+  "capability-architect": "subagent",
+  "workflow-decomposer": "subagent",
+  "chief-data-scientist": "evaluator",
+  "chief-designer": "evaluator",
+  "chief-engineer": "evaluator",
+  explore: "subagent",
+  general: "subagent",
+}
+
+function validateDispatchAgent(agentType: string): { valid: boolean; agent_type?: string; suggested_alternative?: string } {
+  const normalized = agentType.toLowerCase().trim()
+
+  // Check hardcoded registry first
+  if (normalized in AGENT_TYPES) {
+    return { valid: true, agent_type: AGENT_TYPES[normalized] }
+  }
+
+  // Check .opencode/agent/ directory (runtime)
+  const agentsDir = join(resolve("."), ".opencode", "agent")
+  if (existsSync(agentsDir)) {
+    try {
+      const agentFiles = readdirSync(agentsDir)
+      const agentNames = agentFiles
+        .filter(e => e.endsWith(".md") || e.endsWith(".ts"))
+        .map(e => e.replace(/\.(md|ts)$/, "").toLowerCase())
+      if (agentNames.includes(normalized)) {
+        return { valid: true, agent_type: "subagent" }
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Fuzzy suggestion
+  const allNames = Object.keys(AGENT_TYPES)
+  const suggestion = allNames.find(k => k.includes(normalized) || normalized.includes(k))
+  return { valid: false, suggested_alternative: suggestion }
+}
 
 const WDL_EXEMPT_TOOLS = [
   "lacouncil_investigate",
@@ -85,9 +140,28 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
       input: { tool: string; sessionID: string; callID: string },
       output: { args: any }
     ) => {
-      // ─── ALWAYS ALLOW: Agent dispatch ───────────────────────────
+      // ─── ALWAYS ALLOW: laos.infra tools ─────────────────────
+      if (INFRA_TOOLS.includes(input.tool)) {
+        return // laos.infra tools always allowed
+      }
+
+      // ─── AGENT DISPATCH: Validate dispatch_type ──────────────
       if (input.tool === "task") {
-        return // Always allowed
+        const subagentType = output.args?.subagent_type || ""
+        if (subagentType) {
+          const validation = validateDispatchAgent(subagentType)
+          if (!validation.valid) {
+            const suggestion = validation.suggested_alternative
+              ? ` Did you mean "${validation.suggested_alternative}"?`
+              : ""
+            throw new Error(
+              `[LAOS WDL Gate] BLOCKED: Unknown dispatch_type "${subagentType}".${
+                suggestion
+              } Agent not found in .opencode/agent/. Use validate_agent to check available agents.`
+            )
+          }
+        }
+        return // Agent dispatch — allowed after validation
       }
 
       // ─── ALWAYS ALLOW: Specialist and MCP tools ─────────────────
