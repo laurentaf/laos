@@ -18,8 +18,25 @@
  *   - New type of task: route to specialist
  */
 
-import { readFileSync, existsSync, readdirSync } from "node:fs"
+import { readFileSync, existsSync, readdirSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
+
+// ─── Shell usage tracking file (shared with laos-infra.ts) ──
+const SHELL_USAGE_PATH = join(resolve("."), ".opencode", "plugins", ".shell-usage.json")
+
+function trackShellCommand(command: string): void {
+  try {
+    // Normalize: truncate long args, but keep the command type
+    const key = command.substring(0, 80)
+    let data: { commands: Record<string, number>; total: number; last_promoted: string | null } = { commands: {}, total: 0, last_promoted: null }
+    if (existsSync(SHELL_USAGE_PATH)) {
+      try { data = JSON.parse(readFileSync(SHELL_USAGE_PATH, { encoding: "utf-8" })) } catch { /* reset on corrupt */ }
+    }
+    data.commands[key] = (data.commands[key] || 0) + 1
+    data.total++
+    writeFileSync(SHELL_USAGE_PATH, JSON.stringify(data, null, 2), { encoding: "utf-8" })
+  } catch { /* tracking best-effort */ }
+}
 
 // ─── laos.infra tools allowlist ─────────────────────────────
 const INFRA_TOOLS = [
@@ -29,6 +46,9 @@ const INFRA_TOOLS = [
   "scaffold_mcp",
   "download_file",
   "validate_agent",
+  "git_local",
+  "uv_tool",
+  "shell_usage_report",
 ]
 
 // ─── Known agent registry (sourced from .opencode/agent/) ────
@@ -207,6 +227,8 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
         // Allow git, uv, npx, python toolchain operations
         if (command.startsWith("git ") || command.startsWith("uv ") ||
             command.startsWith("npx ") || command.startsWith("python ")) {
+          // Track usage for 80/20 tool promotion (5+ threshold)
+          trackShellCommand(command)
           return // Toolchain operations are allowed
         }
 

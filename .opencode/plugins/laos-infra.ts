@@ -1094,6 +1094,148 @@ function runValidateAgent(dispatchType: string): string {
   }, null, 2)
 }
 
+// ─── Shell usage tracking (shared file with WDL gate) ──────
+const SHELL_USAGE_PATH = join(resolve("."), ".opencode", "plugins", ".shell-usage.json")
+
+function readShellUsage(): Record<string, any> {
+  try {
+    if (existsSync(SHELL_USAGE_PATH)) {
+      return JSON.parse(readFileSync(SHELL_USAGE_PATH, { encoding: "utf-8" }))
+    }
+  } catch { /* ignore corrupt file */ }
+  return { commands: {}, total: 0, last_promoted: null }
+}
+
+// ─── TOOL 6: git_local (80/20 git operations) ───────────────
+
+function runGitLocal(op: string, params: Record<string, any>): string {
+  const laosRoot = resolve(".")
+  const gitDir = params.path || laosRoot
+  const safeOps = ["status", "diff", "add", "commit", "push", "log"]
+
+  if (!safeOps.includes(op)) {
+    return JSON.stringify({ error: `Unsupported git operation "${op}". Valid: ${safeOps.join(", ")}` }, null, 2)
+  }
+
+  try {
+    switch (op) {
+      case "status": {
+        const raw = execSync(`git -C "${gitDir}" status --porcelain`, { encoding: "utf-8", timeout: 10000 })
+        const branch = execSync(`git -C "${gitDir}" branch --show-current`, { encoding: "utf-8", timeout: 5000 }).trim()
+        const lines = raw.trim().split("\n").filter(Boolean)
+        const staged = lines.filter(l => l.startsWith("M ") || l.startsWith("A ") || l.startsWith("D ") || l.startsWith("R "))
+          .map(l => ({ status: l.substring(0, 2), file: l.substring(3) }))
+        const unstaged = lines.filter(l => l.startsWith(" M") || l.startsWith(" D") || l.startsWith("?"))
+          .map(l => ({ status: l.substring(0, 2).trim(), file: l.substring(3) }))
+        return JSON.stringify({ branch, staged, unstaged, total_changes: lines.length }, null, 2)
+      }
+
+      case "diff": {
+        const fileFilter = params.file ? ` -- "${params.file}"` : ""
+        const raw = execSync(`git -C "${gitDir}" diff${fileFilter}`, { encoding: "utf-8", timeout: 10000 })
+        const stats = execSync(`git -C "${gitDir}" diff --stat${fileFilter}`, { encoding: "utf-8", timeout: 5000 }).trim()
+        return JSON.stringify({ diff: raw, stats: stats || "no changes", files_changed: raw ? raw.split("\ndiff --git").length - 1 : 0 }, null, 2)
+      }
+
+      case "add": {
+        const files = Array.isArray(params.files) ? params.files.map(f => `"${f}"`).join(" ") : "."
+        execSync(`git -C "${gitDir}" add ${files}`, { encoding: "utf-8", timeout: 15000 })
+        const status = execSync(`git -C "${gitDir}" status --porcelain`, { encoding: "utf-8", timeout: 5000 })
+        const staged = status.trim().split("\n").filter(l => /^[MADRC]/.test(l)).length
+        return JSON.stringify({ staged_files: staged, message: files === "." ? "All changes staged" : `Staged: ${params.files?.join(", ")}` }, null, 2)
+      }
+
+      case "commit": {
+        if (!params.message) return JSON.stringify({ error: "commit requires 'message' parameter" }, null, 2)
+        const raw = execSync(`git -C "${gitDir}" commit -m "${params.message.replace(/"/g, '\\"')}"`, { encoding: "utf-8", timeout: 15000 })
+        const sha = execSync(`git -C "${gitDir}" rev-parse --short HEAD`, { encoding: "utf-8", timeout: 5000 }).trim()
+        const lines = raw.trim().split("\n")
+        return JSON.stringify({ commit: sha, summary: lines[0] || raw.trim(), output: raw.trim() }, null, 2)
+      }
+
+      case "push": {
+        const remote = params.remote || "origin"
+        const branch = params.branch || execSync(`git -C "${gitDir}" branch --show-current`, { encoding: "utf-8", timeout: 5000 }).trim()
+        const raw = execSync(`git -C "${gitDir}" push ${remote} ${branch}`, { encoding: "utf-8", timeout: 30000 })
+        return JSON.stringify({ remote, branch, result: raw.trim() || "Push completed" }, null, 2)
+      }
+
+      case "log": {
+        const limit = Math.min(params.limit || 10, 50)
+        const format = params.format || "%h %s (%an, %ar)"
+        const raw = execSync(`git -C "${gitDir}" log --oneline -${limit}`, { encoding: "utf-8", timeout: 10000 })
+        const commits = raw.trim().split("\n").filter(Boolean).map(line => {
+          const [sha, ...rest] = line.split(" ")
+          return { sha, message: rest.join(" ") }
+        })
+        return JSON.stringify({ commits, total: commits.length }, null, 2)
+      }
+
+      default:
+        return JSON.stringify({ error: `Unreachable: ${op}` }, null, 2)
+    }
+  } catch (err: any) {
+    return JSON.stringify({ error: `git ${op} failed: ${err.message}` }, null, 2)
+  }
+}
+
+// ─── TOOL 7: uv_tool (80/20 uv operations) ─────────────────
+
+function runUvTool(op: string, params: Record<string, any>): string {
+  const safeOps = ["sync", "run"]
+
+  if (!safeOps.includes(op)) {
+    return JSON.stringify({ error: `Unsupported uv operation "${op}". Valid: ${safeOps.join(", ")}` }, null, 2)
+  }
+
+  const targetDir = params.path || resolve(".")
+  try {
+    switch (op) {
+      case "sync": {
+        const raw = execSync(`uv sync`, { cwd: targetDir, encoding: "utf-8", timeout: 60000 })
+        return JSON.stringify({ result: raw.trim() || "uv sync completed" }, null, 2)
+      }
+
+      case "run": {
+        if (!params.script) return JSON.stringify({ error: "uv run requires 'script' parameter" }, null, 2)
+        const args = Array.isArray(params.args) ? ` ${params.args.join(" ")}` : ""
+        const raw = execSync(`uv run python ${params.script}${args}`, { cwd: targetDir, encoding: "utf-8", timeout: 120000 })
+        return JSON.stringify({ stdout: raw.trim(), exit_code: 0 }, null, 2)
+      }
+
+      default:
+        return JSON.stringify({ error: `Unreachable: ${op}` }, null, 2)
+    }
+  } catch (err: any) {
+    return JSON.stringify({ stdout: err.stdout?.trim() || "", stderr: err.stderr?.trim() || err.message, exit_code: err.status || 1 }, null, 2)
+  }
+}
+
+// ─── TOOL 8: shell_usage_report ─────────────────────────────
+
+function runShellUsageReport(): string {
+  const data = readShellUsage()
+  const commands = data.commands || {}
+  const total = data.total || 0
+
+  // Find commands with 5+ uses that haven't been promoted yet
+  const promoteCandidates = Object.entries(commands)
+    .filter(([_, count]) => (count as number) >= 5)
+    .map(([cmd]) => cmd)
+
+  const lastPromoted = data.last_promoted
+
+  return JSON.stringify({
+    total_shell_calls: total,
+    commands,
+    promote_candidates: promoteCandidates,
+    last_promoted: lastPromoted,
+    recommendation: promoteCandidates.length > 0
+      ? `These commands have 5+ uses: ${promoteCandidates.join(", ")}. Consider promoting to a dedicated tool.`
+      : "No commands have reached the 5-use threshold yet.",
+  }, null, 2)
+}
+
 // ─── Plugin export ───────────────────────────────────────────
 
 export const Infra = async ({ project, client, $, directory, worktree }: {
@@ -1289,6 +1431,101 @@ export const Infra = async ({ project, client, $, directory, worktree }: {
           _context: any
         ): Promise<string> {
           return runValidateAgent(args.dispatch_type)
+        },
+      },
+
+      // Tool 6: git_local (80/20 git ops)
+      "git_local": {
+        description:
+          "Execute 80/20 git operations locally: status, diff, add, commit, " +
+          "push, log. Returns structured JSON instead of raw shell output. " +
+          "Replaces frequent git shell calls with a dedicated tool. " +
+          "When a git operation reaches 5+ uses, it becomes a candidate for " +
+          "tool promotion (see shell_usage_report).",
+        args: {
+          op: {
+            type: "string" as const,
+            description: "Operation: status, diff, add, commit, push, log",
+          },
+          path: {
+            type: "string" as const,
+            description: "Optional git repo path (default: LAOS root)",
+          },
+          file: {
+            type: "string" as const,
+            description: "Optional file filter for diff",
+          },
+          files: {
+            type: "array" as const,
+            description: "Files to stage (for add operation)",
+          },
+          message: {
+            type: "string" as const,
+            description: "Commit message (required for commit operation)",
+          },
+          remote: {
+            type: "string" as const,
+            description: "Remote name for push (default: origin)",
+          },
+          branch: {
+            type: "string" as const,
+            description: "Branch for push (default: current branch)",
+          },
+          limit: {
+            type: "number" as const,
+            description: "Log limit (default: 10, max: 50)",
+          },
+        },
+        async execute(
+          args: { op: string; path?: string; file?: string; files?: string[]; message?: string; remote?: string; branch?: string; limit?: number },
+          _context: any
+        ): Promise<string> {
+          return runGitLocal(args.op, args)
+        },
+      },
+
+      // Tool 7: uv_tool (80/20 uv ops)
+      "uv_tool": {
+        description:
+          "Execute 80/20 uv operations: sync, run. Returns structured JSON. " +
+          "Replaces frequent uv shell calls with a dedicated tool. " +
+          "Note: uv run requires 'script' parameter (path to Python file).",
+        args: {
+          op: {
+            type: "string" as const,
+            description: "Operation: sync, run",
+          },
+          path: {
+            type: "string" as const,
+            description: "Optional project path for uv sync (default: current)",
+          },
+          script: {
+            type: "string" as const,
+            description: "Python script path (required for run operation)",
+          },
+          args: {
+            type: "array" as const,
+            description: "Optional script arguments (for run operation)",
+          },
+        },
+        async execute(
+          args: { op: string; path?: string; script?: string; args?: string[] },
+          _context: any
+        ): Promise<string> {
+          return runUvTool(args.op, args)
+        },
+      },
+
+      // Tool 8: shell_usage_report
+      "shell_usage_report": {
+        description:
+          "Report which shell commands are being used most frequently " +
+          "(tracked by WDL gate). When a command reaches 5+ uses, " +
+          "it becomes a candidate for promotion to a dedicated tool. " +
+          "Use this to drive the 80/20 tool creation cycle.",
+        args: {},
+        async execute(): Promise<string> {
+          return runShellUsageReport()
         },
       },
     },
