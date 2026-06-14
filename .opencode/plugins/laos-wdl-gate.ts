@@ -31,7 +31,10 @@ const INFRA_TOOLS = [
   "validate_agent",
 ]
 
-// ─── Known agent registry (runtime from .opencode/agent/) ────
+// ─── Known agent registry (sourced from .opencode/agent/) ────
+// WARNING: This hardcoded map must stay in sync with .opencode/agent/*.md
+// The runtime fallback in validateDispatchAgent() reads the directory.
+// NEVER add agents here that don't have a charter file in .opencode/agent/.
 const AGENT_TYPES: Record<string, "primary" | "subagent" | "evaluator"> = {
   orchestrator: "primary",
   "data-architect": "subagent",
@@ -44,7 +47,6 @@ const AGENT_TYPES: Record<string, "primary" | "subagent" | "evaluator"> = {
   "chief-designer": "evaluator",
   "chief-engineer": "evaluator",
   explore: "subagent",
-  general: "subagent",
 }
 
 function validateDispatchAgent(agentType: string): { valid: boolean; agent_type?: string; suggested_alternative?: string } {

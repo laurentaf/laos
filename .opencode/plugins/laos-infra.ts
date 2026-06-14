@@ -1054,9 +1054,10 @@ function runValidateAgent(dispatchType: string): string {
     "chief-designer": "chief-designer",
     "chief-engineer": "chief-engineer",
     "explore": "explore",
-    "general": "general",
   }
 
+  // Sourced from .opencode/agent/ — ONLY agents with charter files.
+  // NEVER add agents here without a corresponding .md file.
   const agentTypes: Record<string, "primary" | "subagent" | "evaluator"> = {
     "orchestrator": "primary",
     "data-architect": "subagent",
@@ -1069,7 +1070,6 @@ function runValidateAgent(dispatchType: string): string {
     "chief-designer": "evaluator",
     "chief-engineer": "evaluator",
     "explore": "subagent",
-    "general": "subagent",
   }
 
   const normalizedType = dispatchType.toLowerCase().trim()
@@ -1281,7 +1281,7 @@ export const Infra = async ({ project, client, $, directory, worktree }: {
         args: {
           dispatch_type: {
             type: "string" as const,
-            description: "Agent dispatch type to validate (e.g., 'data-architect', 'general')",
+            description: "Agent dispatch type to validate (e.g., 'data-architect', 'explore')",
           },
         },
         async execute(
