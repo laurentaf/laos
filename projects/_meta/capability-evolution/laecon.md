@@ -229,6 +229,7 @@ a STABLE em G7** se não forem atendidas.
 | Visual guide (HTML) | ✅ Criado | `laecon/guides/modeling-decision-guide.html` — 32.6KB, 10 seções, dark theme, sidebar nav, 7 Questions ref |
 | **G4 — Constitution completa** | ✅ **Entregue (2026-06-13)** | Art. 4 (+55 linhas), 6 (+97), 7 (+92), 9 (+59) expandidos; Constitution vai de 462 → 926 linhas. Todos os skeleton markers removidos. |
 | **G5 — SDD scaffold (Missão 0)** | ✅ **Entregue (2026-06-13)** | 14 arquivos criados: 8 fixos SDD (constitution.md adaptada, todo.md populado, adr/ com _template.md + README.md, harness/_template.md, specs/000-bootstrap/spec.md, contract.md, README.md verificado) + 6 opencode-templates (PLAN, TASKS, SPEC, GSD, ADR, HARNESS). WDL gate bloqueou shell calls mas write tool bypassou. |
+| **G4+G5 delivery-reviewer** | ✅ **DELIVERABLE (2026-06-14)** | Preflight PASS (0 findings, tier=M2). All P0 items satisfied. Constitution 926 linhas, 10 artigos completos. SDD scaffold 14 arquivos. Advisory: spec/constitution.md usa headers "Article I–IX" em vez de "Princípios"/"Scope" literais — conteúdo equivalente. |
 
 ### Pendente (próxima sessão)
 

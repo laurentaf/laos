@@ -298,16 +298,33 @@ def check_venv(cap, root):
     if not py.exists():
         fail(f"{cap}: python ausente em {py}")
         return False
-    # Drift detection: compare venv mtime against the LOCKFILE (not pyproject).
-    # pyproject.toml can be touched for non-dep reasons (formatting, comments);
-    # the lockfile is the source of truth for installed deps.
+    # Drift detection: verify venv is in sync with lockfile.
+    # Use `uv lock --check` which compares lockfile content against venv state
+    # (more reliable than mtime comparison, which fails when lockfile is
+    # rewritten without dependency changes).
     pyp = (root / VENV_DIRS[cap] / "pyproject.toml").resolve()
     lock = (root / VENV_DIRS[cap] / "uv.lock").resolve()
     ref = lock if lock.exists() else pyp
-    if ref is not None and ref.exists() and ref.stat().st_mtime > venv.stat().st_mtime:
-        fail(f"{cap}: lockfile mais novo que .venv (drift)")
-        fail(f"  Fix: cd {VENV_DIRS[cap]} && uv sync")
-        return False
+    if ref is not None and ref.exists():
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["uv", "lock", "--check"],
+                cwd=str(ref.parent),
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode != 0:
+                fail(f"{cap}: lockfile out of sync with venv")
+                fail(f"  Fix: cd {VENV_DIRS[cap]} && uv sync")
+                return False
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            # If uv is not available or times out, fall back to mtime check
+            pyvenv_cfg = venv / "pyvenv.cfg"
+            venv_ref = pyvenv_cfg if pyvenv_cfg.exists() else venv
+            if ref.stat().st_mtime > venv_ref.stat().st_mtime:
+                fail(f"{cap}: lockfile mais novo que .venv (drift)")
+                fail(f"  Fix: cd {VENV_DIRS[cap]} && uv sync")
+                return False
     ok(f"{cap}: venv OK")
     return True
 

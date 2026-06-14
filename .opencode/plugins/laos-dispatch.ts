@@ -32,7 +32,7 @@
  *                     chief-engineer (reliability, SLA compliance).
  *
  * This plugin provides:
- *   - A custom tool `laos.dispatch` that the orchestrator uses to dispatch
+ *   - A custom tool `laos-dispatch` that the orchestrator uses to dispatch
  *     specialists with mode selection.
  *   - Session state tracking for active dispatches.
  *   - Mailbox protocol for parallel mode coordination.
@@ -80,9 +80,9 @@ export const LaosDispatch = async ({ project, directory, $, worktree }: {
   worktree?: string
 }) => {
   return {
-    // ─── Custom tool: laos.dispatch ─────────────────────────────
+    // ─── Custom tool: laos-dispatch ─────────────────────────────
     tool: {
-      "laos.dispatch": {
+      "laos-dispatch": {
         description:
           "Dispatch LAOS specialists using the specified agentic framework mode. " +
           "Modes: sequential (one at a time), parallel (simultaneous with worktrees), " +

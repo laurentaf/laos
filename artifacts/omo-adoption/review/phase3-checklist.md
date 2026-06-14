@@ -45,7 +45,7 @@ This is a meta-project review (LAOS improving itself). The Phase 3 OmO adoption 
    |--------|-------------|---------------|--------|
    | CommentChecker | `tool.execute.after` (line 134) | `tool.execute.after` | ✅ |
    | IntentGate | `tool.execute.before` (line 120) | `tool.execute.before` | ✅ |
-   | Doctor | Custom tool `laos.doctor` (line 737-826) | Custom tool `laos.doctor` | ✅ |
+   | Doctor | Custom tool `laos-doctor` (line 737-826) | Custom tool `laos-doctor` | ✅ |
    | PlanFormatValidator | `tool.execute.after` (line 330) | `tool.execute.after` | ✅ |
    | FormatGuard | `tool.execute.after` (line 95) | `tool.execute.after` | ✅ |
 7. [PASS] **Advisory plugins don't block** — grep for `throw Error` or `throw new Error` in `laos-comment-checker.ts`, `laos-format-guard.ts`, `laos-plan-format-validator.ts` → 0 matches. All three append warnings to tool output without throwing. FormatGuard explicitly wraps in `try/catch` (line 118: `// Never break a write — this plugin is advisory only`). PlanFormatValidator appends "WARNING" text with explicit note: "This is advisory" (line 364). CommentChecker appends "⚠️" advisory text (line 163-165).

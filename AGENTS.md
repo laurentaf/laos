@@ -185,13 +185,13 @@ OpenCode's native plugin system (`.opencode/plugins/*.ts`) is LAOS's mechanical 
 | **Guards** | `laos-guards.ts` | HR #1, #2, #11 | `tool.execute.before` | Implementation code writes in LAOS (*.sql, *.dax, *.pbix), `.env` read/write, synthetic data without frontmatter, orchestrator writing to artifact paths |
 | **MCP Wall** | `laos-mcp-wall.ts` | HR #3 | `tool.execute.before` | Subagent calls MCP tools outside its namespace (e.g., data-architect calling `ladesign.*`) |
 | **WDL Gate** | `laos-wdl-gate.ts` | HR #8 | `tool.execute.before` | Specialist `task` dispatch without READY verdict, enforces bypass penalties (-0.1/-0.3/-0.5) |
-| **Dispatch** | `laos-dispatch.ts` | — (new feature) | Custom tool `laos.dispatch` | Provides sequential/parallel/consensus dispatch modes (see §Agentic Framework Modes) |
+| **Dispatch** | `laos-dispatch.ts` | — (new feature) | Custom tool `laos-dispatch` | Provides sequential/parallel/consensus dispatch modes (see §Agentic Framework Modes) |
 | **Continuation** | `laos-continuation.ts` | — (OmO pattern) | `session.idle` | 2s countdown → auto-inject next todo item; max 5 continuations per session, 5s cooldown |
 | **Recovery** | `laos-recovery.ts` | — (OmO pattern) | `tool.execute.after` + `experimental.session.compacting` | 3 layers: structural error recovery, per-project state persistence (`.laos/state/`), context compaction preservation |
 | **Fallback** | `laos-fallback.ts` | — (OmO pattern) | `tool.execute.after` + `chat.params` | Detects 429/500/502/503/timeout errors, switches to fallback model, configurable chain (max 3 attempts, 30s cooldown) |
 | **Comment Checker** | `laos-comment-checker.ts` | — (advisory) | `tool.execute.after` | Detects AI slop patterns in net-new comments (advisory WARN, does not block) |
 | **Intent Gate** | `laos-intent-gate.ts` | — (new feature) | `tool.execute.before` | Auto-injects needs-specific protocol snippets into specialist `task` dispatches; sentinel markers prevent double-injection |
-| **Doctor** | `laos-doctor.ts` | — (diagnostic) | Custom tool `laos.doctor` | Holistic system diagnostic: 7 checks (system, config, plugins, MCP health, venvs, models, workspace) |
+| **Doctor** | `laos-doctor.ts` | — (diagnostic) | Custom tool `laos-doctor` | Holistic system diagnostic: 7 checks (system, config, plugins, MCP health, venvs, models, workspace) |
 | **Plan Format Validator** | `laos-plan-format-validator.ts` | — (advisory) | `tool.execute.after` | Schema-validates WDL verdict.yaml and plan.json on write; warns on missing/invalid fields |
 | **Format Guard** | `laos-format-guard.ts` | — (advisory) | `tool.execute.after` | Warns on trailing whitespace, missing final newline, mixed indentation, CRLF in .py/.sh/.yaml |
 
@@ -250,7 +250,7 @@ export const PluginName = async ({ project, client, $, directory, worktree }) =>
 
 ## Agentic Framework Modes
 
-Provenance: OmO Team Mode (`src/features/team-mode/`) + user requirement ("was a requisite for LAOS"). Three dispatch modes, selected via `laos.dispatch` tool or orchestrator decision.
+Provenance: OmO Team Mode (`src/features/team-mode/`) + user requirement ("was a requisite for LAOS"). Three dispatch modes, selected via `laos-dispatch` tool or orchestrator decision.
 
 ### 1. Sequential (default, current LAOS behavior)
 

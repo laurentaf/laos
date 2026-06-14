@@ -755,9 +755,9 @@ export const Doctor = async ({ project, client, $, directory, worktree }: {
       // and does not intercept any tool calls.
     },
 
-    // ─── Custom tool: laos.doctor ───────────────────────────────
+    // ─── Custom tool: laos-doctor ───────────────────────────────
     tool: {
-      "laos.doctor": {
+      "laos-doctor": {
         description:
           "Run holistic LAOS system diagnostic. Checks 7 dimensions: " +
           "system (OS, Node, Python, uv), config (opencode.jsonc), " +
