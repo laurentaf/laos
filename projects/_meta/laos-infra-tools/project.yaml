@@ -1,0 +1,31 @@
+# Meta-project: LAOS Infrastructure Tools (laos.infra)
+# LACOUNCIL Proposal 6481da60-67d8-4c7b-a94b-b2da34479f9f
+# Conselho supermaioria 4/4 SIM, 2026-06-14
+# Status: STABLE (direct implementation via Regime A)
+
+brief: >
+  Create 5 dedicated MCP infrastructure tools (health_check, add_tool,
+  scaffold_mcp, download_file, validate_agent) as an extension of the
+  existing laos-doctor plugin, eliminating shell usage for tooling
+  maintenance, binary downloads, and agent validation.
+
+author: laurentaf
+criado_em: 2026-06-14
+
+needs:
+  - improvement
+
+capabilities_used:
+  - laos.infra
+
+deliverables:
+  - plugin: .opencode/plugins/laos-infra.ts
+  - registry: registry/capabilities.yaml (laos.infra entry)
+  - config: .opencode/opencode.jsonc (laos.infra MCP)
+  - meta-project: projects/_meta/laos-infra-tools/project.yaml
+
+repo: .
+
+data_policy:
+  allow_synthetic: false
+  scope: []

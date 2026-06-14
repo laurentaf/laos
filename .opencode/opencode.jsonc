@@ -147,6 +147,23 @@
       // (workflow-decomposer.md §"MCP namespaces you must NOT call").
     },
 
+    // ─── TOOLING & INFRA CAPABILITIES ────────────────────────
+
+    // LAOS.INFRA — 5 MCP infrastructure tools for tooling maintenance,
+    // binary download, and agent validation. Created via LACOUNCIL
+    // proposal 6481da60 (supermaioria 4/4, 2026-06-14).
+    // Tools: health_check, add_tool, scaffold_mcp, download_file,
+    // validate_agent. Also carries the original laos-doctor diagnostic.
+    // Implements as an OpenCode plugin (.opencode/plugins/laos-infra.ts)
+    // that exports custom tools — no separate MCP server process needed.
+    "laos.infra": {
+      "type": "reference",
+      "mcp_server": "laos-doctor",
+      "enabled": true,
+      "env": {},
+      "notes": "Plugin-based .opencode/plugins/laos-infra.ts. Tools auto-available."
+    },
+
     // ─── PLATFORM CAPABILITIES ────────────────────────────────
 
     // Context7 - up-to-date library/API docs.

@@ -199,6 +199,27 @@ capabilities:
       ../ladesign/skills/ are auto-loaded via skills.paths.
       Prerequisite: pnpm install in ../ladesign to build the daemon.
 
+  # ─── LAOS infra / tooling capabilities ─────────────────────
+
+  - id: laos.infra
+    kind: domain
+    mcp_server: laos.infra
+    repo: .
+    status: stable
+    owns:
+      - infra.health-check
+      - infra.tool-registration
+      - infra.mcp-scaffolding
+      - infra.file-download
+      - infra.agent-validation
+    notes: |
+      LAOS infrastructure tools (laos.infra). Plugin-based (TypeScript),
+      auto-loaded via .opencode/plugins/laos-infra.ts.
+      Exposes 6 tools: laos-doctor, health_check, add_tool,
+      scaffold_mcp, download_file, validate_agent.
+      Created via LACOUNCIL proposal 6481da60-67d8-4c7b-a94b-b2da34479f9f
+      (supermaioria 4/4 SIM, 2026-06-14). Status: STABLE.
+
   # ─── Platform capabilities ──────────────────────────────────
 
   - id: context7
