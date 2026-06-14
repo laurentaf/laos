@@ -1,81 +1,157 @@
-# LAOS — Laurent Agent Operating System
+# 👑 LAOS — Laurent Agent Operating System
 
-**Composable AI orchestration for data, design, and automation projects.**
+> *The laurel was exclusive. The intelligence doesn't have to be.*
 
-LAOS is an orchestration layer that composes specialized capabilities
-(LATADE for data, LADESIGN for design, LAN8N for automation, LACOUNCIL
-for governance) into declarative client projects — without writing
-implementation code in the orchestration layer.
+**LAOS dissolves the crown.** For 3,000 years, the laurel cinged one head — the emperor's. Intelligence was centralized, privileged, gated. LAOS distributes sovereignty to every operator: the laós.
 
-## The 7-Capability Ecosystem
+Not a framework. Not a platform. An **operating system for composable AI** — 7 specialized capabilities, 1 orchestrator, zero implementation in the orchestration layer.
 
-LAOS orchestrates 7 capabilities, each in its own repository:
+---
+
+## The Inversion
+
+| Old World | LAOS |
+|-----------|------|
+| Data team owns the pipeline | Every operator runs their own data |
+| AI lab hoards the models | Capabilities are composed, not siloed |
+| Tickets and dashboards for the rest | MCP-native tool access for every agent |
+| Emperor decides | Conselho deliberates (proposals, voting, trust) |
+
+---
+
+## Ecosystem Architecture
 
 ```
-├── latade          (https://github.com/laurentaf/latade)         # Data engineering · SQL, dbt, DuckDB, BI
-├── lan8n           (https://github.com/laurentaf/lan8n)            # Automation · n8n workflows, integrations
-├── ladesign        (https://github.com/laurentaf/ladesign)        # Design · dashboards, decks, wireframes
-├── lacouncil       (https://github.com/laurentaf/lacouncil)        # Governance · proposals, voting, DuckDB memory
-├── laecon          (https://github.com/laurentaf/laecon)          # Econometrics · regression, GLM, causal inference
-├── laengine        (https://github.com/laurentaf/laengine)         # Game dev · match engine, sports simulation
-└── lacareerops     (https://github.com/laurentaf/lacareerops)     # Career · job search, CV, portals
+                          ┌─────────────────┐
+                          │     LAOS         │
+                          │   Orchestrator   │
+                          │  (this repo)     │
+                          └────────┬────────┘
+                                   │
+            ┌──────────────────────┼──────────────────────┐
+            │                      │                      │
+      ┌─────┴─────┐         ┌─────┴─────┐         ┌─────┴─────┐
+      │   LATADE   │         │  LADESIGN  │         │   LAN8N    │
+      │  🗄️ Data   │         │  🎨 Design  │         │  ⚙️ Auto    │
+      │ SQL·dbt·   │         │ dashboards·│         │ n8n flows· │
+      │ DuckDB·BI  │         │ decks·UI   │         │ APIs       │
+      └────────────┘         └────────────┘         └────────────┘
+      ┌────────────┐         ┌────────────┐         ┌────────────┐
+      │  LACOUNCIL  │         │   LAECON    │         │  LAENGINE   │
+      │  🏛️ Gov     │         │  📊 Econo   │         │  🎮 Game    │
+      │ proposals· │         │ regression·│         │ simulation·│
+      │ voting·    │         │ causal·ML   │         │ match eng  │
+      │ DuckDB mem │         │ interpret  │         │ squad mgmt │
+      └────────────┘         └────────────┘         └────────────┘
+      ┌────────────┐
+      │LACAREEROPS │
+      │  💼 Career  │
+      │ job search·│
+      │ CV·portals │
+      └────────────┘
 ```
+
+**7 capabilities. 7 MCP servers. 0 implementation in the orchestrator.**
+
+Each capability is its own repository, its own MCP server, its own lifecycle. LAOS composes them — it never owns them.
+
+---
 
 ## How a Client Project Works
 
-1. Brief → `projects/<name>/project.yaml` (the contract in LAOS)
-2. Orchestrator resolves needs via `registry/needs-to-capabilities.yaml`
-3. WDL preflight gate: workflow-decomposer validates the plan (READY/DEFER/ESCALATE)
-4. Specialist subagents dispatched via MCP (data-architect, dashboard-designer, etc.)
-5. delivery-reviewer validates against `knowledge/padroes-entrega.md`
-6. Artifacts live in the child repo — LAOS holds the contract, nothing else
+```
+Brief → project.yaml (contract) 
+         → orchestrator resolves needs via registry
+         → WDL preflight gate (workflow-decomposer validates plan)
+         → specialist subagents dispatched via MCP
+         → delivery-reviewer validates against P0 checklist
+         → Artifacts live in child repo. LAOS holds the contract.
+```
 
-## Recent Projects
+**Every project is born as its own repository.** LAOS holds the contract (`project.yaml`), the routing table, and the delivery checklist — nothing else.
 
-| Project | Domain | Capabilities Used | Child Repo |
-|---------|--------|-------------------|------------|
-| `abandono-academico-casa-grande` | Academic ML | LATADE + LADESIGN | github.com/laurentaf/abandono-academico-casa-grande |
-| `hospital-viana-claims` | Healthcare ETL | LATADE | github.com/laurentaf/hospital-viana-claims |
-| `giovanna-rupture-monitor` | Retail analytics | LATADE | github.com/laurentaf/giovanna-rupture-monitor |
-| `emanuella-stock-ingestion` | Retail ingestion | LATADE | github.com/laurentaf/emanuella-stock-ingestion |
+### Delivered projects
 
-## What This Proves (for a Data Engineer role)
+| Project | Domain | Impact | Repo |
+|---------|--------|--------|------|
+| **abandono-academico** | ML (dropout prediction) | 87.5% accuracy, 93.7% recall, 32k students | public |
+| **hospital-viana-claims** | Healthcare ETL | 6 DQ checks, IFRS17-ready, daily GH Actions | public |
+| **giovanna-rupture-monitor** | Retail analytics | 4,150 regions analyzed, 33% stock-out detection | public |
+| **emanuella-stock-ingestion** | Retail ETL | dbt-ready, 3-stage, SLA < 5 min | public |
+| **previsao-concursos** | NLP/education | 1,236 questions, 27 contests, Laplace smoothing | public |
+| **brasfoot-poc → laengine** | Game dev | 10-team simulation, round-robin, MCP tools | public |
+| **laos-brand** | Brand system | Manifesto, keynote, landing page, DESIGN.md | public |
+
+---
+
+## What This Proves
 
 | Skill | Evidence |
 |-------|----------|
-| System design | Built a meta-system that orchestrates 7 independent capabilities |
-| MCP (Model Context Protocol) | Wired 7 MCP servers, each with distinct tools |
-| Declarative project contracts | `project.yaml` as the single source of truth per project |
-| Governance / quality gates | LACOUNCIL proposals with voting, delivery-reviewer checklist |
-| Multi-agent orchestration | Orchestrator dispatches specialist subagents, each with bounded scope |
-| CI/CD for AI systems | GitHub Actions managing the LAOS meta-system itself |
+| **System architecture** | Designed a meta-system orchestrating 7 independent capabilities across 4 domains |
+| **MCP (Model Context Protocol)** | Wired 7 MCP servers — data, design, automation, governance, econometrics, game, career |
+| **Declarative contract design** | `project.yaml` as single source of truth → deterministic need-to-capability routing |
+| **Governance engineering** | LACOUNCIL: proposals, Conselho voting (unanimity/supermajority/majority), trust scores, DuckDB memory |
+| **Multi-agent orchestration** | 9 subagent types (data-architect, dashboard-designer, automation-engineer, etc.), WDL preflight gate |
+| **Quality assurance automation** | 12 OpenCode plugins enforce hard rules mechanically (not by prompt). delivery-reviewer validates every project |
+| **SDD (Spec-Driven Development)** | Every project produces 8+ SDD artifacts before any implementation code |
+| **CI/CD for AI systems** | GitHub Actions, preflight checks, boot validation per dispatch |
 
-## Quick Start
-
-```powershell
-pwsh .\setup.ps1   # Install deps, verify siblings, configure .env
-opencode            # Launch LAOS orchestrator
-```
+---
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `AGENTS.md` | Hard rules: no implementation code in LAOS |
-| `registry/needs-to-capabilities.yaml` | Routing from abstract needs → concrete capabilities |
-| `knowledge/padroes-entrega.md` | Delivery checklist (P0 blockers for every project) |
-| `workflows/` | Project archetype templates |
+| `AGENTS.md` | Hard rules + agent topology + 12-plugin architecture |
+| `registry/needs-to-capabilities.yaml` | Deterministic routing: 20+ needs → capabilities |
+| `registry/capabilities.yaml` | Full capability catalog (7 domain + platform MCPs) |
+| `knowledge/padroes-entrega.md` | P0-P2 delivery checklist (13+ checks) |
+| `knowledge/sdd-principles.md` | Spec-Driven Development: 9-file scaffold matrix |
+| `workflows/` | Project archetype templates (etl, dashboard, presentation) |
 | `projects/<name>/project.yaml` | Contract for every client project |
+| `scripts/subagent_boot_check.py` | 6-dimension validation before every specialist dispatch |
+
+---
+
+## Quick Start
+
+```powershell
+uv sync                    # Install deps
+uv run python scripts/preflight_check.py .   # Health check
+opencode .                 # Launch LAOS orchestrator
+```
+
+---
 
 ## Architecture Rules (Non-negotiable)
 
 - **No implementation in LAOS.** SQL, dashboards, n8n flows live in capability repos.
 - **Reached only via MCP.** Capability repos are never `cd`'d into directly.
-- **Projects have two homes.** Contract in LAOS; artifacts in child repo.
-- **Structural changes require consensus.** LACOUNCIL proposals go through the Conselho.
-
-See `AGENTS.md` for the full set of rules.
+- **Structural changes require consensus.** LACOUNCIL proposals → Conselho voting (4 subagents) → implementation.
+- **Every project has two homes.** Contract in LAOS; artifacts in child repo.
+- **WDL preflight is mandatory.** No specialist dispatch without a READY verdict from workflow-decomposer.
+- **Patterns repeated 3+ times trigger LACOUNCIL investigation.**
 
 ---
 
-*LAOS — Composing specialized AI capabilities into declarative client projects.*
+## The LAOS Difference
+
+**LAOS is not a framework you import. It's a system you inhabit.**
+
+- Frameworks give you functions. LAOS gives you **governance**.
+- Platforms give you lock-in. LAOS gives you **MCP-native composability**.
+- AI agents give you answers. LAOS gives you **a system that checks its own work**.
+
+> *"Data architecture isn't about the tools — it's about whether the C-suite trusts what it sees on the dashboard."*
+
+---
+
+## About the Architect
+
+**Laurent** — Data Architect & ML Engineer
+
+Built LAOS because he couldn't find a system that composably orchestrates data, design, automation, and governance without becoming the implementation itself.
+
+- [GitHub](https://github.com/laurentaf) · [LinkedIn](https://linkedin.com/in/lauferreira)
+- Campinas/SP · Remote-first · Open to: Data Architect, AI Data Engineer, Analytics Engineering
