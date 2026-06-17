@@ -144,9 +144,9 @@ domain_constitution:
   image:       "../ladesign/DESIGN.md"
   video:       "../ladesign/DESIGN.md"
 
-  automation:  "../n8n/CONSTITUTION.md"       # LAN8N native (grafo)
-  integration: "../n8n/CONSTITUTION.md"
-  alerts:      "../n8n/CONSTITUTION.md"
+  automation:  "../lan8n/CONSTITUTION.md"       # LAN8N native (grafo)
+  integration: "../lan8n/CONSTITUTION.md"
+  alerts:      "../lan8n/CONSTITUTION.md"
 
   game_simulation: "../laengine/CONSTITUTION.md"  # LAENGINE match rules
 

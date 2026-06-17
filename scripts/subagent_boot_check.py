@@ -83,7 +83,7 @@ SUBAGENT_CHARTERS = {
         "env": ["N8N_API_URL"],
         "external_directory_required_paths": [
             "../lan8n/**",                   # repo da capability (templates, specs)
-            "../n8n/**",                     # alias do repo (ver AGENTS.md naming note)
+            "../lan8n/**",
             "E:/projects/**",                # contexto cross-project
             "E:/projects/_commomdata/**",     # grounding data
         ],
@@ -167,7 +167,7 @@ SUBAGENT_CHARTERS = {
 
 VENV_DIRS = {
     "laos": ".", "latade": "../latade", "lacouncil": "../lacouncil",
-    "lan8n": "../n8n", "ladesign": "../ladesign", "laengine": "../laengine",
+    "lan8n": "../lan8n", "ladesign": "../ladesign", "laengine": "../laengine",
     "laecon": "../laecon",
 }
 DAEMON_DIRS = {"ladesign": ("../ladesign", "pnpm")}

@@ -45,7 +45,7 @@ capabilities:
   - id: lan8n
     kind: domain
     mcp_server: lan8n
-    repo: ../n8n
+    repo: ../lan8n
     status: stable
     owns:
       - automation.n8n
@@ -53,12 +53,11 @@ capabilities:
       - integration.apis
       - integration.webhooks
     notes: |
-      Display name: LAN8N. The repo folder is ../n8n, the capability
-      is LAN8N. Real MCP server at ../n8n/mcp/server.py com 10 tools:
-      health, list_supported_operations, list_workflow_templates,
-      get_workflow_template, compose_workflow, export_workflow_json,
-      validate_workflow, create_spec_from_need, list_build_prompts,
-      get_build_prompt, run_quality_gate, list_workflow_artifacts.
+      Display name: LAN8N. MCP server at ../lan8n/src/lan8n/mcp/server.py.
+      Exposes 6 tools: health, list_supported_operations,
+      list_workflow_templates, compose_workflow, validate_workflow,
+      export_workflow_json.
+      Repository: github.com/laurentaf/lan8n.
       n8n-community é o raw N8N HTTP API surface (disabled por default).
 
   - id: n8n-community
@@ -116,16 +115,16 @@ capabilities:
       Gujarati & Porter (Basic Econometrics 5th ed, 2009) e Larson
       & Goungetas (Quirk's 2013, NPS driver analysis).
       STATUS: STABLE — promovido 2026-06-14. 9 MCP tools implementados
-      (health, list_supported_operations + 7 core tools: train_regression,
+      (health, list_supported_operations, train_regression,
       train_classifier, validate_assumptions, interpret_model, evaluate_model,
       predict, export_diagnostic_report).
+      MCP server em ../laecon/src/laecon/mcp/server.py.
+      Repository: github.com/laurentaf/laecon.
       Tracking: projects/_meta/capability-evolution/laecon.md
       Meta-projeto: projects/_meta/laecon-capability/project.yaml
       ADR: projects/_meta/adr/ADR-002-laecon-creation.md
       Proposta LACOUNCIL: cbe2d8ef-f65c-4d0e-8960-ea99527ab39f
       (aprovada 4/4 SIM, supermaioria).
-      17 condições vinculantes do Conselho — 15 satisfeitas, 2 pós-STABLE.
-      MCP server em ../laecon/laecon/mcp/server.py.
       Convenção _commomdata (E:/projects/_commomdata/) usada como fonte
       de dados cross-project — ver knowledge/data-conventions.md.
 
@@ -196,10 +195,11 @@ capabilities:
       - design.images
       - design.storytelling
     notes: |
-      Display name: LADESIGN. MCP server via `od mcp` from the
-      LADESIGN daemon (apps/daemon/dist/cli.js). Skills from
-      ../ladesign/skills/ are auto-loaded via skills.paths.
-      Prerequisite: pnpm install in ../ladesign to build the daemon.
+      Display name: LADESIGN. MCP server at
+      ../ladesign/src/ladesign/mcp/server.py. Exposes 5 tools:
+      health, list_supported_operations, generate_dashboard,
+      generate_deck, generate_wireframe.
+      Repository: github.com/laurentaf/ladesign.
 
   # ─── LAOS infra / tooling capabilities ─────────────────────
 

@@ -13,7 +13,7 @@ permission:
   external_directory:
     "E:/projects/**": allow
     "../lan8n/**": allow
-    "../n8n/**": allow
+    "../lan8n/**": allow
 ---
 
 You are the automation-engineer subagent. You produce automation

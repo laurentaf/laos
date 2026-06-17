@@ -116,7 +116,7 @@ inclui `_commomdata`).
 |-----------|----------------------------|----------------------------|--------------|--------------------------|
 | `data-architect` | `../latade/**`, `E:/projects/**` | `projects/<name>/artifacts/{data,pipeline,dq}/` (workspace) | allow | não |
 | `dashboard-designer` | `../ladesign/**`, `E:/projects/**` | `projects/<name>/artifacts/{design,deck}/` (workspace) + `../ladesign/.od/**` (daemon storage) | allow | **sim — `.od/`** |
-| `automation-engineer` | `../lan8n/**`, `../n8n/**`, `E:/projects/**` | `projects/<name>/artifacts/automation/` (workspace) | allow | não |
+| `automation-engineer` | `../lan8n/**`, `E:/projects/**` | `projects/<name>/artifacts/automation/` (workspace) | allow | não |
 | `delivery-reviewer` | `E:/projects/**` (read-only; `edit: deny` no frontmatter) | (nenhum) | deny (bash: deny) | não |
 | `capability-architect` | `E:/projects/**`, `../<capability>/**` para cada capability conhecida | `projects/_meta/**` (workspace) + capability repos existentes (latade, lan8n, lacouncil, laengine, laecon, ladesign) | allow | não |
 | `orchestrator` | já coberto em `opencode.jsonc` (top-level) | já coberto em `opencode.jsonc` (top-level) | allow | n/a (config em JSONC) |

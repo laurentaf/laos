@@ -147,7 +147,7 @@ A nova sessão vai carregar automaticamente:
 
 | Item | Status |
 |---|---|
-| **LAN8N MCP server real** (`../n8n/mcp/server.py`) com 10 tools | ✅ CRIADO |
+| **LAN8N MCP server real** (`../lan8n/src/lan8n/mcp/server.py`) com 6 tools | ✅ CRIADO |
 | **LAN8N pyproject.toml** com `mcp>=1.0.0` | ✅ CRIADO |
 | **LAN8N venv** via `uv sync` | ✅ CRIADO |
 | **LAN8N stub deletado** (`capabilities-stubs/lan8n-mcp/`) | ✅ DELETADO |

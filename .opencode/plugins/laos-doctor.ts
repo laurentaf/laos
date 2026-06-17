@@ -61,7 +61,7 @@ interface DoctorResult {
 const CAPABILITY_REPOS: Record<string, string> = {
   latade: "../latade",
   lacouncil: "../lacouncil",
-  lan8n: "../n8n",
+  lan8n: "../lan8n",
   ladesign: "../ladesign",
   laengine: "../laengine",
   laecon: "../laecon",
@@ -71,7 +71,7 @@ const VENV_REPOS: Record<string, string> = {
   LAOS: ".",
   latade: "../latade",
   lacouncil: "../lacouncil",
-  lan8n: "../n8n",
+  lan8n: "../lan8n",
   ladesign: "../ladesign",
   laengine: "../laengine",
   laecon: "../laecon",
