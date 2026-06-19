@@ -40,23 +40,23 @@
 # LAOS
 ### Laurent Agent Operating System
 
-<!-- Badges row -->
+<!-- Badges row — static shields.io badges (no dynamic lookups that 404) -->
 <p style="margin:12px 0;">
-  <a href="https://github.com/laurentaf/laos/releases" class="laos-badge"><img src="https://img.shields.io/github/v/release/laurentaf/laos?style=flat&label=Release&color=000" alt="Release"/></a>
+  <a href="https://github.com/laurentaf/laos/releases" class="laos-badge"><img src="https://img.shields.io/badge/Release-v0.1.0--draft-6c5ce7?style=flat" alt="Release v0.1.0-draft"/></a>
   &nbsp;
-  <a href="https://github.com/laurentaf/laos/blob/main/LICENSE" class="laos-badge"><img src="https://img.shields.io/badge/License-MIT-000?style=flat" alt="License: MIT"/></a>
+  <a href="https://github.com/laurentaf/laos/blob/main/LICENSE" class="laos-badge"><img src="https://img.shields.io/badge/License-MIT-31c754?style=flat" alt="License: MIT"/></a>
   &nbsp;
-  <a href="https://github.com/laurentaf/laos" class="laos-badge"><img src="https://img.shields.io/badge/Python-≥3.11-000?style=flat&logo=python&logoColor=fff" alt="Python 3.11+"/></a>
+  <img src="https://img.shields.io/badge/Python-≥3.11-3776AB?style=flat&logo=python&logoColor=fff" alt="Python 3.11+"/>
   &nbsp;
-  <a href="https://github.com/laurentaf/laos/actions" class="laos-badge"><img src="https://img.shields.io/github/actions/workflow/status/laurentaf/laos/ci.yml?style=flat&label=CI&color=000" alt="CI status"/></a>
+  <img src="https://img.shields.io/badge/CI-manual-586069?style=flat" alt="CI: manual"/>
   &nbsp;
-  <a href="https://github.com/laurentaf/laos/issues" class="laos-badge"><img src="https://img.shields.io/github/issues/laurentaf/laos?style=flat&label=Issues&color=000" alt="Issues"/></a>
+  <a href="https://github.com/laurentaf/laos/issues" class="laos-badge"><img src="https://img.shields.io/badge/Issues-0--open-e17055?style=flat" alt="Issues"/></a>
   &nbsp;
-  <img src="https://img.shields.io/badge/Agents-9-000?style=flat" alt="9 subagents"/>
+  <img src="https://img.shields.io/badge/Agents-9-a29bfe?style=flat" alt="9 subagents"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/Plugins-12-000?style=flat" alt="12 plugins"/>
+  <img src="https://img.shields.io/badge/Plugins-12-00b894?style=flat" alt="12 plugins"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/Deliveries-6-000?style=flat" alt="6 delivered projects"/>
+  <img src="https://img.shields.io/badge/Deliveries-6-0984e3?style=flat" alt="6 delivered projects"/>
 </p>
 
 <hr style="width:48px;margin:24px auto;border:none;border-top:2px solid currentColor;opacity:0.3;"/>
