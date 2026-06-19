@@ -9,19 +9,7 @@
   GitHub strips external CSS/JS. All styling is inline or <style> scoped.
 -->
 
-<style>
-  @keyframes laos-pulse {
-    0%, 100% { opacity: 0.15; }
-    50% { opacity: 0.35; }
-  }
-  @keyframes laos-fade-up {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .laos-emblem:hover line { transition: opacity 0.3s ease; }
-  .laos-badge { display: inline-block; transition: opacity 0.2s ease; }
-  .laos-badge:hover { opacity: 0.7; }
-</style>
+<!-- GitHub strips <style> tags from READMEs. All CSS is inline. -->
 
 <div align="center" style="margin-top:48px;margin-bottom:24px;">
 
@@ -112,46 +100,83 @@ For 3,000 years, the laurel cinged one head — the emperor's. Intelligence was 
 
 ## Ecosystem Architecture
 
-<div align="center">
+<div align="center" style="margin:24px 0;">
 
-```
-                        ┌──────────────────────┐
-                        │         LAOS          │
-                        │     Orchestrator      │
-                        │   (this repository)   │
-                        │  opencode . → agents  │
-                        └───────┬──────┬────────┘
-                                │      │
-          ┌─────────────────────┘      └──────────────────────┐
-          │                                                    │
-    ┌─────┴─────────┐                                  ┌──────┴─────────┐
-    │    LATADE     │                                  │    LADESIGN    │
-    │     Data      │                                  │    Design      │
-    │ sql · DuckDB  │                                  │ dashboards ·   │
-    │ dbt · BI · DQ │                                  │ decks · UI ·   │
-    │               │                                  │ video · images │
-    └───────┬───────┘                                  └───────┬────────┘
-    ┌───────┴────────┐                                ┌────────┴────────┐
-    │    LAN8N       │                                │    LAECON       │
-    │  Automation    │                                │  Econometrics   │
-    │ n8n · APIs ·   │                                │ regressions ·   │
-    │ integrations   │                                │ ML · causal ·   │
-    │ alerts         │                                │ interpret       │
-    └───────┬────────┘                                └────────┬────────┘
-    ┌───────┴──────────┐                           ┌──────────┴──────────┐
-    │   LACOUNCIL      │                           │     LAENGINE       │
-    │   Governance     │                           │      Game Dev      │
-    │ proposals ·      │                           │ simulation · match │
-    │ voting · trust · │                           │ engine · squad mgmt│
-    │ DuckDB memory    │                           │ league standings   │
-    └───────┬──────────┘                           └──────────┬─────────┘
-    ┌───────┴──────────────┐
-    │    LACAREEROPS       │
-    │       Career         │
-    │ job search · CV ·    │
-    │ portal scan · tracker│
-    └──────────────────────┘
-```
+<table style="border-collapse:separate;border-spacing:0;min-width:680px;">
+  <tr>
+    <td colspan="3" align="center" style="padding:0 0 8px 0;">
+      <div style="display:inline-block;border:1.5px solid currentColor;border-radius:10px;padding:14px 32px;text-align:center;">
+        <div style="font-weight:700;font-size:1.05em;letter-spacing:0.04em;">LAOS</div>
+        <div style="font-size:0.82em;opacity:0.5;">Orchestrator — this repo</div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center" style="padding:0;">
+      <div style="width:1.5px;height:20px;background:currentColor;opacity:0.3;margin:0 auto;"></div>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" style="padding:0 16px;">
+      <div style="border:1px solid currentColor;border-radius:8px;padding:10px 18px;text-align:center;min-width:140px;">
+        <div style="font-weight:700;letter-spacing:0.03em;">LATADE</div>
+        <div style="font-size:0.78em;opacity:0.5;">Data — sql · DuckDB · dbt · BI · DQ</div>
+      </div>
+    </td>
+    <td align="center" style="padding:0 16px;">
+      <div style="border:1px solid currentColor;border-radius:8px;padding:10px 18px;text-align:center;min-width:140px;">
+        <div style="font-weight:700;letter-spacing:0.03em;">LADESIGN</div>
+        <div style="font-size:0.78em;opacity:0.5;">Design — dashboards · decks · UI · video</div>
+      </div>
+    </td>
+    <td align="center" style="padding:0 16px;">
+      <div style="border:1px solid currentColor;border-radius:8px;padding:10px 18px;text-align:center;min-width:140px;">
+        <div style="font-weight:700;letter-spacing:0.03em;">LAN8N</div>
+        <div style="font-size:0.78em;opacity:0.5;">Automation — n8n · APIs · workflows</div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center" style="padding:0;">
+      <div style="width:1.5px;height:16px;background:currentColor;opacity:0.2;margin:0 auto;"></div>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" style="padding:0 16px;">
+      <div style="border:1px solid currentColor;border-radius:8px;padding:10px 18px;text-align:center;min-width:140px;">
+        <div style="font-weight:700;letter-spacing:0.03em;">LACOUNCIL</div>
+        <div style="font-size:0.78em;opacity:0.5;">Governance — proposals · voting · trust</div>
+      </div>
+    </td>
+    <td align="center" style="padding:0 16px;">
+      <div style="border:1px solid currentColor;border-radius:8px;padding:10px 18px;text-align:center;min-width:140px;">
+        <div style="font-weight:700;letter-spacing:0.03em;">LAECON</div>
+        <div style="font-size:0.78em;opacity:0.5;">Econometrics — regressions · ML · causal</div>
+      </div>
+    </td>
+    <td align="center" style="padding:0 16px;">
+      <div style="border:1px solid currentColor;border-radius:8px;padding:10px 18px;text-align:center;min-width:140px;">
+        <div style="font-weight:700;letter-spacing:0.03em;">LAENGINE</div>
+        <div style="font-size:0.78em;opacity:0.5;">Game Dev — simulation · match engine</div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center" style="padding:0;">
+      <div style="width:1.5px;height:16px;background:currentColor;opacity:0.2;margin:0 auto;"></div>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center">
+      <div style="border:1px solid currentColor;border-radius:8px;padding:10px 18px;text-align:center;display:inline-block;min-width:180px;">
+        <div style="font-weight:700;letter-spacing:0.03em;">LACAREEROPS</div>
+        <div style="font-size:0.78em;opacity:0.5;">Career — job search · CV · portal scan</div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+</div>
 
 **7 capabilities · 7 MCP servers · 0 implementation in the orchestrator**
 
