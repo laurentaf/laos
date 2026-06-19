@@ -1,0 +1,14 @@
+brief: "Debug Agent + Explore Filesystem Tool — LACOUNCIL proposal 7fcc6cd5"
+needs: [improvement]
+capabilities_used: [lacouncil, laos.infra]
+deliverables:
+  - .opencode/agent/debug-agent.md
+  - .opencode/plugins/laos-wdl-gate.ts (modified)
+  - .opencode/plugins/laos-mcp-wall.ts (modified)
+  - .opencode/plugins/laos-infra.ts (modified)
+  - AGENTS.md (modified)
+  - knowledge/padroes-entrega.md (modified)
+repo: ""
+external_delivery: false
+data_policy:
+  allow_synthetic: false

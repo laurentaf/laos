@@ -107,6 +107,13 @@ const AGENT_MCP_WALLS: Record<string, { allowed: string[]; blocked: string[]; al
     allowed: ["lan8n", "latade"], // Read-only for engineering evaluation
     blocked: ["ladesign", "laecon", "laengine", "lacouncil", "n8n-community"],
   },
+  "debug-agent": {
+    // Debug agent has broad MCP access for diagnostics, but writes
+    // are blocked by laos-guards.ts (P0: debug must not mutate production).
+    // Shell access is controlled by the WDL Gate (read-only commands only).
+    allowed: ["latade", "ladesign", "lan8n", "laecon", "laengine", "n8n-community", "lacouncil", "context7", "exa", "github"],
+    blocked: [], // All MCPs readable; shell blocked except read-only by WDL Gate
+  },
 }
 
 function getMcpNamespace(toolName: string): string | null {

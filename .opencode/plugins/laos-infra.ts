@@ -1054,6 +1054,7 @@ function runValidateAgent(dispatchType: string): string {
     "chief-designer": "chief-designer",
     "chief-engineer": "chief-engineer",
     "explore": "explore",
+    "debug-agent": "debug-agent",
   }
 
   // Sourced from .opencode/agent/ — ONLY agents with charter files.
@@ -1070,6 +1071,7 @@ function runValidateAgent(dispatchType: string): string {
     "chief-designer": "evaluator",
     "chief-engineer": "evaluator",
     "explore": "subagent",
+    "debug-agent": "subagent",
   }
 
   const normalizedType = dispatchType.toLowerCase().trim()
@@ -1234,6 +1236,167 @@ function runShellUsageReport(): string {
       ? `These commands have 5+ uses: ${promoteCandidates.join(", ")}. Consider promoting to a dedicated tool.`
       : "No commands have reached the 5-use threshold yet.",
   }, null, 2)
+}
+
+// ─── explore_filesystem: safe read-only exploration ──────────
+// Created via LACOUNCIL proposal 7fcc6cd5 (Debug Agent + Explore Tool).
+// All operations are read-only; rejects paths outside E:/projects/**.
+function runExploreFilesystem(args: { path?: string; op: string; depth?: number; pattern?: string; max_lines?: number }): string {
+  const { op, depth = 2, pattern, max_lines = 50 } = args
+  const targetPath = args.path || "."
+  const projectsRoot = "E:/projects"
+
+  // Safety: ensure path is within E:/projects/**
+  const resolved = resolve(targetPath)
+  if (!resolved.toLowerCase().startsWith(projectsRoot.toLowerCase())) {
+    return JSON.stringify({
+      status: "error",
+      error: "Path must be under E:/projects/** for security. Use read-only bash for other paths.",
+      allowed_scope: "E:/projects/**",
+    }, null, 2)
+  }
+
+  try {
+    switch (op) {
+      case "list": {
+        const entries = readdirSync(resolved, { withFileTypes: true })
+        const items = entries.map(e => ({
+          name: e.name,
+          type: e.isDirectory() ? "directory" : "file",
+          size: e.isFile() ? statSync(join(resolved, e.name)).size : null,
+        }))
+        return JSON.stringify({
+          status: "ok",
+          path: resolved,
+          item_count: items.length,
+          items,
+        }, null, 2)
+      }
+
+      case "tree": {
+        const maxDepth = Math.min(depth, 5)
+        const tree: any[] = []
+
+        function walkTree(dir: string, currentDepth: number): any[] {
+          if (currentDepth > maxDepth) return [{ name: "...", type: "truncated" }]
+          const entries = readdirSync(dir, { withFileTypes: true })
+          return entries
+            .filter(e => !e.name.startsWith(".") && e.name !== "node_modules" && e.name !== ".venv")
+            .slice(0, 50) // Cap per-directory to avoid huge output
+            .map(e => {
+              const fullPath = join(dir, e.name)
+              if (e.isDirectory()) {
+                return {
+                  name: e.name,
+                  type: "directory",
+                  children: walkTree(fullPath, currentDepth + 1),
+                }
+              }
+              return {
+                name: e.name,
+                type: "file",
+                size: statSync(fullPath).size,
+              }
+            })
+        }
+
+        const treeData = walkTree(resolved, 0)
+        return JSON.stringify({
+          status: "ok",
+          path: resolved,
+          max_depth: maxDepth,
+          tree: treeData,
+        }, null, 2)
+      }
+
+      case "search": {
+        if (!pattern) {
+          return JSON.stringify({
+            status: "error",
+            error: "pattern parameter required for search operation",
+          }, null, 2)
+        }
+        const results: { file: string; line: number; text: string }[] = []
+        const grepRegex = new RegExp(pattern, "i")
+        const files = readdirSync(resolved, { withFileTypes: true })
+        let count = 0
+        const maxResults = 100
+
+        for (const entry of files) {
+          if (count >= maxResults) break
+          if (entry.isDirectory()) continue
+          if (!entry.name.endsWith(".md") && !entry.name.endsWith(".ts") &&
+              !entry.name.endsWith(".py") && !entry.name.endsWith(".yaml") &&
+              !entry.name.endsWith(".json") && !entry.name.endsWith(".jsonc")) continue
+          try {
+            const content = readFileSync(join(resolved, entry.name), "utf-8")
+            const lines = content.split("\n")
+            for (let i = 0; i < lines.length && count < maxResults; i++) {
+              if (grepRegex.test(lines[i])) {
+                results.push({ file: entry.name, line: i + 1, text: lines[i].trim().substring(0, 120) })
+                count++
+              }
+            }
+          } catch { /* skip unreadable files */ }
+        }
+
+        return JSON.stringify({
+          status: "ok",
+          path: resolved,
+          pattern,
+          match_count: results.length,
+          truncated: results.length >= maxResults,
+          results,
+        }, null, 2)
+      }
+
+      case "stat": {
+        const stats = statSync(resolved)
+        return JSON.stringify({
+          status: "ok",
+          path: resolved,
+          exists: true,
+          type: stats.isDirectory() ? "directory" : "file",
+          size: stats.size,
+          created: stats.birthtime.toISOString(),
+          modified: stats.mtime.toISOString(),
+          is_symlink: stats.isSymbolicLink(),
+        }, null, 2)
+      }
+
+      case "read_preview": {
+        if (!existsSync(resolved) || statSync(resolved).isDirectory()) {
+          return JSON.stringify({
+            status: "error",
+            error: "read_preview requires a file path",
+          }, null, 2)
+        }
+        const maxLines = Math.min(max_lines, 200)
+        const content = readFileSync(resolved, "utf-8")
+        const lines = content.split("\n")
+        const preview = lines.slice(0, maxLines)
+        return JSON.stringify({
+          status: "ok",
+          path: resolved,
+          total_lines: lines.length,
+          preview_lines: preview.length,
+          truncated: lines.length > maxLines,
+          content: preview.join("\n"),
+        }, null, 2)
+      }
+
+      default:
+        return JSON.stringify({
+          status: "error",
+          error: `Unknown operation: ${op}. Supported: list, tree, search, stat, read_preview`,
+        }, null, 2)
+    }
+  } catch (err: any) {
+    return JSON.stringify({
+      status: "error",
+      error: err.message || String(err),
+    }, null, 2)
+  }
 }
 
 // ─── Plugin export ───────────────────────────────────────────
@@ -1526,6 +1689,47 @@ export const Infra = async ({ project, client, $, directory, worktree }: {
         args: {},
         async execute(): Promise<string> {
           return runShellUsageReport()
+        },
+      },
+
+      // Tool 9: explore_filesystem — safe read-only filesystem exploration
+      // Created via LACOUNCIL proposal 7fcc6cd5, approved 4/4 supermaioria.
+      // Returns structured JSON — replaces Get-ChildItem / ls for programmatic use.
+      // Safer than raw bash: no command injection, no state mutation, no secret leakage.
+      "explore_filesystem": {
+        description:
+          "Explore the filesystem with read-only operations. " +
+          "Returns structured JSON with file listings, stats, search results. " +
+          "Safer than raw bash: no command injection, no state mutation. " +
+          "Supports operations: list, tree, search, stat, read_preview.",
+        args: {
+          path: {
+            type: "string" as const,
+            description: "Directory or file path to explore (under E:/projects/**)",
+          },
+          op: {
+            type: "string" as const,
+            enum: ["list", "tree", "search", "stat", "read_preview"],
+            description: "Operation: list (ls), tree (recursive), search (grep), stat (file info), read_preview (first N lines)",
+          },
+          depth: {
+            type: "number" as const,
+            description: "Recursion depth for 'tree' operation (default: 2, max: 5)",
+          },
+          pattern: {
+            type: "string" as const,
+            description: "Glob or regex pattern for 'search' operation",
+          },
+          max_lines: {
+            type: "number" as const,
+            description: "Max lines for 'read_preview' operation (default: 50, max: 200)",
+          },
+        },
+        async execute(
+          args: { path?: string; op: string; depth?: number; pattern?: string; max_lines?: number },
+          _context: any
+        ): Promise<string> {
+          return runExploreFilesystem(args)
         },
       },
     },

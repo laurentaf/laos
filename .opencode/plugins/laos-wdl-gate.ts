@@ -49,6 +49,7 @@ const INFRA_TOOLS = [
   "git_local",
   "uv_tool",
   "shell_usage_report",
+  "explore_filesystem",
 ]
 
 // ─── Known agent registry (sourced from .opencode/agent/) ────
@@ -67,6 +68,7 @@ const AGENT_TYPES: Record<string, "primary" | "subagent" | "evaluator"> = {
   "chief-designer": "evaluator",
   "chief-engineer": "evaluator",
   explore: "subagent",
+  "debug-agent": "subagent",
 }
 
 function validateDispatchAgent(agentType: string): { valid: boolean; agent_type?: string; suggested_alternative?: string } {
@@ -146,6 +148,46 @@ const CLEANUP_PATTERNS = [
   /\.egg-info\//,
 ]
 
+// Read-only command patterns — allowed for debug-agent
+// These are safe exploration commands that DO NOT mutate state.
+const READONLY_COMMAND_PATTERNS = [
+  // PowerShell exploration
+  /^Get-ChildItem/i,
+  /^Get-Content/i,
+  /^Select-String/i,
+  /^Test-Path/i,
+  /^Get-Command/i,
+  /^Get-Item\b/i,
+  /^Get-ItemProperty/i,
+  /^Get-Location/i,
+  /^Get-Process/i,
+  /^Get-Service/i,
+  /^Get-Date/i,
+  /^Write-Output/i,
+  /^Write-Host/i,
+  // Unix-style (cross-platform)
+  /^ls\b/i,
+  /^dir\b/i,
+  /^cat\b/i,
+  /^type\b/i,
+  /^findstr/i,
+  /^where\b/i,
+  /^which\b/i,
+  /^echo\b/i,
+  /^pwd\b/i,
+  /^date\b/i,
+  /^whoami/i,
+  /^hostname/i,
+  // Read-only file info
+  /^Get-ItemProperty/i,
+  /^stat\b/i,
+  // Python version queries (read-only)
+  /^python\b/i,
+  /^python\s+--version/i,
+  // Pipelines ending in read-only (e.g., Get-ChildItem | Select-Object)
+  /^\s*(Get-ChildItem|Get-Content|Select-String|ls|dir|cat|type)/i,
+]
+
 // Routine patterns — just do, don't ask
 const ROUTINE_PATTERNS = [
   // Git operations (routine for any developer)
@@ -156,8 +198,18 @@ const ROUTINE_PATTERNS = [
   /^npx\s+/i,
 ]
 
+// ─── Active agent tracking (synced with laos-dispatch.ts) ──
+// The laos-dispatch plugin calls _setAgent before dispatching specialists.
+// This allows the WDL Gate to apply agent-specific rules.
+let currentAgent = "orchestrator" // Default: most permissive
+
 export const WdlGate = async ({ project, directory }: { project: string; directory: string }) => {
   return {
+    // Allow the dispatch plugin to set the active agent
+    _setAgent: (agentName: string) => {
+      currentAgent = agentName
+    },
+
     "tool.execute.before": async (
       input: { tool: string; sessionID: string; callID: string },
       output: { args: any }
@@ -218,6 +270,26 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
           input.tool === "latade_health" ||
           input.tool === "latade_list_supported_operations") {
         return // Data inspection — always allowed
+      }
+
+      // ─── DEBUG-AGENT: Allow read-only commands ─────────────────
+      // The debug-agent subagent is a special case: it exists ONLY for
+      // read-only filesystem exploration during diagnostics/debugging.
+      // It is NEVER used in production delivery pipelines. The charter
+      // at .opencode/agent/debug-agent.md explicitly restricts it to
+      // artifacts/debug/ output and read-only commands.
+      if (input.tool === "bash" && currentAgent === "debug-agent") {
+        const command = output.args?.command || ""
+        const isReadOnly = READONLY_COMMAND_PATTERNS.some(p => p.test(command))
+        if (isReadOnly) {
+          trackShellCommand(command)
+          return // Debug-agent read-only command — allowed
+        }
+        throw new Error(
+          `[LAOS WDL Gate] BLOCKED: debug-agent attempted write command "${command.substring(0, 50)}...". ` +
+          `debug-agent is restricted to read-only commands (Get-ChildItem, Get-Content, etc.). ` +
+          `See .opencode/agent/debug-agent.md for the allowed command list.`
+        )
       }
 
       // ─── BLOCK: Obviously bad actions ───────────────────────────

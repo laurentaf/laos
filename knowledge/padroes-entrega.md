@@ -79,7 +79,9 @@ arquivo.
 
 - [ ] **P0-15 (data policy compliance).** Nenhum artefato em
       `artifacts/{data,design,automation,pipeline,dq,deck}/` contém
-      dados não-marcados. Se um artefato carrega dados sintéticos,
+      dados não-marcados. Artefatos em `artifacts/debug/` são isentos
+      desta verificação (debug agent charter — LACOUNCIL `7fcc6cd5`,
+      aprovação 4/4 SIM, 2026-06-19). Se um artefato carrega dados sintéticos,
       DEVE ter frontmatter (ou sidecar `.meta.yaml`) com
       `synthetic: true, granted_by: <user|project_yaml>, granted_at:
       <iso8601>, reason: <why_real_data_missing>`. Ausência de
