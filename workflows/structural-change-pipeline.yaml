@@ -1,0 +1,268 @@
+# ═══════════════════════════════════════════════════════════════════
+#  STRUCTURAL CHANGE PIPELINE — Conselho → implementação → push
+# ═══════════════════════════════════════════════════════════════════
+# This file describes the canonical pipeline for implementing
+# structural changes approved by the LACOUNCIL. It governs the
+# complete flow: proposal approval → implementation → validation →
+# iteration → commit → push.
+#
+# Este é um workflow REGIME A (mudança estrutural), NÃO um blueprint
+# de composição de capacidades de domínio. Ao contrário dos workflows
+# em workflows/*.yaml (etl-puro, dashboard-completo, etc.), este
+# arquivo descreve um meta-workflow de governança, executado pelo
+# orchestrator com support do capability-architect e delivery-reviewer.
+# ═══════════════════════════════════════════════════════════════════
+#
+# Workflow: structural-change-pipeline
+#
+# 7 estágios numerados + cláusula de iteração obrigatória.
+# Gatilho: proposta LACOUNCIL com status "aprovada".
+
+name: structural-change-pipeline
+description: |
+  Pipeline completo de mudanças estruturais aprovadas pelo Conselho.
+  7 etapas: Conselho → implementação → preflight → reviewer →
+  iteração → commit → push. Inclui cláusula de iteração obrigatória
+  com ESCALATE após 3 tentativas.
+
+trigger:
+  event: lacouncil.proposal_approved
+  condition: lacouncil.get_proposal(proposal_id).status == "aprovada"
+
+regime: A  # Regime A — structural changes, mandatory push
+
+max_iterations: 3  # Hard limit de iterações antes de ESCALATE
+
+# ─── Estágios ────────────────────────────────────────────────────
+
+stages:
+  - id: conselho
+    stage_number: 1
+    name: "Etapa 1 — Conselho aprova proposta"
+    agent: orchestrator
+    capabilities: [lacouncil]
+    inputs:
+      - proposal_id
+      - lacouncil.tally_votes() result
+    output:
+      - proposal_id (aprovada)
+    description: |
+      Gate de entrada: proposta deve estar com status "aprovada" via
+      lacouncil.get_proposal(). O orchestrator verifica o resultado
+      da votação antes de prosseguir.
+    gate:
+      mechanism: lacouncil.get_proposal(proposal_id).status == "aprovada"
+      blocks_transition: true
+      action_on_fail: |
+        Não avançar para implementação sem proposta aprovada.
+        Reportar ao Conselho.
+
+  - id: implementacao
+    stage_number: 2
+    name: "Etapa 2 — Dispatch capability-architect"
+    agent: capability-architect
+    capabilities: [lacouncil, github]
+    inputs:
+      - proposal_id
+      - proposal details (titulo, descricao, dominio)
+    output:
+      - structural files (registry/, opencode.jsonc, knowledge/, workflows/)
+      - new capability repos (quando aplicável)
+      - meta-project files
+    description: |
+      Orchestrator dispatches capability-architect com a proposta
+      aprovada. O capability-architect implementa a mudança estrutural
+      conforme binding-conditions.md (G1–G11 aplicáveis).
+
+  - id: preflight
+    stage_number: 3
+    name: "Etapa 3 — Preflight mecânico"
+    agent: orchestrator
+    capabilities: []
+    inputs:
+      - changes from stage 2
+    output:
+      - preflight exit code
+      - boot check exit code
+    description: |
+      Orchestrator roda verificações mecânicas:
+      1. `uv run python scripts/preflight_check.py` — 5 checks: YAML
+         validation, path existence, secret scan, cross-reference
+         integrity, no implementation code in LAOS.
+      2. `uv run python scripts/subagent_boot_check.py` — valida
+         venv, daemon, MCPs, paths, env vars.
+    gate:
+      mechanism: preflight_check.py exit == 0 AND subagent_boot_check.py exit == 0
+      blocks_transition: true
+      action_on_fail: |
+        Corrigir falhas mecânicas antes de submeter ao reviewer.
+        Falhas de preflight indicam problemas estruturais que o
+        reviewer não deveria precisar apontar.
+
+  - id: reviewer
+    stage_number: 4
+    name: "Etapa 4 — Delivery-reviewer G4 BASIC sign-off"
+    agent: delivery-reviewer
+    capabilities: []
+    inputs:
+      - all changes from stage 2
+      - preflight and boot check results (stage 3)
+    output:
+      - G4 sign-off verdict (DELIVERABLE | NOT DELIVERABLE | ESCALATE)
+    description: |
+      Delivery-reviewer valida a mudança estrutural contra G4 BASIC
+      checklist: (a) MCP health + list_supported_operations smoke pass,
+      (b) no secrets, (c) registry entry válido, (d) opencode.jsonc
+      entry presente, (e) KB seed não-vazio, (f) tests/smoke mínimo.
+    gate:
+      mechanism: delivery-reviewer verdict
+      blocks_transition: true
+      action_on_fail: |
+        Seguir para Etapa 5 (iteração). Não commitar sem sign-off.
+
+  - id: iteracao
+    stage_number: 5
+    name: "Etapa 5 — Decisão de iteração"
+    agent: orchestrator
+    capabilities: []
+    inputs:
+      - reviewer verdict from stage 4
+      - iteration counter (0-based, max 3)
+    output:
+      - routing decision: go to stage 2 (re-dispatch) | go to stage 6 (commit) | ESCALATE
+    # ─── Cláusula de Iteração Obrigatória ────────────────────
+    # §5.1 — Se delivery-reviewer retornar NOT DELIVERABLE, o
+    #        orchestrator DEVE corrigir o finding.
+    # §5.2 — Se o fix for trivial (single file edit), orchestrator
+    #        faz diretamente.
+    # §5.3 — Se o fix for estrutural (multi-file, new function),
+    #        re-despachar capability-architect (voltar Etapa 2).
+    # §5.4 — Re-validar com delivery-reviewer (Etapa 4).
+    # §5.5 — Loop até DELIVERABLE ou ESCALATE.
+    # §5.6 — Max 3 iterações antes de ESCALATE para o Conselho.
+    # §5.7 — Cada iteração limpa o G4 sign-off anterior (validação
+    #        fresca, sem cache de aprovação).
+    # §5.8 — ESCALATE retorna a decisão ao Conselho para deliberação
+    #        sobre os motivos da falha persistente.
+    description: |
+      CLÁUSULA DE ITERAÇÃO OBRIGATÓRIA.
+      Se delivery-reviewer rejeitou (NOT DELIVERABLE), o orchestrator
+      NÃO pode commitar. Deve corrigir e re-validar.
+      - Fix trivial (single file edit): orchestrator faz direto,
+        vai para Etapa 3 (preflight) → Etapa 4 (re-review).
+      - Fix estrutural (multi-file, new function): re-dispatch
+        capability-architect (volta Etapa 2).
+      - Cada iteração executa preflight + reviewer frescos.
+      - Max 3 iterações. Após 3, ESCALATE para o Conselho.
+    gate:
+      mechanism: |
+        if verdict == "DELIVERABLE" → stage 6 (commit)
+        if verdict == "NOT DELIVERABLE" and iteration < 3:
+          if fix_type == "trivial" → stage 3 (preflight, after orchestrator fix)
+          if fix_type == "structural" → stage 2 (re-dispatch capability-architect)
+        if verdict == "NOT DELIVERABLE" and iteration >= 3 → ESCALATE
+        if verdict == "ESCALATE" → ESCALATE
+      blocks_transition: false  # routing decision, not a block
+      action_on_fail: |
+        Se o orchestrator tentar commitar sem DELIVERABLE, a violação
+        é reportada ao Conselho (trust-score penalty aplicável).
+
+  - id: commit
+    stage_number: 6
+    name: "Etapa 6 — Commit (Regime A)"
+    agent: orchestrator
+    capabilities: [github]
+    inputs:
+      - all approved changes
+      - G4 sign-off from stage 4
+      - iteration complete (passed stage 5)
+    output:
+      - git commit with structural changes
+    description: |
+      Commit das mudanças estruturais no branch de trabalho.
+      Mensagem de commit inclui referência à proposal_id.
+      Regime A — sem gate adicional: Conselho aprovou + reviewer
+      validou = cadeia de autoridade completa.
+
+  - id: push
+    stage_number: 7
+    name: "Etapa 7 — Push (Regime A)"
+    agent: orchestrator
+    capabilities: [github]
+    inputs:
+      - commit from stage 6
+    output:
+      - git push to remote
+    description: |
+      Push ao GitHub dentro da mesma sessão. Regime A (LACOUNCIL
+      391a8179): mudanças estruturais aprovadas pelo Conselho e
+      validadas pelo delivery-reviewer DEVEM ser commitadas e
+      pushadas ao GitHub dentro da mesma sessão.
+
+# ─── Cláusula de Iteração Obrigatória — texto normativo ───────
+
+iteration_clause:
+  title: "Cláusula de Iteração Obrigatória"
+  sections:
+    - id: "§5.1"
+      text: |
+        Se delivery-reviewer retornar NOT DELIVERABLE na Etapa 4,
+        o orchestrator DEVE corrigir o finding apontado. Não é
+        permitido ignorar, postergar ou contornar o finding sem
+        nova validação.
+    - id: "§5.2"
+      text: |
+        Se o fix for trivial (single file edit, sem nova função ou
+        alteração de estrutura), o orchestrator pode fazê-lo
+        diretamente, sem re-despachar capability-architect. Neste
+        caso, retorna à Etapa 3 (preflight) e depois Etapa 4
+        (re-validation).
+    - id: "§5.3"
+      text: |
+        Se o fix for estrutural (multi-file, new function, alteração
+        de contrato entre componentes), o orchestrator DEVE
+        re-despachar capability-architect (Etapa 2) para garantir
+        que a implementação siga os padrões estruturais.
+    - id: "§5.4"
+      text: |
+        Re-validar com delivery-reviewer (Etapa 4) após cada
+        correção. Não pular para commit sem validação fresca.
+    - id: "§5.5"
+      text: |
+        Loop até DELIVERABLE ou ESCALATE. Não há timeout por
+        iteração — o que limita é o max_iterations (§5.6).
+    - id: "§5.6"
+      text: |
+        Max 3 iterações. Após 3 tentativas sem DELIVERABLE, o
+        orchestrator DEVE ESCALATE para o Conselho, que decide
+        o destino da proposta (revogar, modificar, ou rejeitar
+        o reviewer).
+    - id: "§5.7"
+      text: |
+        Cada iteração limpa o G4 sign-off anterior. A validação
+        é fresca — o delivery-reviewer re-avalia todo o escopo,
+        não apenas o diff da correção.
+    - id: "§5.8"
+      text: |
+        ESCALATE retorna a decisão ao Conselho (LACOUNCIL) com
+        relatório do delivery-reviewer apontando os motivos da
+        falha persistente. O Conselho pode:
+        (a) revogar a proposta original,
+        (b) modificar os critérios de aceitação,
+        (c) rejeitar o reviewer e solicitar novo reviewer,
+        (d) aprovar override com justificativa.
+
+# ─── Referências cruzadas ─────────────────────────────────────
+
+cross_references:
+  - document: AGENTS.md
+    section: "LACOUNCIL (structural improvement) workflow"
+    note: "Descreve o fluxo de investigação → proposta → votação. Este workflow conecta o output do Conselho ao push."
+  - document: AGENTS.md
+    section: "Git sync regime"
+    note: "Regime A (obrigatório) vs Regime B (gated). Este workflow é Regime A."
+  - document: knowledge/padroes-entrega.md
+    section: "Git sync pós-mudança estrutural (LACOUNCIL 391a8179)"
+    note: "Regra P0 que exige commit+push na mesma sessão após sign-off."
+  - document: registry/workflows.yaml
+    note: "Catalogo central de workflows. Este workflow registrado como 'structural-change-pipeline'."

@@ -1,0 +1,92 @@
+# ═══════════════════════════════════════════════════════════════════
+#  WORKFLOWS CATALOG — LAOS workflow registry
+# ═══════════════════════════════════════════════════════════════════
+# Central catalog of every workflow template LAOS can use.
+# Each workflow template lives in `workflows/<id>.yaml`.
+#
+# This file is consumed by:
+#   - orchestrator (to select workflow by need)
+#   - scripts/list_workflows.py (future)
+#
+# Schema (per item):
+#   id:           stable identifier; matches filename in workflows/
+#   description:  one-line summary
+#   stages:       list of stage IDs
+#   iteration:    whether the workflow has an iteration clause
+#   max_iterations: (optional) hard limit on iterations
+#   regime:        A (structural, mandatory push) | B (domain artifacts, gated push)
+#   created_by:   origin proposal or reference
+# ═══════════════════════════════════════════════════════════════════
+
+workflows:
+
+  # ─── Workflows de domínio (Regime B) ──────────────────────
+
+  - id: etl-puro
+    description: |
+      ETL/ELT pipeline only. Source → model → load → DQ → orchestration.
+      Sem dashboard, sem design.
+    stages:
+      - sdd-scaffold
+      - discovery
+      - source-profile
+      - data-model
+      - pipeline
+      - data-quality
+      - orchestration
+      - review
+    iteration: false
+    regime: B
+    created_by: proposta original LAECON SDD (Missão 0)
+
+  - id: dashboard-completo
+    description: |
+      End-to-end dashboard delivery: requirements → data model →
+      visual design → automation → deployment.
+    stages:
+      - sdd-scaffold
+      - requirements
+      - source-profile
+      - data-model
+      - dashboard-design
+      - dq-automation
+      - review
+    iteration: false
+    regime: B
+    created_by: proposta original LAECON SDD (Missão 0)
+
+  - id: apresentacao-executiva
+    description: |
+      Executive narrative deck. Light data, heavy design and storytelling.
+      Single-shot deliverable.
+    stages:
+      - sdd-scaffold
+      - discovery
+      - source-profile
+      - narrative
+      - deck-design
+      - review
+    iteration: false
+    regime: B
+    created_by: proposta original LAECON SDD (Missão 0)
+
+  # ─── Meta-workflows de governança (Regime A) ──────────────
+
+  - id: structural-change-pipeline
+    description: |
+      Pipe completo de mudanças estruturais aprovadas pelo Conselho.
+      7 etapas: Conselho → implementação → preflight → reviewer →
+      iteração → commit → push. Inclui cláusula de iteração
+      obrigatória com ESCALATE após 3 tentativas.
+    stages:
+      - conselho
+      - implementacao
+      - preflight
+      - reviewer
+      - iteracao
+      - commit
+      - push
+    iteration: true
+    max_iterations: 3
+    regime: A
+    created_by: proposta 88dfb9cf-c034-47cf-89ab-e1ae5769d2f5 (unanimidade 4/4, 2026-06-19)

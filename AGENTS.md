@@ -409,6 +409,11 @@ If approved → LACOUNCIL.implement_proposal() → meta-project or diff
 LAOS applies change, delivery-reviewer validates
 ```
 
+> **Pipeline completo:** Conselho → implementação → preflight → reviewer → 
+> iteração → commit → push. Ver `workflows/structural-change-pipeline.yaml` 
+> para o workflow declarativo com cláusula de iteração obrigatória e 
+> referências em `registry/workflows.yaml`.
+
 ## Child project repositories (per project)
 
 Every project is born as its own GitHub repository. LAOS does not modify itself to host project artifacts; the project repo evolves on its own timeline.

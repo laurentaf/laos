@@ -8,6 +8,12 @@ arquivo.
 > (unanimidade 4/4, 2026-06-05). Missão 0 — SDD Scaffold — é obrigatória
 > em todo projeto LAOS. Detalhes operacionais e cross-references em
 > `knowledge/sdd-principles.md`.
+>
+> **Mudanças estruturais (proposta 88dfb9cf):** O pipeline completo para
+> implementar mudanças estruturais aprovadas pelo Conselho segue 7 etapas
+> definidas em `workflows/structural-change-pipeline.yaml`. Inclui cláusula
+> de iteração obrigatória (se delivery-reviewer rejeitar, corrigir e
+> re-validar) com ESCALATE após 3 tentativas. Ver `registry/workflows.yaml`.
 
 ## P0 - bloqueia entrega
 
