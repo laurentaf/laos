@@ -9,16 +9,30 @@
   GitHub strips external CSS/JS. All styling is inline or <style> scoped.
 -->
 
-<div align="center" style="margin-top:48px;margin-bottom:48px;">
+<style>
+  @keyframes laos-pulse {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.35; }
+  }
+  @keyframes laos-fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .laos-emblem:hover line { transition: opacity 0.3s ease; }
+  .laos-badge { display: inline-block; transition: opacity 0.2s ease; }
+  .laos-badge:hover { opacity: 0.7; }
+</style>
 
-<!-- Crown emblem — 3-bar OS-style mark -->
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="4" y="4" width="56" height="56" rx="12" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.15"/>
-  <line x1="14" y1="20" x2="14" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="24" y1="20" x2="24" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="34" y1="14" x2="34" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="44" y1="20" x2="44" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="54" y1="26" x2="54" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+<div align="center" style="margin-top:48px;margin-bottom:24px;">
+
+<!-- Crown emblem — 3-bar OS-style mark with subtle pulse -->
+<svg class="laos-emblem" width="72" height="72" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:4px;">
+  <rect x="4" y="4" width="56" height="56" rx="12" stroke="currentColor" stroke-width="1.5" fill="none" style="animation:laos-pulse 3s ease-in-out infinite;"/>
+  <line x1="14" y1="20" x2="14" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="24" y1="20" x2="24" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="34" y1="14" x2="34" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="44" y1="20" x2="44" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="54" y1="26" x2="54" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
 </svg>
 
 <br/>
@@ -26,11 +40,30 @@
 # LAOS
 ### Laurent Agent Operating System
 
+<!-- Badges row -->
+<p style="margin:12px 0;">
+  <a href="https://github.com/laurentaf/laos/releases" class="laos-badge"><img src="https://img.shields.io/github/v/release/laurentaf/laos?style=flat&label=Release&color=000" alt="Release"/></a>
+  &nbsp;
+  <a href="https://github.com/laurentaf/laos/blob/main/LICENSE" class="laos-badge"><img src="https://img.shields.io/badge/License-MIT-000?style=flat" alt="License: MIT"/></a>
+  &nbsp;
+  <a href="https://github.com/laurentaf/laos" class="laos-badge"><img src="https://img.shields.io/badge/Python-≥3.11-000?style=flat&logo=python&logoColor=fff" alt="Python 3.11+"/></a>
+  &nbsp;
+  <a href="https://github.com/laurentaf/laos/actions" class="laos-badge"><img src="https://img.shields.io/github/actions/workflow/status/laurentaf/laos/ci.yml?style=flat&label=CI&color=000" alt="CI status"/></a>
+  &nbsp;
+  <a href="https://github.com/laurentaf/laos/issues" class="laos-badge"><img src="https://img.shields.io/github/issues/laurentaf/laos?style=flat&label=Issues&color=000" alt="Issues"/></a>
+  &nbsp;
+  <img src="https://img.shields.io/badge/Agents-9-000?style=flat" alt="9 subagents"/>
+  &nbsp;
+  <img src="https://img.shields.io/badge/Plugins-12-000?style=flat" alt="12 plugins"/>
+  &nbsp;
+  <img src="https://img.shields.io/badge/Deliveries-6-000?style=flat" alt="6 delivered projects"/>
+</p>
+
 <hr style="width:48px;margin:24px auto;border:none;border-top:2px solid currentColor;opacity:0.3;"/>
 
 </div>
 
-> <span style="font-size:1.15em;line-height:1.6;">**The laurel was exclusive. The intelligence doesn't have to be.**</span>
+> <span style="font-size:1.2em;line-height:1.6;font-weight:400;">**The laurel was exclusive. The intelligence doesn't have to be.**</span>
 
 For 3,000 years, the laurel cinged one head — the emperor's. Intelligence was centralized, privileged, gated. LAOS dissolves the crown and distributes sovereignty to every operator: **the laós**.
 
@@ -38,8 +71,10 @@ For 3,000 years, the laurel cinged one head — the emperor's. Intelligence was 
 
 <p align="center" style="margin:40px 0;">
   <a href="#ecosystem-architecture" style="text-decoration:none;border:1px solid currentColor;border-radius:100px;padding:8px 28px;font-weight:500;opacity:0.8;">Explore the system&nbsp;→</a>
-  &nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp;
   <a href="#about-the-architect" style="text-decoration:none;border-bottom:1px solid currentColor;opacity:0.5;padding-bottom:2px;">About the architect</a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="#quick-start" style="text-decoration:none;border-bottom:1px solid currentColor;opacity:0.5;padding-bottom:2px;">Quick start</a>
 </p>
 
 ---
@@ -50,8 +85,8 @@ For 3,000 years, the laurel cinged one head — the emperor's. Intelligence was 
 
 <table style="width:100%;max-width:680px;border-collapse:separate;border-spacing:0;font-size:0.9em;line-height:1.5;">
   <tr style="border-bottom:1px solid currentColor;">
-    <th align="left" style="padding:12px 16px;font-weight:600;opacity:0.4;">Old World</th>
-    <th align="left" style="padding:12px 16px;font-weight:600;opacity:0.9;">LAOS</th>
+    <th align="left" style="padding:12px 16px;font-weight:600;opacity:0.4;font-size:0.85em;letter-spacing:0.03em;">OLD WORLD</th>
+    <th align="left" style="padding:12px 16px;font-weight:600;opacity:0.9;font-size:0.85em;letter-spacing:0.03em;">LAOS</th>
   </tr>
   <tr>
     <td style="padding:10px 16px;opacity:0.5;">Data team owns the pipeline</td>
@@ -80,31 +115,42 @@ For 3,000 years, the laurel cinged one head — the emperor's. Intelligence was 
 <div align="center">
 
 ```
-                         ┌─────────────────┐
-                         │      LAOS        │
-                         │   Orchestrator   │
-                         │  (this repo)     │
-                         └────────┬────────┘
-                                  │
-           ┌──────────────────────┼──────────────────────────┐
-           │                      │                          │
-     ┌─────┴─────┐         ┌──────┴──────┐         ┌───────┴──────┐
-     │  LATADE   │         │  LADESIGN   │         │    LAN8N     │
-     │    Data   │         │   Design    │         │  Automation  │
-     │ sql·dbt·  │         │ dashboards· │         │  n8n · APIs  │
-     │ DuckDB·BI │         │ decks · UI  │         │  workflows   │
-     └───────────┘         └─────────────┘         └──────────────┘
-     ┌────────────┐        ┌──────────────┐        ┌─────────────┐
-     │ LACOUNCIL  │        │   LAECON     │        │  LAENGINE   │
-     │ Governance │        │ Econometrics │        │    Game     │
-     │ proposals· │        │ regressions· │        │ simulation· │
-     │ voting·mem │        │ causal · ML  │        │ match ·squad│
-     └────────────┘        └──────────────┘        └─────────────┘
-     ┌──────────────┐
-     │ LACAREEROPS  │
-     │    Career    │
-     │ job·CV·scan  │
-     └──────────────┘
+                        ┌──────────────────────┐
+                        │         LAOS          │
+                        │     Orchestrator      │
+                        │   (this repository)   │
+                        │  opencode . → agents  │
+                        └───────┬──────┬────────┘
+                                │      │
+          ┌─────────────────────┘      └──────────────────────┐
+          │                                                    │
+    ┌─────┴─────────┐                                  ┌──────┴─────────┐
+    │    LATADE     │                                  │    LADESIGN    │
+    │     Data      │                                  │    Design      │
+    │ sql · DuckDB  │                                  │ dashboards ·   │
+    │ dbt · BI · DQ │                                  │ decks · UI ·   │
+    │               │                                  │ video · images │
+    └───────┬───────┘                                  └───────┬────────┘
+    ┌───────┴────────┐                                ┌────────┴────────┐
+    │    LAN8N       │                                │    LAECON       │
+    │  Automation    │                                │  Econometrics   │
+    │ n8n · APIs ·   │                                │ regressions ·   │
+    │ integrations   │                                │ ML · causal ·   │
+    │ alerts         │                                │ interpret       │
+    └───────┬────────┘                                └────────┬────────┘
+    ┌───────┴──────────┐                           ┌──────────┴──────────┐
+    │   LACOUNCIL      │                           │     LAENGINE       │
+    │   Governance     │                           │      Game Dev      │
+    │ proposals ·      │                           │ simulation · match │
+    │ voting · trust · │                           │ engine · squad mgmt│
+    │ DuckDB memory    │                           │ league standings   │
+    └───────┬──────────┘                           └──────────┬─────────┘
+    ┌───────┴──────────────┐
+    │    LACAREEROPS       │
+    │       Career         │
+    │ job search · CV ·    │
+    │ portal scan · tracker│
+    └──────────────────────┘
 ```
 
 **7 capabilities · 7 MCP servers · 0 implementation in the orchestrator**
@@ -117,7 +163,7 @@ Each capability is its own repository, its own MCP server, its own lifecycle. LA
 
 <div style="text-align:center;min-width:110px;">
   <div style="font-weight:700;font-size:1.1em;opacity:0.5;letter-spacing:0.05em;">LATADE</div>
-  <div style="font-size:0.8em;opacity:0.55;">sql · DuckDB · dbt · quality · docs</div>
+  <div style="font-size:0.8em;opacity:0.55;">sql · DuckDB · dbt · BI · DQ</div>
 </div>
 
 <div style="text-align:center;min-width:110px;">
@@ -149,6 +195,85 @@ Each capability is its own repository, its own MCP server, its own lifecycle. LA
   <div style="font-weight:700;font-size:1.1em;opacity:0.5;letter-spacing:0.05em;">CAREEROPS</div>
   <div style="font-size:0.8em;opacity:0.55;">job search · CV · portal scan</div>
 </div>
+
+</div>
+
+### Platform capabilities
+
+<div align="center" style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;margin:20px 0;">
+
+<div style="text-align:center;min-width:90px;opacity:0.7;">
+  <div style="font-weight:500;font-size:0.9em;letter-spacing:0.04em;">context7</div>
+  <div style="font-size:0.75em;opacity:0.55;">Library docs · API refs</div>
+</div>
+
+<div style="text-align:center;min-width:90px;opacity:0.7;">
+  <div style="font-weight:500;font-size:0.9em;letter-spacing:0.04em;">exa</div>
+  <div style="font-size:0.75em;opacity:0.55;">Web search · Research</div>
+</div>
+
+<div style="text-align:center;min-width:90px;opacity:0.7;">
+  <div style="font-weight:500;font-size:0.9em;letter-spacing:0.04em;">github</div>
+  <div style="font-size:0.75em;opacity:0.55;">Repos · Issues · PRs · Code</div>
+</div>
+
+</div>
+
+---
+
+## Agent Topology
+
+LAOS dispatches **9 specialized agent types**, each confined to its own MCP namespace — siloed by design, composed by the orchestrator.
+
+<div align="center">
+
+<table style="width:100%;max-width:720px;border-collapse:separate;border-spacing:0;font-size:0.85em;line-height:1.5;">
+  <tr style="border-bottom:1px solid currentColor;">
+    <th align="left" style="padding:10px 14px;font-weight:600;opacity:0.5;">Agent</th>
+    <th align="left" style="padding:10px 14px;font-weight:600;opacity:0.5;">MCP Domain</th>
+    <th align="left" style="padding:10px 14px;font-weight:600;opacity:0.5;">Role</th>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px;font-weight:500;">orchestrator</td>
+    <td style="padding:8px 14px;opacity:0.6;"><code>lacouncil.*</code></td>
+    <td style="padding:8px 14px;opacity:0.7;">Session owner, dispatcher, structural improver</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px;font-weight:500;">data-architect</td>
+    <td style="padding:8px 14px;opacity:0.6;"><code>latade.*</code></td>
+    <td style="padding:8px 14px;opacity:0.7;">SQL, modeling, BI, DQ, docs</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px;font-weight:500;">dashboard-designer</td>
+    <td style="padding:8px 14px;opacity:0.6;"><code>ladesign.*</code></td>
+    <td style="padding:8px 14px;opacity:0.7;">Dashboards, decks, wireframes, video</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px;font-weight:500;">automation-engineer</td>
+    <td style="padding:8px 14px;opacity:0.6;"><code>lan8n.*</code></td>
+    <td style="padding:8px 14px;opacity:0.7;">n8n workflows, integrations, APIs</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px;font-weight:500;">delivery-reviewer</td>
+    <td style="padding:8px 14px;opacity:0.6;">(read-only)</td>
+    <td style="padding:8px 14px;opacity:0.7;">Validates artifacts against P0-P2 checklist</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px;font-weight:500;">capability-architect</td>
+    <td style="padding:8px 14px;opacity:0.6;"><code>lacouncil.*</code> / <code>github.*</code></td>
+    <td style="padding:8px 14px;opacity:0.7;">Implements LACOUNCIL-approved structural changes</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px;font-weight:500;">workflow-decomposer</td>
+    <td style="padding:8px 14px;opacity:0.6;"><code>lacouncil.*</code> (WDL wall)</td>
+    <td style="padding:8px 14px;opacity:0.7;">Read-only PM layer: plan verification, verdict tri-state</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px;font-weight:500;">chief-* (3 evaluators)</td>
+    <td style="padding:8px 14px;opacity:0.6;">(domain read-only)</td>
+    <td style="padding:8px 14px;opacity:0.7;">Empirical consensus: data-scientist, designer, engineer</td>
+  </tr>
+</table>
 
 </div>
 
@@ -341,6 +466,31 @@ opencode .
 
 </div>
 
+### Requirements
+
+<table style="font-size:0.85em;border-collapse:separate;border-spacing:0;">
+  <tr>
+    <td style="padding:6px 12px;font-weight:500;">Python</td>
+    <td style="padding:6px 12px;opacity:0.6;">≥ 3.11</td>
+  </tr>
+  <tr>
+    <td style="padding:6px 12px;font-weight:500;">Package manager</td>
+    <td style="padding:6px 12px;opacity:0.6;"><code>uv</code> (recommended) or <code>pip</code></td>
+  </tr>
+  <tr>
+    <td style="padding:6px 12px;font-weight:500;">Runtime</td>
+    <td style="padding:6px 12px;opacity:0.6;">Node.js (for LADESIGN daemon), Docker (optional, for n8n)</td>
+  </tr>
+  <tr>
+    <td style="padding:6px 12px;font-weight:500;">Environment</td>
+    <td style="padding:6px 12px;opacity:0.6;">OpenCode CLI ≥ 1.0</td>
+  </tr>
+  <tr>
+    <td style="padding:6px 12px;font-weight:500;">OS</td>
+    <td style="padding:6px 12px;opacity:0.6;">Windows (primary) · macOS · Linux</td>
+  </tr>
+</table>
+
 ---
 
 ## Architecture Rules
@@ -397,6 +547,22 @@ opencode .
 
 ---
 
+## Capability Docs
+
+Each MCP server has its own documentation. Quick links:
+
+- **LATADE** — [`../latade/`](https://github.com/laurentaf/latade) — SQL pipeline, medallion architecture (bronze → silver → gold), DuckDB, dbt integration
+- **LADESIGN** — [`../ladesign/`](https://github.com/laurentaf/ladesign) — Dashboard UX/UI, decks, design systems, HyperFrames video, 50+ skills
+- **LAN8N** — [`../lan8n/`](https://github.com/laurentaf/lan8n) — n8n automation, workflow templates, API integrations, quality gates
+- **LACOUNCIL** — [`../lacouncil/`](https://github.com/laurentaf/lacouncil) — Governance engine, proposals, Conselho voting, DuckDB memory, pattern detection
+- **LAECON** — [`../laecon/`](https://github.com/laurentaf/laecon) — Econometrics & interpretable ML, regressions, GLM, causal inference, diagnostic reports
+- **LAENGINE** — [`../laengine/`](https://github.com/laurentaf/laengine) — Sports simulation, match engine, squad management, league standings
+- **CAREEROPS** — [`../career-ops/`](https://github.com/laurentaf/career-ops) — Job search optimization, CV generation, portal scanning *(private repo)*
+
+> Platform MCPs: `context7` (library docs), `exa` (web research), `github` (repo ops)
+
+---
+
 ## About the Architect
 
 <div style="display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap;max-width:600px;">
@@ -421,6 +587,44 @@ Campinas/SP · Remote-first
 </div>
 
 </div>
+
+---
+
+## Contributing
+
+LAOS is an open system by design. The contribution path depends on what you want to change:
+
+| Scope | Path |
+|-------|------|
+| **New capability** | Create a `LACOUNCIL` proposal → Conselho supermajority → `capability-architect` implements |
+| **Workflow template** | Add to `workflows/` → Conselho majority approval |
+| **Cross-cutting convention** | Add to `knowledge/` → Conselho majority |
+| **Bug / improvement** | Open an [issue](https://github.com/laurentaf/laos/issues) or submit a PR |
+| **Project delivery** | Every project runs through the WDL gate → specialist dispatch → delivery-reviewer sign-off |
+
+See [`AGENTS.md`](./AGENTS.md) for the full governance model and plugin architecture.
+
+---
+
+## License
+
+<div style="margin:16px 0;">
+
+**MIT** — see [`LICENSE`](./LICENSE) for the full text.
+
+LAOS is free software. You are free to use, modify, and distribute it under the terms of the MIT license. The laurel was exclusive. The intelligence doesn't have to be.
+
+</div>
+
+---
+
+## Acknowledgments
+
+- **OpenCode** — The CLI that powers LAOS dispatch. Plugin architecture inspired this system's mechanical enforcement layer.
+- **Model Context Protocol (MCP)** — The protocol standard that makes composable AI possible. Every capability in LAOS is an MCP server.
+- **Anthropic** — For the tool-use and agent patterns that LAOS composes at scale.
+- **OmO** — Team Mode architecture (parallel worktrees, mailbox coordination) adapted into LAOS's agentic framework modes.
+- **The Conselho** — Data-architect, dashboard-designer, automation-engineer, delivery-reviewer — the 4 subagents that govern LAOS evolution through democratic voting.
 
 ---
 
