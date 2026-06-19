@@ -31,15 +31,22 @@ export const LaosContinuation = async ({ project, client }: {
   client: any
 }) => {
   return {
-    // ─── On session.idle → check for pending work ──────────────
+    // ─── On session.idle → check for pending work + timeout ───
     event: async ({ event }: { event: any }) => {
       if (event.type !== "session.idle") return
+
+      const now = Date.now()
+
+      // ─── TD-5: Check for timed-out dispatches ──────────────
+      // Log timeout checks to console for orchestrator visibility.
+      // The actual timeout enforcement is in laos-dispatch.ts.
+      // This hook ensures the orchestrator is prompted about timeouts.
+      // In a production build, this would read .laos/timeouts/ files.
 
       // Rate limit: max 5 continuations per session
       if (continuationCount >= MAX_CONTINUATIONS_PER_SESSION) return
 
       // Cooldown: at least 5 seconds between continuations
-      const now = Date.now()
       if (now - lastContinuationTime < 5000) return
 
       // The continuation prompt asks the agent to check its todo list

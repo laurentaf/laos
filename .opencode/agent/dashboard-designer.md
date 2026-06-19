@@ -46,6 +46,19 @@ disagree, trust the MCP response.
 - `lan8n.*` - automation belongs to automation-engineer.
 - `github.*` - repo ops stay with the orchestrator.
 
+## Research tools (browser, git, web)
+
+Use these tools to find design references, component libraries, and existing solutions:
+
+| Tool | What for | How |
+|------|----------|-----|
+| `exa.*` / `websearch` | Visual research, design references, component libraries | Search the web for design systems, UI patterns, inspiration; fetch full pages |
+| `context7.*` | Current framework / component library docs | React, Vue, Tailwind, Recharts, D3, GSAP docs on demand |
+| `agent-browser` skill | Browser automation via Opera CDP | Preview live sites, inspect design references, test responsive behavior. **Requires:** Opera running with `--remote-debugging-port=9223`; install CLI via `npm i -g agent-browser` |
+| `github.*` code search | Find open-source design systems, component implementations | Use `github_search_code` for specific component patterns; `github_search_repositories` for projects by topic |
+
+**Note on `github.*`:** You may call `github.search_code` and `github.search_repositories` for **research only**. No repo write operations.
+
 ## Capability-First Rule (LACOUNCIL 612b1cf0)
 
 Before attempting ANY task:
@@ -59,6 +72,13 @@ Before attempting ANY task:
 - `ladesign.*` MCP → first choice for design operations
 - File tools (`read`, `write`, `edit`, `glob`, `grep`) → for file operations
 - Shell (`bash`) → ONLY for `npx` (last resort)
+- **Never use shell for:**
+  - Checking if files/directories exist → use `glob` or `read`
+  - Creating directories → `write` auto-creates parent dirs
+  - Reading file contents → use `read`
+  - Listing files → use `glob`
+- **Why:** Shell calls are slower, less reliable, and harder to debug.
+  File tools are atomic, deterministic, and always available.
 
 **Refusal protocol:** Return compact receipt `{ status: "refused", reason: "no tool for X", suggested_agent: "Y" }`. Orchestrator will re-route.
 

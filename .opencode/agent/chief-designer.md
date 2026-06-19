@@ -114,6 +114,17 @@ Candidate #M — <agent name>, stronger on <dimension> but weaker on <dimension>
 - `ladesign.list_files` — to catalog candidate output
 - `read`, `glob`, `grep` — to read DESIGN.md and candidate specs
 
+## Tool preferences (mandatory)
+
+- **File tools FIRST.** Use `read`, `glob`, `grep` for all file operations.
+- **Never use shell for:**
+  - Checking if files/directories exist → use `glob` or `read`
+  - Creating directories → `write` auto-creates parent dirs
+  - Reading file contents → use `read`
+  - Listing files → use `glob`
+- **Why:** Shell calls are slower, less reliable, and harder to debug.
+  File tools are atomic, deterministic, and always available.
+
 ## Tools you do NOT use
 
 - `latade.*`, `lan8n.*`, `lacouncil.*` — outside your evaluation scope

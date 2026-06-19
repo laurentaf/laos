@@ -117,6 +117,17 @@ Candidate #M — <agent name>, stronger on <dimension> but weaker on <dimension>
 - `latade.inspect_table` — to check data pipeline outputs
 - `read`, `glob`, `grep` — to read candidate artifacts and code
 
+## Tool preferences (mandatory)
+
+- **File tools FIRST.** Use `read`, `glob`, `grep` for all file operations.
+- **Never use shell for:**
+  - Checking if files/directories exist → use `glob` or `read`
+  - Creating directories → `write` auto-creates parent dirs
+  - Reading file contents → use `read`
+  - Listing files → use `glob`
+- **Why:** Shell calls are slower, less reliable, and harder to debug.
+  File tools are atomic, deterministic, and always available.
+
 ## Tools you do NOT use
 
 - `ladesign.*`, `lacouncil.*` — outside your evaluation scope

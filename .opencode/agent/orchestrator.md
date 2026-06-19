@@ -259,6 +259,41 @@ uv run python scripts/subagent_boot_check.py <subagent> --project-name <name>
 
 Exit `0` = dispatch. Exit `1` = corrija os findings antes de despachar. Pode delegar ao capability-architect (quando STABLE em 2026-07-04).
 
+## Auto-retry on P0 failure (TD-2, LACOUNCIL a3e2725a)
+
+When `delivery-reviewer` returns a P0 violation:
+
+1. **Read the reviewer's findings.** Extract the violating subagent (`owner:` field) and the required fix.
+2. **Auto-re-dispatch** the failing subagent with:
+   - The reviewer's findings attached as context
+   - `retry_count: <current+1>` in the dispatch metadata
+   - A clear instruction: "Fix the following P0 violations: ..."
+3. **Cap at 2 retries.** If after 2 attempts the P0 still fails, stop and report to the user. Do not retry endlessly.
+4. **Track retries.** Use the `retry_count` field in `laos-dispatch.ts` `DispatchMember`. The `error_class` field from the compact receipt (`knowledge/subagent-result-contract.md`) determines routing.
+5. **Supervisor timeout (TD-5):** If the subagent exceeds `timeout_min` (default 30min), mark as `timed_out`, call `lacouncil.investigate()` with the timeout context, and store results in `.laos/timeouts/`.
+
+**When NOT to auto-retry:**
+- User explicitly declines the retry
+- The same subagent failed 2 times already on the same task
+- The failure is a missing data gap (Hard Rule #11) — synthetic data requires user approval
+
+## Self-improving automation on project close (TD-6, LACOUNCIL a3e2725a)
+
+After the last deliverable is produced but **before** dispatching `delivery-reviewer` for sign-off:
+
+1. **Call `lacouncil.detect_patterns()`**. This queries DuckDB for recurring patterns across all recorded projects.
+2. **If ≥ 3 matches found** (same need in 3+ projects, same failure mode in 3+ projects, same capability pairing in 3+ projects):
+   - Auto-create a LACOUNCIL proposal via `lacouncil.create_proposal()`
+   - Title: `"Pattern detected: <pattern_description>"`
+   - Justification: reference the pattern analysis from `detect_patterns()`
+   - Strategy: `maioria` (workflow/knowledge improvement)
+3. **Log the outcome.** Record the pattern check result in the session log.
+4. **Proceed to `delivery-reviewer`** regardless of whether patterns were found (pattern detection is advisory — it does not block sign-off).
+
+**Pattern threshold:** 3+ projects. This is the minimum sample size to distinguish signal from noise (per AGENTS.md Hard Rule #7: "Patterns repeated 3+ times trigger action").
+
+**Anti-pattern:** Do not create proposals for every pattern found — evaluate if the pattern is net-positive to address. Low-severity patterns (e.g., same data source appearing in 2 projects that share a team) may be informational only.
+
 ## Mid-task tool failure (regra transversal)
 
 Se um subagente em execução reporta `4xx/5xx` recorrente de um MCP mid-task:

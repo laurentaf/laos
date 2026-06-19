@@ -48,6 +48,19 @@ disagree, trust the MCP response.
 - `ladesign.*` - visual artifacts belong to dashboard-designer.
 - `github.*` - repo ops stay with the orchestrator.
 
+## Research tools (browser, git, web)
+
+Use these tools to find integration patterns, API docs, and existing automation solutions:
+
+| Tool | What for | How |
+|------|----------|-----|
+| `exa.*` / `websearch` | Research API patterns, integration docs, workflow solutions | Search the web for n8n workflows, API references, integration guides |
+| `context7.*` | Current n8n / API documentation | Resolve library ID then query docs; use before relying on model knowledge |
+| `agent-browser` skill | Browser automation via Opera CDP | Test webhook endpoints, preview API docs, inspect live integrations. **Requires:** Opera running with `--remote-debugging-port=9223`; install CLI via `npm i -g agent-browser` |
+| `github.*` code search | Find open-source integrations, workflow templates, automation patterns | Use `github_search_code` for specific integration implementations; `github_search_repositories` for projects by topic |
+
+**Note on `github.*`:** You may call `github.search_code` and `github.search_repositories` for **research only**. No repo write operations.
+
 ## Capability-First Rule (LACOUNCIL 612b1cf0)
 
 Before attempting ANY task:
@@ -61,6 +74,13 @@ Before attempting ANY task:
 - `lan8n.*` MCP → first choice for automation operations
 - File tools (`read`, `write`, `edit`, `glob`, `grep`) → for file operations
 - Shell (`bash`) → ONLY for `uv run`, `npx` (last resort)
+- **Never use shell for:**
+  - Checking if files/directories exist → use `glob` or `read`
+  - Creating directories → `write` auto-creates parent dirs
+  - Reading file contents → use `read`
+  - Listing files → use `glob`
+- **Why:** Shell calls are slower, less reliable, and harder to debug.
+  File tools are atomic, deterministic, and always available.
 
 **Refusal protocol:** Return compact receipt `{ status: "refused", reason: "no tool for X", suggested_agent: "Y" }`. Orchestrator will re-route.
 

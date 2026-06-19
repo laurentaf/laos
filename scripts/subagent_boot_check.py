@@ -4,7 +4,7 @@ subagent_boot_check.py — Verifica tool readiness antes de despachar um subagen
 
 Proposta LACOUNCIL 518b82d5 (charter-autonomy) + 4a9f07c3 (external_directory)
 + f9b636fc (SDD scaffold — Missão 0, 6ª dimensão).
-Para um subagente nomeado, valida 7 dimensoes:
+Para um subagente nomeado, valida 8 dimensoes:
   1. venv:                LAOS, latade, lacouncil, lan8n, ladesign, laengine, laecon
   2. daemon:              LADESIGN (pnpm install + node_modules)
   3. MCP:                 primarios presentes em .opencode/opencode.jsonc (opcionais lazy)
@@ -826,6 +826,88 @@ def smoke_test_external_directory(subagent, required_paths, root):
         return False
 
 
+# ─── Check 8: cross-stage dependency (TD-1, proposta a3e2725a) ────
+
+# Mapeamento de estagio -> artefato de saida que comprova conclusao.
+# Se o subagente pertence ao estagio N, o boot check verifica se o
+# artefato do estagio N-1 existe. Isso previne que data-architect
+# dispache antes de discovery terminar.
+#
+# Schema:
+#   stage_name: nome do workflow stage
+#   artifact:   path (relativo ao projeto) que prova conclusao
+#   depends_on: artefatos que DEVEM existir para este stage rodar
+#
+STAGE_ARTIFACT_MATRIX = [
+    {"stage": "discovery",   "artifact": "artifacts/discovery/requirements.md",
+     "depends_on": []},
+    {"stage": "data-model",  "artifact": "artifacts/data/model.md",
+     "depends_on": ["artifacts/discovery/requirements.md"]},
+    {"stage": "design",      "artifact": "artifacts/design/",
+     "depends_on": ["artifacts/data/model.md"]},
+    {"stage": "build",       "artifact": "artifacts/dashboard/",
+     "depends_on": ["artifacts/data/model.md"]},
+    {"stage": "review",      "artifact": "artifacts/review/checklist.md",
+     "depends_on": ["artifacts/data/model.md"]},
+]
+
+# Mapeamento subagente -> stage. Subagentes mapeados a um stage tem
+# dependencia cross-stage validada. Subagentes nao listados (e.g.
+# delivery-reviewer, workflow-decomposer) pulam o check.
+SUBAGENT_STAGE_MAP = {
+    "data-architect":       "data-model",
+    "dashboard-designer":   "design",
+    "automation-engineer":  "build",
+    "orchestrator":         None,  # lead, nao um stage produtivo
+    "capability-architect": None,  # meta, nao um stage produtivo
+    "workflow-decomposer":  None,  # PM layer, nao produtivo
+}
+
+
+def check_cross_stage_dependency(subagent, root, project_name):
+    """Check 8 (TD-1, proposta a3e2725a): verifica se os artefatos do
+    estagio anterior existem antes de permitir dispatch.
+
+    Exemplo: se dashboard-designer (stage=design) e' despachado mas
+    artifacts/data/model.md (stage=data-model) nao existe, o check falha.
+    Isso evita que subagentes disparem antes da dependencia estar pronta.
+    """
+    stage = SUBAGENT_STAGE_MAP.get(subagent)
+    if not stage:
+        ok(f"(sub-check `cross-stage-dependency` skip: {subagent} nao mapeado a um stage produtivo)")
+        return True
+    if not project_name:
+        ok("(sub-check `cross-stage-dependency` skip: --project-name nao fornecido)")
+        return True
+    # Encontra a entrada da matriz para este stage
+    entry = next((e for e in STAGE_ARTIFACT_MATRIX if e["stage"] == stage), None)
+    if not entry:
+        ok(f"(sub-check `cross-stage-dependency` skip: stage '{stage}' sem entrada na matriz)")
+        return True
+    if not entry["depends_on"]:
+        ok(f"(sub-check `cross-stage-dependency`: stage '{stage}' nao depende de stage anterior)")
+        return True
+    # Verifica cada dependencia
+    project_dir = root / "projects" / project_name
+    if not project_dir.exists():
+        ok(f"(sub-check `cross-stage-dependency` skip: project_dir {project_dir} nao existe)")
+        return True
+    failures = 0
+    for dep_path in entry["depends_on"]:
+        dep_abs = project_dir / dep_path
+        if not dep_abs.exists():
+            fail(f"sub-check `cross-stage-dependency`: dependencia faltando: {dep_path}")
+            fail(f"  Stage '{stage}' requer '{dep_path}' (stage anterior nao concluido)")
+            fail(f"  Fix: complete o stage anterior antes de despachar {subagent}")
+            failures += 1
+        else:
+            ok(f"sub-check `cross-stage-dependency`: dependencia {dep_path} OK")
+    if failures:
+        return False
+    ok(f"sub-check `cross-stage-dependency`: todas as dependencias de stage '{stage}' satisfeitas")
+    return True
+
+
 # ─── Check 7: child-repo-skeleton (proposta f9b636fc) ────────────
 
 def _project_yaml_needs(project_dir):
@@ -1045,12 +1127,16 @@ def main():
     if not check_child_repo_skeleton(args.subagent, root, args.project_name):
         findings += 1
 
+    hdr("8. cross-stage-dependency (TD-1)")
+    if not check_cross_stage_dependency(args.subagent, root, args.project_name):
+        findings += 1
+
     print()
     if findings:
         print(f"BLOCKED: {findings} check(s) com falha.")
         print(f"Proximo passo: corrija os findings e rode novamente antes de despachar {args.subagent}.")
         return 1
-    print(f"PASS: {args.subagent} pronto para dispatch. Brief curto, sem re-statuir charter.")
+    print(f"PASS: {args.subagent} pronto para dispatch (8 dimensoes validadas). Brief curto, sem re-statuir charter.")
     return 0
 
 

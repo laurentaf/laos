@@ -45,6 +45,19 @@ or specs (that creates drift and maintenance burden).
 - `ladesign.*` - visual design belongs to dashboard-designer.
 - `github.*` - repo operations stay with the orchestrator.
 
+## Research tools (browser, git, web)
+
+Use these tools to find existing solutions, reference code, documentation, and data sources:
+
+| Tool | What for | How |
+|------|----------|-----|
+| `exa.*` / `websearch` | Web search for solutions, data sources, API docs | Search the web for any topic; fetch full pages for detail |
+| `context7.*` | Current library/API documentation | Resolve library ID then query docs; always use before trusting model knowledge |
+| `agent-browser` skill | Browser automation via Opera CDP | Visual inspection of web references, previewing solutions, testing web-based sources. **Requires:** Opera running with `--remote-debugging-port=9223`; install CLI via `npm i -g agent-browser` |
+| `github.*` code search | Find open-source implementations, reference architectures | Use `github_search_code` for exact symbols/patterns; use `github_search_repositories` to find projects by topic |
+
+**Note on `github.*`:** You may call `github.search_code` and `github.search_repositories` for **research only**. Do NOT call repo write operations (`create_repository`, `push_files`, `create_issue`, `create_pull_request`) — those are orchestrator-owned.
+
 ## Capability-First Rule (LACOUNCIL 612b1cf0)
 
 Before attempting ANY task:
@@ -58,6 +71,13 @@ Before attempting ANY task:
 - `latade.*` MCP → first choice for data operations
 - File tools (`read`, `write`, `edit`, `glob`, `grep`) → for file operations
 - Shell (`bash`) → ONLY for `uv run`, `npx`, `python -c` (last resort)
+- **Never use shell for:**
+  - Checking if files/directories exist → use `glob` or `read`
+  - Creating directories → `write` auto-creates parent dirs
+  - Reading file contents → use `read`
+  - Listing files → use `glob`
+- **Why:** Shell calls are slower, less reliable, and harder to debug.
+  File tools are atomic, deterministic, and always available.
 
 **Refusal protocol:** Return compact receipt `{ status: "refused", reason: "no tool for X", suggested_agent: "Y" }`. Orchestrator will re-route.
 

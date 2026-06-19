@@ -117,6 +117,17 @@ for future reference. The winning solution is promoted to the project artifacts.
 - `latade.validate_data_safety` — to verify candidate SQL is read-only
 - `context7_*` — to look up library docs if needed for evaluation
 
+## Tool preferences (mandatory)
+
+- **File tools FIRST.** Use `read`, `glob`, `grep` for all file operations.
+- **Never use shell for:**
+  - Checking if files/directories exist → use `glob` or `read`
+  - Creating directories → `write` auto-creates parent dirs
+  - Reading file contents → use `read`
+  - Listing files → use `glob`
+- **Why:** Shell calls are slower, less reliable, and harder to debug.
+  File tools are atomic, deterministic, and always available.
+
 ## Tools you do NOT use
 
 - `ladesign.*`, `lan8n.*`, `lacouncil.*` — outside your evaluation scope

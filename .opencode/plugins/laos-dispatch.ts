@@ -58,8 +58,13 @@ interface DispatchMember {
   task: string
   worktree?: string // For parallel mode
   mailboxPath?: string
-  status: "pending" | "running" | "completed" | "failed"
+  status: "pending" | "running" | "completed" | "failed" | "timed_out"
   result?: any
+  timeout_min?: number       // TD-5: max execution time in minutes
+  started_at?: number        // TD-5: unix ms when dispatch started
+  retry_count?: number       // TD-2: how many retries attempted (max retry_limit)
+  retry_limit?: number       // TD-2: max auto-retries (default 2)
+  last_error_class?: string  // TD-2: error_class from compact receipt for routing
 }
 
 interface MailboxMessage {
@@ -113,9 +118,11 @@ export const LaosDispatch = async ({ project, directory, $, worktree }: {
               properties: {
                 agent: { type: "string" as const },
                 task: { type: "string" as const },
+                timeout_min: { type: "number" as const },
+                retry_limit: { type: "number" as const },
               },
             },
-            description: "List of {agent, task} dispatches",
+            description: "List of {agent, task} dispatches with optional timeout_min (TD-5) and retry_limit (TD-2)",
           },
           evaluator: {
             type: "string" as const,
@@ -158,6 +165,10 @@ export const LaosDispatch = async ({ project, directory, $, worktree }: {
               agent: m.agent,
               task: m.task,
               status: "pending" as const,
+              timeout_min: (m as any).timeout_min || 30,     // TD-5: default 30min
+              retry_count: 0,                                 // TD-2: start at 0
+              retry_limit: (m as any).retry_limit || 2,       // TD-2: max 2 auto-retries
+              started_at: Date.now(),                         // TD-5: timestamp
             })),
             evaluator,
             status: "pending",
@@ -192,9 +203,37 @@ export const LaosDispatch = async ({ project, directory, $, worktree }: {
     // ─── Event: session.idle → check for pending dispatches ─────
     event: async ({ event }: { event: any }) => {
       if (event.type === "session.idle") {
-        // Check if there are running parallel dispatches that need
-        // mailbox coordination or member status checks
+        const now = Date.now()
         for (const [planId, plan] of activeDispatches) {
+          // ─── TD-5: Supervisor timeout check ────────────────
+          for (const member of plan.members) {
+            if (member.status === "running" && member.timeout_min && member.started_at) {
+              const elapsed = (now - member.started_at) / 60000 // minutes
+              if (elapsed > member.timeout_min) {
+                member.status = "timed_out"
+                member.result = {
+                  error_class: "timeout",
+                  summary: `Member ${member.agent} exceeded ${member.timeout_min}min timeout (elapsed: ${elapsed.toFixed(1)}min)`,
+                  timeout_min: member.timeout_min,
+                  elapsed_min: elapsed,
+                  plan_id: planId,
+                }
+              }
+            }
+          }
+
+          // ─── TD-2: Auto-retry check for timed_out members ──
+          for (const member of plan.members) {
+            if (member.status === "timed_out" && member.retry_count! < member.retry_limit!) {
+              member.retry_count!++
+              member.status = "pending"
+              member.started_at = Date.now()
+              // In a full implementation, this would re-dispatch
+              // the member with the timeout context attached.
+            }
+          }
+
+          // ─── Parallel mode mailbox check ───────────────────
           if (plan.mode === "parallel" && plan.status === "running") {
             // In a full implementation, this would check mailbox files
             // for completion signals from worktree-based members.

@@ -69,6 +69,33 @@ disagree, trust the MCP response.
 
 If you find yourself needing any of these, **stop**. Report the dependency to the orchestrator. The orchestrator will dispatch the appropriate specialist to provide the artifact, then you resume.
 
+## Research tools (browser, git, web)
+
+Use these tools to research library patterns, reference implementations, and existing capability architectures:
+
+| Tool | What for | How |
+|------|----------|-----|
+| `exa.*` / `websearch` | Research capability patterns, library docs, architectural references | Search the web for MCP server patterns, FastMCP docs, DuckDB conventions |
+| `context7.*` | Current library/framework documentation | Resolve library ID then query docs for scaffolding patterns |
+| `agent-browser` skill | Browser automation via Opera CDP | Preview reference implementations, inspect live documentation. **Requires:** Opera running with `--remote-debugging-port=9223`; install CLI via `npm i -g agent-browser` |
+| `github.*` code search | Find open-source MCP servers, capability implementations, reference architectures | Use `github_search_code` for specific patterns; `github_search_repositories` for projects by topic |
+
+**Note on `github.*`:** You may call `github.search_code` and `github.search_repositories` for **research only**. For repo creation and push operations, use the orchestrator-owned `github.*` tools.
+
+## Tool preferences (mandatory)
+
+- **File tools FIRST.** Use `read`, `write`, `edit`, `glob`, `grep` for
+  all file operations. These are always available and don't require shell.
+- **Shell ONLY when necessary.** Shell is allowed only for operations
+  that file tools can't handle: `uv run`, `npx`, `python -c`.
+- **Never use shell for:**
+  - Checking if files/directories exist → use `glob` or `read`
+  - Creating directories → `write` auto-creates parent dirs
+  - Reading file contents → use `read`
+  - Listing files → use `glob`
+- **Why:** Shell calls are slower, less reliable, and harder to debug.
+  File tools are atomic, deterministic, and always available.
+
 ## Output rules (Section B of binding-conditions.md)
 
 - **Compact result contract (LACOUNCIL dbc88097):** Write full detailed
