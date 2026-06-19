@@ -1,0 +1,29 @@
+nome: readme-improvement
+tipo: meta
+descricao: >
+  Improve all 15 public READMEs in the laurentaf GitHub portfolio.
+  Tiered approach: CRITICAL → HIGH → MEDIUM → LOW.
+  Goal: raise portfolio average from 11.5/20 to ≥ 14.5/20.
+criado_em: 2026-06-19
+status: em_andamento
+
+needs:
+  - design
+  - documentation-lookup
+
+deliverables:
+  - 4 rewritten CRITICAL READMEs (laecon, ladesign, lan8n, laos-brand)
+  - 3 improved HIGH READMEs (laengine, pizzarias-sp-2026, hospital-viana-claims)
+  - 4 improved MEDIUM READMEs (logistica-me, latade, emanuella-stock-ingestion, semana-ai-data-engineer)
+  - 3 polished LOW READMEs (giovanna-rupture-monitor, abandono-academico, laurentaf profile)
+  - 1 reusable README template (knowledge/readme-templates.md)
+
+capabilities_used:
+  - ladesign
+  - latade
+  - lacouncil
+
+repo: null
+  # Meta-project — changes pushed directly to existing repos via github MCP
+
+audit_report: artifacts/review/readme-audit-2026-06-19.md
