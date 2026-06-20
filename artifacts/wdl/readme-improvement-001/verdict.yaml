@@ -1,0 +1,41 @@
+state: READY
+readiness: partial
+plan_id: readme-improvement-001
+project: _meta/readme-improvement
+contract_version: "1.0.0"
+wdl_version: 1
+generated_at: "2026-06-19T12:00:00Z"
+timestamp: "2026-06-19T12:00:00Z"
+session_id: readme-improvement-001-session
+quality_score: 2.33
+verified_by: delivery-reviewer
+prior_verdicts: []
+
+block_reason: null
+suggested_resolution: null
+
+exemption:
+  applied: false
+  reason: null
+  signals_evaluated: null
+
+gaps_acknowledged:
+  - description: "latade listed in capabilities_used but not resolved from declared needs"
+    max_delivery_cycles: 2
+    affects: "project.yaml capabilities_used, spec capabilities table"
+    severity: low
+
+capability_gaps:
+  - description: "latade listed in capabilities_used but not resolved from declared needs (design, documentation-lookup)"
+    affects: "project.yaml capabilities_used, spec capabilities table"
+    owner_notified: false
+    severity: low
+
+escalation:
+  escalation_target: null
+  escalation_subtype: null
+  escalation_payload: null
+
+signature:
+  algorithm: sha256-canonical-json
+  value: f572dc668df2c76c856ace9cb106f44f8e0c7501c0736e2d95ee57dc581ef474

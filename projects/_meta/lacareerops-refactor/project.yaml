@@ -1,0 +1,120 @@
+project: lacareerops-refactor
+version: 1.0.0
+status: active
+criado_em: 2026-06-19
+type: meta-project
+
+# -----------------------------------------------------------------------
+# Meta-project: lacareerops refactor (loop 1, submodule architecture)
+# -----------------------------------------------------------------------
+# This project tracks the structural refactor of lacareerops from a
+# standalone fork (`laurentaf/career-ops`) to a git-submodule hub
+# (`laurentaf/lacareerops-hub`) with the new `career_ops_sync` MCP tool.
+# -----------------------------------------------------------------------
+
+brief: |
+  Refatorar a capability lacareerops substituindo o fork mirror
+  (`laurentaf/career-ops`) por uma arquitetura de **submódulo git**
+  centralizada no hub privado `laurentaf/lacareerops-hub`. Inclui:
+  novo MCP tool `career_ops_sync` para avanço de pin com smoke battery
+  (4 checks) + auto-rollback; preservação de SC-1/SC-2/SC-3 (privacy);
+  mirror da ADR-013 em ambos os lados (LAOS + hub); e atualização de
+  registry, knowledge base, capability-evolution tracking, meta-projeto
+  e structural files em LAOS.
+
+needs:
+  - improvement                         # structural change → LACOUNCIL
+  - career.sync                         # new tool `career_ops_sync`
+  - career-tracker                      # preserved route via lacareerops
+  - career-evaluation                   # preserved route via lacareerops
+
+deliverables:
+  laos_side:
+    - laos/projects/_meta/lacareerops-refactor/contract.md
+    - laos/projects/_meta/lacareerops-refactor/spec/constitution.md
+    - laos/projects/_meta/lacareerops-refactor/spec/todo.md
+    - laos/projects/_meta/lacareerops-refactor/spec/adr/  # mirrors hub ADR-013
+    - laos/registry/capabilities.yaml  # lacareerops entry updated
+    - laos/knowledge/handoff-lacareerops.md  # Submodule architecture section added
+    - laos/projects/_meta/capability-evolution/lacareerops.md  # loop 1 row added
+    - laos/projects/_meta/adr/ADR-013-lacareerops-submodule.md  # LAOS-side canonical
+  hub_side:
+    repo: https://github.com/laurentaf/lacareerops-hub  # replaces legacy fork
+    files:
+      - .gitmodules
+      - SUBMODULE_SHA.txt  # pin 9d1404f32022b552e2dea1d773e0a10a22e2c004
+      - .gitignore  # config/_star_, .example._star_ exception, SNAPSHOT_star_ exclusion
+      - README.md
+      - pyproject.toml
+      - LICENSE  # MIT
+      - docs/adr/ADR-013-lacareerops-submodule.md  # mirror
+      - config/profile.example.yml
+      - config/cv.example.md
+      - mcp/server.py  # v1.1.0, 8 tools, career_ops_sync added
+  wrapper_v1_1_0:
+    new_tool: career_ops_sync
+    smoke_battery:
+      - package_json_parses
+      - health_ok
+      - list_ops_complete
+      - node_on_path
+    auto_rollback: true
+    dry_run: supported
+
+capabilities_used:
+  primary:
+    - lacouncil                            # proposal lifecycle, investigation, record_project
+  optional:
+    - github                               # repo create + push (via github.* MCP)
+    - context7                             # FastMCP / Node dependency docs (if needed)
+
+repo: https://github.com/laurentaf/lacareerops-hub
+local_paths:
+  hub_scratch: "E:/projects/_architect-scratch/lacareerops-hub"
+  legacy_fork: "E:/projects/career-ops"
+  snapshot_dir: "E:/projects/career-ops/config/SNAPSHOT_2026-06-19"
+
+previous_meta_project: projects/_meta/lacareerops/project.yaml   # do not modify
+predecessor_adr: ADR-003-lacareerops-creation.md
+this_proposal: ba9a9bd7-3686-4d6e-9f1b-3efc46f37a8c
+
+wdl:
+  plan_id: lacareerops-refactor-001
+  verdict_path: artifacts/wdl/lacareerops-refactor-001/verdict.yaml
+  pre_dispatch_required: true            # G10 + G11 WDL gate cleared
+
+git_sync_regime: A
+regime_a_note: |
+  Mudança estrutural aprovada pelo Conselho (supermaioria 4/4 SIM).
+  Commit + push a LAOS repo após delivery-reviewer G4 BASIC sign-off.
+  Push ao hub: já efetuado durante este dispatch (commits c92d61c →
+  9357af3 → 9fc6f03 → 68d229c).
+
+governance:
+  flow: LACOUNCIL proposta → Conselho vota → capability-architect implementa → delivery-reviewer valida → orchestrator push
+  votes_required: supermaioria
+  proposal_id: ba9a9bd7-3686-4d6e-9f1b-3efc46f37a8c
+
+binding_conditions:
+  applied_to:
+    - R1 (proposal aprovada gate): cleared         # ba9a9bd7 status=aprovada
+    - R2 (no project artifacts): cleared           # only structural files written
+    - R3 (no voting): cleared                      # capability-architect não vota
+    - R4 (no self-proposal): cleared               # orchestration = LACOUNCIL
+    - R5 (no subagent prompt edits): cleared        # only my own writes
+    - G1 (observability contract): cleared         # health + list_supported_operations baked in v1.1.0
+    - G2 (Handoff Boundaries): cleared             # knowledge/handoff-lacareerops.md updated
+    - G3 (domain-specialist review): scheduled     # automation-engineer will review KB + contracts at G4
+    - G4 (delivery-reviewer BASIC): PENDING        # will be invoked by orchestrator
+    - G5 (registry + opencode.jsonc updated): cleared
+    - G6 (capability-evolution): cleared           # row added
+    - G7 (ADR): cleared                            # ADR-013 created
+    - G8 (30d STABLE path): cleared                # 2026-07-13 deadline preserved
+    - G9 (commit + push within session): cleared    # hub pushed 2026-06-19; LAOS push gated by reviewer
+    - G10 (WDL v1): cleared                        # pre_dispatch_required = true
+    - G11 (Charter P0): cleared                    # DispatchTipoWDL registered
+
+sign_off_state:
+  g4_basic: pending                         # delivery-reviewer will deliver
+  g8_stable: not_applicable_until_basic_signed
+  health_check_status: smoke_test_pending_first_session   # no real CV test in LAOS repo

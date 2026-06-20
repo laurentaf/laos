@@ -1,0 +1,109 @@
+state: READY
+readiness: full
+timestamp: '2026-06-19T12:00:00Z'
+plan_id: lacareerops-refactor-001
+wdl_version: 1
+contract_version: 1.0.0
+generated_at: '2026-06-19T12:00:00Z'
+session_id: lacouncil-session-2026-06-19-001
+project: lacareerops-refactor
+project_kind: structural_change
+decomposer: workflow-decomposer
+verified_by: workflow-decomposer
+verified_at: '2026-06-19T12:00:00Z'
+verifier_verification_basis: 'WDL-IC-2 bootstrap: workflow-decomposer self-verifies (single-agent WDL v1 cold start); delivery-reviewer countersigns at G4 sign-off per workflows/wdl-contract.yaml enforcement.prefight.sub_criteria (b).'
+quality_score: 3
+quality_score_basis: 3-Q rubric total = 3/3 (clear_input=3, validatable_success=3, single_type_of_reasoning=3). No gaps, no exemption, no deferred fields.
+three_q_score:
+  clear_input: 3
+  validatable_success: 3
+  single_type_of_reasoning: 3
+  total: 3
+decomposition_signals:
+  conjunction: true
+  plural_criteria: false
+  multi_owns: true
+  temporal: true
+  multi_owns_split: 'by stage ownership: lacouncil (stages 1-3, 4b) vs capability-architect (stage 4) vs delivery-reviewer (stage 5).'
+  patterns_check_completed: true
+  patterns_check_outcome: lacouncil.detect_patterns returned; recurring governance/lacouncil pattern (9/22 occurrences) is already covered by workflows/structural-change-pipeline.yaml. No new knowledge or registry entry required for this plan.
+capability_gaps: []
+simple_task_exemption:
+  applied: false
+  reason: Three of four decomposition signals fire (conjunction, multi_owns, temporal). Full readiness path applies, not the degen exemption (WDL-IC-1 / contract section 9).
+prior_verdicts: []
+related_proposals:
+- id: 2f1ccd2d-7d0a-44fc-8382-24c3e16ebd0c
+  role: original_creation_superseded_partially
+  status: aprovada
+- id: a4fe9faa-4d50-4668-845a-ef64f1d41c36
+  role: wdl_v1_gate_source
+  status: implementada
+- id: 7fd94c1a-d21d-49cc-a0e6-07c07c716e73
+  role: orchestrator_p0_mandate_source
+  status: aprovada
+- id: 391a8179
+  role: regime_a_mandatory_push
+- id: 726be80b
+  role: conselho_vote_exemption
+inputs:
+  kb_has_pattern: true
+  mcp_agrees: true
+  notes: lacouncil MCP health = ok. detect_patterns = ok. Original proposal 2f1ccd2d present and aprovada. Registry/knowledge/workflows impact summed to 1 capabilities.yaml edit, 0 routing edits, 0 knowledge, 0 workflows edits.
+recommended_dispatch:
+  dispatch_type: orchestrator-direct
+  first_tool: lacouncil.investigate
+  rationale_blocked_dispatch_paths: data-architect / dashboard-designer / automation-engineer / delivery-reviewer project-specialist dispatches would route project work (not lifecycle-appropriate for structural change). The first dispatch MUST be orchestrator-direct lacouncil.allowlist tool per WDL charter exemption scope.
+  dispatch_sequence_hint:
+  - lacouncil.investigate
+  - lacouncil.create_proposal
+  - dispatch via laos-dispatch consensus=governance (4 Conselho members)
+  - lacouncil.tally_votes
+  - capability-architect (requires this READY gate)
+  - delivery-reviewer
+  - git push (Regime A)
+rationale: 'READY (full). 3-Q scores 3/3 across the lifecycle. Three of four decomposition
+
+  signals fire (conjunction, multi_owns, temporal), so the plan decomposes into
+
+  7 stages but is scored as one READY verdict -- the anti-pattern clause (DD
+
+  condition 2) forbids inflating lifecycle phases into separate verdicts, and
+
+  the temporal signal is explicitly the weakest. Capacity decomposition is
+
+  resolved by stage ownership split: lacouncil owns governance stages (1-3, 4
+
+  tally), capability-architect owns implementation stage (5), delivery-reviewer
+
+  owns validation stage (6). Cross-capability multi_owns split (G-VERDICT-10)
+
+  completes before the 3-Q is applied to the lifecycle. lacouncil.detect_patterns
+
+  was invoked per DA condition 7 cross-link; the recurring governance pattern
+
+  (9/22 occurrences) is already covered by the existing structural-change
+
+  pipeline. No capability gaps surfaced (capability_gaps empty). No exemption
+
+  block (G-VERDICT-1 is not triggered). verified_by=workflow-decomposer
+
+  (WDL-IC-2 bootstrap mode self-verification) is countersigned at G4 by
+
+  delivery-reviewer per workflow/wdl-contract.yaml enforcement.prefight (b).
+
+  session_id=lacouncil-session-2026-06-19-001 (G-VERDICT-6). Verdict signature
+
+  computed via SHA-256 over canonical-JSON of this file body excluding the
+
+  signature field (G-VERDICT-8 / WDL contract section 7).
+
+  '
+signature:
+  algorithm: sha256-canonical-json
+  value: 5337835e247588b8a330fe76b6b042d330c9d9e702e7ef72469d6ca2d8667f87
+  signed_at: '2026-06-19T12:00:00Z'
+  planner_id: workflow-decomposer
+  verified_by: workflow-decomposer
+  contract_version: 1.0.0
+  wdl_version: 1

@@ -1,0 +1,145 @@
+{
+  "plan_id": "readme-improvement-001",
+  "project": "_meta/readme-improvement",
+  "project_type": "meta",
+  "title": "README Portfolio Improvement",
+  "goal": "Raise portfolio average from 11.5/20 to >= 14.5/20 across 15 public repos",
+  "contract_version": "1.0.0",
+  "created_at": "2026-06-19T12:00:00Z",
+  "generated_at": "2026-06-19T12:00:00Z",
+  "session_id": "readme-improvement-001-session",
+  "three_q_scores": {
+    "clear_input": 3,
+    "validatable_success": 2,
+    "single_type_of_reasoning": 2,
+    "average": 2.33
+  },
+  "decomposition_signals": {
+    "conjunction": true,
+    "plural_criteria": true,
+    "multi_owns": false,
+    "temporal": true,
+    "signals_fired": 3
+  },
+  "stages": [
+    {
+      "stage": 1,
+      "name": "CRITICAL README Rewrites",
+      "tier": "CRITICAL",
+      "repos": [
+        "laecon",
+        "ladesign",
+        "lan8n",
+        "laos-brand"
+      ],
+      "capability_primary": "ladesign",
+      "capabilities": [
+        "ladesign",
+        "context7"
+      ],
+      "subagent": "dashboard-designer",
+      "target_score_min": 7,
+      "status": "pending"
+    },
+    {
+      "stage": 2,
+      "name": "HIGH README Improvements",
+      "tier": "HIGH",
+      "repos": [
+        "laengine",
+        "pizzarias-sp-2026",
+        "hospital-viana-claims"
+      ],
+      "capability_primary": "ladesign",
+      "capabilities": [
+        "ladesign",
+        "context7"
+      ],
+      "subagent": "dashboard-designer",
+      "target_score_min": 7,
+      "status": "pending"
+    },
+    {
+      "stage": 3,
+      "name": "MEDIUM README Improvements",
+      "tier": "MEDIUM",
+      "repos": [
+        "logistica-me",
+        "latade",
+        "emanuella-stock-ingestion",
+        "semana-ai-data-engineer"
+      ],
+      "capability_primary": "ladesign",
+      "capabilities": [
+        "ladesign",
+        "context7"
+      ],
+      "subagent": "dashboard-designer",
+      "notes": "logistica-me and latade may benefit from data-architect domain knowledge",
+      "status": "pending"
+    },
+    {
+      "stage": 4,
+      "name": "LOW README Polish",
+      "tier": "LOW",
+      "repos": [
+        "giovanna-rupture-monitor",
+        "abandono-academico",
+        "laurentaf"
+      ],
+      "capability_primary": "ladesign",
+      "capabilities": [
+        "ladesign"
+      ],
+      "subagent": "dashboard-designer",
+      "status": "pending"
+    },
+    {
+      "stage": 5,
+      "name": "Cross-cutting Deliverables",
+      "tier": "CROSS-CUTTING",
+      "deliverables": [
+        "knowledge/readme-templates.md",
+        "Update registry/needs-to-capabilities.yaml",
+        "Record project in LACOUNCIL memory"
+      ],
+      "capability_primary": "lacouncil",
+      "capabilities": [
+        "lacouncil",
+        "ladesign"
+      ],
+      "subagent": "dashboard-designer",
+      "status": "pending"
+    }
+  ],
+  "capability_gaps": [
+    {
+      "description": "latade listed in capabilities_used but not resolved from declared needs (design, documentation-lookup)",
+      "affects": "project.yaml capabilities_used, spec capabilities table",
+      "owner_notified": false,
+      "severity": "low"
+    }
+  ],
+  "needs": [
+    "design",
+    "documentation-lookup"
+  ],
+  "capabilities_used": [
+    "ladesign",
+    "context7",
+    "lacouncil",
+    "github"
+  ],
+  "deliverables": [
+    "4 rewritten CRITICAL READMEs",
+    "3 improved HIGH READMEs",
+    "4 improved MEDIUM READMEs",
+    "3 polished LOW READMEs",
+    "1 reusable README template (knowledge/readme-templates.md)"
+  ],
+  "gaps_acknowledged": [],
+  "signature": {
+    "algorithm": "sha256-canonical-json",
+    "value": "666db7ad9f63021f2f22e254963f2e22742e448a311311a88f7d47bdb6b4246b"
+  }
+}

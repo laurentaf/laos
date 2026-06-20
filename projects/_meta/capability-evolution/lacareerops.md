@@ -1,10 +1,12 @@
 # Capability Evolution — lacareerops
 
-**Status:** IN_PROGRESS
+**Status:** IN_PROGRESS (v1.1.0 refactor approved; wrapper ready, hub commits on main)
 **Created:** 2026-06-13
-**Proposal:** 2f1ccd2d-7d0a-44fc-8382-24c3e16ebd0c (LACOUNCIL, supermaioria, aprovada 2026-06-13 — 3 SIM + 1 ABSTENCAO)
-**Deadline:** 2026-07-13 (+30 dias da primeira dispatch)
-**Owner:** github.com/laurentaf/lacareerops (repo privado) + projects/_meta/lacareerops/ (meta-projeto)
+**Proposal (creation):** 2f1ccd2d-7d0a-44fc-8382-24c3e16ebd0c (LACOUNCIL, supermaioria, aprovada 2026-06-13 — 3 SIM + 1 ABSTENCAO)
+**Proposal (refactor):** ba9a9bd7-3686-4d6e-9f1b-3efc46f37a8c (LACOUNCIL, supermaioria, aprovada 2026-06-19 — 4/4 SIM)
+**Deadline (STABLE):** 2026-07-13 (+30 dias da primeira dispatch)
+**Owner:** github.com/laurentaf/lacareerops-hub (PRIVATE) + github.com/laurentaf/career-ops (legacy fork, will be archived post-STABLE) + projects/_meta/lacareerops/ (meta-projeto) + projects/_meta/lacareerops-refactor/ (refactor meta-projeto)
+**Loop 1 refactor:** approved (LACOUNCIL ba9a9bd7, 2026-06-19) — submodule + sync tool
 
 ---
 
@@ -13,14 +15,17 @@
 | Field | Value |
 |-------|-------|
 | Name | lacareerops |
-| Status atual | BASIC (scaffold entregue 2026-06-13) |
+| Status atual | BASIC (v1.1.0 scaffold entregue 2026-06-19; refactor commits on main, awaiting delivery-reviewer G4 BASIC sign-off) |
 | Status target | STABLE |
 | Domínio | automation (career job-search optimization) |
-| Capability repo | github.com/laurentaf/lacareerops (PRIVADO) |
-| Local path | N/A (repo externo privado) |
-| Tracking issue | this file + lacouncil proposal `2f1ccd2d-...` |
+| Capability repo | github.com/laurentaf/lacareerops-hub (PRIVATE) |
+| Architecture | git submodule (upstream = santifer/career-ops, pinned in SUBMODULE_SHA.txt) |
+| Local path | E:/projects/career-ops (legacy fork; snapshot preserved); future: E:/projects/lacareerops-hub (new) |
+| Tracking issue | this file + LACOUNCIL proposal `2f1ccd2d-...` (creation) + LACOUNCIL proposal `ba9a9bd7-...` (refactor) |
 | Meta-projeto | projects/_meta/lacareerops/project.yaml |
-| ADR | projects/_meta/adr/ADR-003-lacareerops-creation.md |
+| Refactor meta-projeto | projects/_meta/lacareerops-refactor/project.yaml |
+| ADR creation | projects/_meta/adr/ADR-003-lacareerops-creation.md |
+| ADR submodule refactor | projects/_meta/adr/ADR-013-lacareerops-submodule.md |
 
 ---
 
@@ -100,6 +105,7 @@ Decisão de PRIVACIDADE: repo é **PRIVADO** porque dados de carreira são sens�
 | G5 | KB com Handoff Boundaries | 2026-06-13 | ✅ |
 | G6 | Capability-evolution tracking | 2026-06-13 | ✅ |
 | G8 | ADR publicado | 2026-06-13 | ✅ |
+| **Loop 1 refactor** | LACOUNCIL `ba9a9bd7` aprovada 4/4; substituir fork p/ hub+submodule; tool `career_ops_sync` | 2026-06-19 | ✅ implementada (wrapper + hub commits `9357af3` + `c92d61c`); ⏳ delivery-reviewer G4 BASIC sign-off |
 | G4 | delivery-reviewer BASIC sign-off | 2026-06-20 | ⏳ |
 | G7 | delivery-reviewer STABLE sign-off | 2026-07-13 | ⏳ |
 | **M1 (STABLE)** | Status promovido para STABLE | 2026-07-13 | ⏳ |

@@ -1,19 +1,21 @@
 # README Portfolio Improvement
 
+## O que é
+
 Meta-project to improve all 15 public READMEs in the `github.com/laurentaf` portfolio.
 
 ## What Is This
 
 A tiered improvement plan based on a comprehensive audit (2026-06-19) that scored every README on curriculum quality and design quality. The goal: raise the portfolio average from 11.5/20 to ≥ 14.5/20.
 
-## How It Works
+## Como
 
 1. **Audit first** — every README scored on 2 dimensions (0-10 each)
 2. **Tiered execution** — CRITICAL → HIGH → MEDIUM → LOW
 3. **Template-driven** — consistent badge system, section structure, visual patterns
 4. **LAOS as gold standard** — the laos README (20/20) is the exemplar
 
-## Where Is What
+## Onde
 
 | Path | Purpose |
 |------|---------|

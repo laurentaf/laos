@@ -31,6 +31,13 @@ READMEs over 300 lines get collapsible `<details>` sections, TL;DR headers, or v
 ## Article IX — Contributing and License Are Non-Optional
 Every public repo has a contributing section and a license reference. No exceptions.
 
+## Principles
+
+Every README in the laurentaf portfolio must follow 9 constitutional principles:
+visual proof over text, bilingual framing where appropriate, consistent
+badges, Mermaid over ASCII, LAOS as gold standard, no wall of text, and
+contributing + license as non-optional. See Articles I-IX below.
+
 ---
 
 ## Scope
