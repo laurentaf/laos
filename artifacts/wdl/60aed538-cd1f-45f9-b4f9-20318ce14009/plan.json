@@ -1,0 +1,102 @@
+{
+  "plan_id": "60aed538-cd1f-45f9-b4f9-20318ce14009",
+  "project": "laecon-capability",
+  "project_type": "meta-projeto",
+  "gate": "G7",
+  "target_status": "STABLE",
+  "needs": [
+    "improvement",
+    "governance",
+    "investigation",
+    "research"
+  ],
+  "stages": [
+    {
+      "id": "G7-validation",
+      "name": "G7 delivery-reviewer sign-off",
+      "agent": "delivery-reviewer",
+      "subagent": "delivery-reviewer",
+      "type": "review",
+      "description": "Validate 17 binding conditions for STABLE promotion",
+      "capabilities": [
+        "lacouncil",
+        "latade",
+        "laecon"
+      ]
+    }
+  ],
+  "verdict": "READY",
+  "readiness": "full",
+  "quality_score": 9,
+  "created_at": "2026-06-14T12:00:00Z",
+  "generated_at": "2026-06-14T12:00:00Z",
+  "contract_version": "1.0.0",
+  "analysis": {
+    "three_q_scores": {
+      "clear_input": 3,
+      "validatable_success": 3,
+      "single_type_of_reasoning": 3
+    },
+    "decomposition_signals": {
+      "conjunction": false,
+      "plural_criteria": false,
+      "multi_owns": false,
+      "temporal": false
+    },
+    "any_signal_fires": false,
+    "simple_task_exemption_applies": false
+  },
+  "dispatch": {
+    "target_subagent": "delivery-reviewer",
+    "dispatch_type": "project_work",
+    "purpose": "G7 sign-off — validate 17 binding conditions for STABLE promotion",
+    "capabilities_required": [
+      "lacouncil",
+      "latade"
+    ],
+    "work_product_path": "artifacts/review/checklist.md",
+    "payload_fields": [
+      "verdict.yaml",
+      "plan_id",
+      "verified_by"
+    ]
+  },
+  "conditions": {
+    "total": 17,
+    "groups": {
+      "data_architect": 5,
+      "dashboard_designer": 3,
+      "automation_engineer": 4,
+      "delivery_reviewer": 5
+    },
+    "source": "projects/_meta/capability-evolution/laecon.md"
+  },
+  "gates_status": {
+    "G1": "completed_2026-06-04",
+    "G2": "completed_2026-06-04",
+    "G3": "completed_2026-06-04",
+    "G4": "completed_2026-06-13",
+    "G5": "completed_2026-06-13",
+    "G6": "completed_2026-06-14",
+    "G7": "pending__target_2026-07-04",
+    "G8": "completed_2026-06-04"
+  },
+  "risks": [
+    {
+      "description": "DA-4 and DA-5 binding since BASIC but tool enforcement deferred to M1",
+      "severity": "medium",
+      "mitigation": "delivery-reviewer distinguishes principle satisfaction from tool-level implementation"
+    },
+    {
+      "description": "17 conditions span 4 subagent domains; pure structural review has limited depth",
+      "severity": "low",
+      "mitigation": "review is artifact presence/format, not deep domain validation"
+    }
+  ],
+  "verified_by": "delivery-reviewer",
+  "session_id": "1c3a5e7b-92d4-48f6-a0c2-6d8e4f10a2b8",
+  "signature": {
+    "algorithm": "sha256-canonical-json",
+    "value": "b53053afe4a69034c272e38c526100701dea88b7ea9909012c82ffdf22d9a526"
+  }
+}

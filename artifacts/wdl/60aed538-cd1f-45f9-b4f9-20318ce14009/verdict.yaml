@@ -1,0 +1,48 @@
+state: READY
+readiness: full
+plan_id: "60aed538-cd1f-45f9-b4f9-20318ce14009"
+quality_score: 9
+contract_version: "1.0.0"
+wdl_version: 1
+generated_at: "2026-06-14T12:00:00Z"
+timestamp: "2026-06-14T12:00:00Z"
+verified_by: delivery-reviewer
+session_id: "1c3a5e7b-92d4-48f6-a0c2-6d8e4f10a2b8"
+
+exemption:
+  applied: false
+  reason: null
+  signals_evaluated:
+    - conjunction: false
+    - plural_criteria: false
+    - multi_owns: false
+    - temporal: false
+
+prior_verdicts: []
+
+gaps_acknowledged: null
+capability_gaps: []
+
+three_q_scores:
+  clear_input: 3
+  validatable_success: 3
+  single_type_of_reasoning: 3
+
+decomposition_signals:
+  conjunction: false
+  plural_criteria: false
+  multi_owns: false
+  temporal: false
+
+dispatch:
+  target_subagent: delivery-reviewer
+  dispatch_type: project_work
+  purpose: "G7 sign-off — validate 17 binding conditions for STABLE promotion"
+  payload_fields:
+    - verdict.yaml
+    - plan_id: "60aed538-cd1f-45f9-b4f9-20318ce14009"
+    - verified_by: delivery-reviewer
+
+signature:
+  algorithm: "sha256-canonical-json"
+  value: "074d5bdb26e495202e4d3a84e9d2dc873e9ec84d2482c22b2509e974673516d0"
