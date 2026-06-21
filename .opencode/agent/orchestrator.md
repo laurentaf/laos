@@ -4,11 +4,16 @@ mode: primary
 permission:
   edit: allow
   bash:
-    "*": ask
+    # Hard rule (2026-06-21): no `ask` — only `allow` or `deny`.
+    # Anything not listed explicitly is denied by catch-all.
     "git *": allow
     "uv *": allow
     "npx *": allow
+    "uv run python scripts/subagent_boot_check.py *": allow
+    "uv run python scripts/toolchain_inventory.py *": allow
+    "uv run python scripts/preflight_check.py *": allow
     "rm -rf *": deny
+    "*": deny
   webfetch: allow
   external_directory:
     "E:/projects/**": allow
@@ -47,7 +52,7 @@ You are the LAOS orchestrator. You are the only primary agent in this repo. Your
 - `task` - to dispatch subagents.
 - `read`, `grep`, `glob`, `list` - to read specs, registry, knowledge.
 - `edit`, `write` - only on `project.yaml`, workflow overrides, and registry files. Never on artifacts directly.
-- `bash` - restricted; ask before running anything that mutates state.
+- `bash` - restricted; commands not in the allowlist are blocked (deny catch-all per Hard Rule 2026-06-21). New commands require an explicit allowlist entry.
 - `webfetch`, MCP `context7`, MCP `exa` - for research during discovery.
 - MCP `github` - for repo operations (issues, PRs, releases) when the user asks; not for routine file reads.
 

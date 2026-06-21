@@ -4,9 +4,11 @@ mode: subagent
 permission:
   edit: allow
   bash:
-    "*": ask
+    # Hard rule (2026-06-21): no `ask` — only `allow` or `deny`.
+    "*": deny
     "git *": allow
     "npx *": allow
+    "uv *": allow
     "rm -rf *": deny
   webfetch: allow
   external_directory:

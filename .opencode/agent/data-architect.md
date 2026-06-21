@@ -4,9 +4,12 @@ mode: subagent
 permission:
   edit: allow
   bash:
-    "*": ask
+    # Hard rule (2026-06-21): no `ask` — only `allow` or `deny`.
+    "*": deny
     "git *": allow
     "uv *": allow
+    "uv run python scripts/subagent_boot_check.py *": allow
+    "npx *": allow
     "rm -rf *": deny
   webfetch: allow
   external_directory:

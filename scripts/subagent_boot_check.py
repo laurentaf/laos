@@ -703,8 +703,14 @@ def parse_frontmatter_external_directory(agent_path):
         return {}
     ext = perm.get("external_directory", {})
     if isinstance(ext, str):
-        # Shorthand form: "ask" or "allow" applies to every path.
-        return {"*": ext}
+        # Hard rule (2026-06-21): only `allow` or `deny` allowed as
+        # shorthand. `ask` is banned. If we see something else here,
+        # treat as `deny` (fail-safe) and flag in check_external_directory.
+        if ext not in {"allow", "deny"}:
+            ext_normalized = "deny"
+        else:
+            ext_normalized = ext
+        return {"*": ext_normalized}
     if isinstance(ext, dict):
         return ext
     return {}
@@ -733,6 +739,81 @@ def glob_pattern_covers(required, pattern):
         regex = "^" + re.escape(p).replace(r"\*\*", ".*").replace(r"\*", "[^/\\\\]*") + "$"
         return bool(re.match(regex, r))
     return p == r
+
+
+def parse_frontmatter_bash(agent_path):
+    """Parse the permission.bash block from subagent frontmatter.
+
+    Returns dict of {pattern: action}. Validates Hard Rule (2026-06-21):
+    only `allow` and `deny` are accepted. Presence of `ask` in ANY
+    entry MUST fail loudly — this is the rule we're enforcing here.
+    """
+    if not agent_path.exists():
+        return {}, None
+    text = agent_path.read_text(encoding="utf-8")
+    if not text.startswith("---"):
+        return {}, None
+    end = text.find("\n---", 3)
+    if end < 0:
+        return {}, None
+    fm_text = text[3:end].strip()
+    try:
+        data = yaml.safe_load(fm_text)
+    except yaml.YAMLError:
+        return {}, "fm-parse-error"
+    if not isinstance(data, dict):
+        return {}, None
+    perm = data.get("permission", {})
+    if not isinstance(perm, dict):
+        return {}, None
+    bash = perm.get("bash", None)
+    if isinstance(bash, str):
+        # Same shorthand rule as external_directory.
+        if bash not in {"allow", "deny"}:
+            return {}, "bash-shorthand-bad"
+        return {"*": bash}, None
+    if isinstance(bash, dict):
+        # Validate every action value: only `allow` or `deny`.
+        for pat, action in bash.items():
+            if action not in {"allow", "deny"}:
+                return bash, f"bash-bad-action:{pat}={action}"
+        return bash, None
+    return {}, None
+
+
+def check_bash_no_ask(subagent, root):
+    """Hard Rule (2026-06-21): `ask` is forbidden in permission policy.
+
+    Scans the subagent's permission.bash block; if any entry has
+    action = `ask`, this check FAILS with an actionable fix.
+    """
+    agent_path = root / ".opencode" / "agent" / f"{subagent}.md"
+    bash, error = parse_frontmatter_bash(agent_path)
+    if error == "fm-parse-error":
+        fail(f"{subagent}: frontmatter não parseou (YAML error)")
+        fail(f"  Agent file: {agent_path}")
+        return False
+    if error == "bash-shorthand-bad":
+        fail(f"{subagent}: permission.bash shorthand inválido (não é `allow` nem `deny`)")
+        fail(f"  Hard rule (2026-06-21): use apenas `allow` ou `deny`.")
+        fail(f"  Fix: trocar para `allow` (libera tudo) ou `deny` (bloqueia tudo).")
+        return False
+    if error and error.startswith("bash-bad-action:"):
+        bad = error.split(":", 1)[1]
+        fail(f"{subagent}: permission.bash contém `ask` (ou valor inválido): `{bad}`")
+        fail(f"  Hard rule (2026-06-21): apenas `allow` ou `deny` são permitidos.")
+        fail(f"  Fix: substituir por `allow` (comando confiável, in-charter) ou")
+        fail(f"       `deny` (comando fora do escopo do subagente).")
+        fail(f"  Nenhum `ask` em nenhum lugar. Sem prompt de permissão.")
+        return False
+    if not bash:
+        # bash may be `false` or absent — both fine; subagente is shell-less.
+        ok(f"{subagent}: permission.bash ausente/false (subagente shell-less — OK)")
+        return True
+    allow_count = sum(1 for a in bash.values() if a == "allow")
+    deny_count = sum(1 for a in bash.values() if a == "deny")
+    ok(f"{subagent}: permission.bash in-charter ({allow_count} allow, {deny_count} deny, 0 ask)")
+    return True
 
 
 def check_external_directory(subagent, root):
@@ -1121,6 +1202,10 @@ def main():
 
     hdr("6. external_directory (proposta 4a9f07c3)")
     if not check_external_directory(args.subagent, root):
+        findings += 1
+
+    hdr("6b. permission.bash no-ask (Hard Rule 2026-06-21)")
+    if not check_bash_no_ask(args.subagent, root):
         findings += 1
 
     hdr("7. child-repo-skeleton (proposta f9b636fc — Missao 0)")

@@ -63,19 +63,30 @@ práticas:
 - `**` casa múltiplos segmentos de path, inclusive zero.
 - `*` casa um segmento sem `/`.
 - A primeira regra que casa vence (não é union).
-- `"*": "ask"` é o **default**; entries específicas depois dele
-  sobrescrevem por match.
+
+**Hard Rule (2026-06-21):** Apenas dois valores são aceitos em qualquer
+entry de permission policy: `allow` ou `deny`. **`ask` foi banido de
+todo o workspace LAOS** — não existe em nenhuma entry, em nenhum
+frontmatter, em nenhum arquivo. Veja §5.
 
 Exemplo (orchestrator):
 
 ```jsonc
 "external_directory": {
-  "*": "ask",                  // qualquer path não listado → pergunta
-  "../latade/**": "allow",     // repo LATADE → libera
-  "../lan8n/**": "allow",      // repo LAN8N → libera
-  "../_commomdata/**": "allow" // dados cross-project → libera
+  "E:/projects/**": "allow",      // workspace coberto por umbrella
+  "../latade/**": "allow",         // repo LATADE → libera
+  "../lan8n/**": "allow",          // repo LAN8N → libera
+  // paths não listados = `*` catch-all `deny` (declarado explicitamente)
 }
 ```
+
+**Catch-all convention:** como `ask` não existe mais, a entrada
+`"*": "deny"` deve aparecer explicitamente no final do bloco
+`permission.bash` (e em qualquer permission block que use glob),
+para tornar o comportamento de paths não-mapeados **explícito por
+config, não implícito por default runtime**. O boot check
+(`scripts/subagent_boot_check.py` check 6b) valida que todo subagente
+segue essa convenção.
 
 ### 2.3. Dotfile caveat (o ponto sensível)
 
@@ -103,24 +114,30 @@ implementação do glob no opencode runtime **pode** não casar o
 
 ## 3. Tabela de paths conhecidos por subagente
 
-Estado em 2026-06-07 (atualizado por Hard Rule #10, AGENTS.md).
-Todos os 7 subagentes (orchestrator, data-architect,
-dashboard-designer, automation-engineer, delivery-reviewer,
-capability-architect, workflow-decomposer) compartilham
-`E:/projects/**` como allowlist comum (regra Hard #10).
-A entrada explícita antiga `E:/projects/_commomdata/**` foi
-subsumida pelo umbrella `E:/projects/**` (qualquer path que case
-inclui `_commomdata`).
+Estado em 2026-06-21 (Hard Rule #10 + Hard Rule `no-ask` 2026-06-21).
+Todos os subagentes compartilham `E:/projects/**` como allowlist
+comum (regra Hard #10). A entrada explícita antiga
+`E:/projects/_commomdata/**` foi subsumida pelo umbrella
+`E:/projects/**` (qualquer path que case inclui `_commomdata`).
 
-| Subagente | Paths de leitura (charter) | Paths de escrita (charter) | Bash `git *` | Dot-directory no escopo? |
-|-----------|----------------------------|----------------------------|--------------|--------------------------|
-| `data-architect` | `../latade/**`, `E:/projects/**` | `projects/<name>/artifacts/{data,pipeline,dq}/` (workspace) | allow | não |
-| `dashboard-designer` | `../ladesign/**`, `E:/projects/**` | `projects/<name>/artifacts/{design,deck}/` (workspace) + `../ladesign/.od/**` (daemon storage) | allow | **sim — `.od/`** |
-| `automation-engineer` | `../lan8n/**`, `E:/projects/**` | `projects/<name>/artifacts/automation/` (workspace) | allow | não |
-| `delivery-reviewer` | `E:/projects/**` (read-only; `edit: deny` no frontmatter) | (nenhum) | deny (bash: deny) | não |
-| `capability-architect` | `E:/projects/**`, `../<capability>/**` para cada capability conhecida | `projects/_meta/**` (workspace) + capability repos existentes (latade, lan8n, lacouncil, laengine, laecon, ladesign) | allow | não |
-| `orchestrator` | já coberto em `opencode.jsonc` (top-level) | já coberto em `opencode.jsonc` (top-level) | allow | n/a (config em JSONC) |
-| `workflow-decomposer` | `../lacouncil/**`, `E:/projects/**` | `artifacts/wdl/<plan-id>/` (workspace) | allow | não |
+Cada bloco `permission.bash` dos frontmatters termina com
+`"*": "deny"` como catch-all explícito (Hard Rule `no-ask`
+2026-06-21 — §5). O comportamento de paths não-mapeados é
+**deny**, nunca `ask`.
+
+| Subagente | Paths de leitura (charter) | Paths de escrita (charter) | Bash `git *` | Bash `rm -rf *` | Dot-directory no escopo? |
+|-----------|----------------------------|----------------------------|--------------|-----------------|--------------------------|
+| `data-architect` | `../latade/**`, `E:/projects/**` | `projects/<name>/artifacts/{data,pipeline,dq}/` (workspace) | allow | deny | não |
+| `dashboard-designer` | `../ladesign/**`, `E:/projects/**` | `projects/<name>/artifacts/{design,deck}/` (workspace) + `../ladesign/.od/**` (daemon storage) | allow | deny | **sim — `.od/`** |
+| `automation-engineer` | `../lan8n/**`, `E:/projects/**` | `projects/<name>/artifacts/automation/` (workspace) | allow | deny | não |
+| `delivery-reviewer` | `E:/projects/**` (read-only; `edit: deny` no frontmatter) | (nenhum) | deny (bash: deny) | n/a | não |
+| `capability-architect` | `E:/projects/**`, `../<capability>/**` para cada capability conhecida | `projects/_meta/**` (workspace) + capability repos existentes (latade, lan8n, lacouncil, laengine, laecon, ladesign) | allow | deny | não |
+| `orchestrator` | já coberto em `opencode.jsonc` (top-level) | já coberto em `opencode.jsonc` (top-level) | allow | deny | n/a (config em JSONC) |
+| `workflow-decomposer` | `../lacouncil/**`, `E:/projects/**` | `artifacts/wdl/<plan-id>/` (workspace) | allow | deny | não |
+| `chief-data-scientist` | `E:/projects/**` | (nenhum — evaluator only) | allow | deny | não |
+| `chief-designer` | `E:/projects/**` | (nenhum — evaluator only) | allow | deny | não |
+| `chief-engineer` | `E:/projects/**` | (nenhum — evaluator only) | allow | deny | não |
+| `debug-agent` | `E:/projects/**` | `artifacts/debug/` (workspace) + read-only probe em qualquer projeto | allow | deny | não |
 
 **Convenção aplicada:** `E:/projects/**` é o "leio/escrevo tudo no
 diretório de projetos" — para contexto de outros projetos, capability
@@ -131,8 +148,10 @@ workspace (LAOS).
 
 **Bash `git *` allow** (Hard Rule #10, 2026-06-07): todos os
 subagentes com `bash: allow` no frontmatter recebem `git *` no
-allowlist. `delivery-reviewer` mantém `bash: deny` (read-only por
-design). `rm -rf *` continua denylisted em todos.
+allowlist. **`uv *` allow** foi expandido por AGENTS.md para
+cobrir scripts canônicos de toolchain. `delivery-reviewer` mantém
+`bash: deny` (read-only por design). `rm -rf *` continua denylisted
+em todos.
 
 ---
 
@@ -162,29 +181,51 @@ seção).
 
 ---
 
-## 5. Anti-pattern: "ask" genérico como default
+## 5. Hard Rule `no-ask` (2026-06-21): dois valores, ponto final
 
-**Sintoma:** `external_directory: { "*": "ask" }` sem entries
-específicas.
+**Invoke:** "Se temos um regime `ask` que vive pedindo
+permissão, vamos trocar por uma allowlist explícita que não pessa
+nada."
 
-**Por que é ruim:** força o humano a decidir, em runtime, sobre
-acesso a paths que o charter do subagente já autoriza. Toda vez
-que o `data-architect` lê um CSV em `E:\projects\previsao-concursos\data\`,
-o humano recebe "Permissão necessária". O humano responde "sim"
-mecanicamente → degrada para 100% confirmation, que é o oposto de
-autonomia calibrada.
+**Regra canônica:** Em qualquer `permission.<tool>` ou
+`permission.external_directory` em `.opencode/opencode.jsonc` ou em
+`.opencode/agent/*.md`, **apenas dois valores são aceitos**:
+`allow` ou `deny`. **`ask` foi banido** de todo o workspace LAOS.
 
-**Como corrigir:** toda allowlist `"*": "ask"` deve ter
-**acompanhamento** de paths específicos `allow` que cubram o escopo
-declarado no charter. Se a allowlist cresce para mais de ~5
-entries por subagente, é sinal de que o charter está largo demais
-(separar escopo) ou de que o subagente está sendo usado fora do
-charter (re-routing via orchestrator).
+**Por que banir `ask` (não apenas desencorajar):**
+1. Fricção cumulativa: cada prompt vira decisão humana repetida em
+   runtime para paths que o charter já autoriza. Decisão por decisão
+   degrada a 100% de confirmação = autonomia zero.
+2. Inconsistência entre subagentes: o `data-architect` pede, o
+   `delivery-reviewer` nega — comportamento divergente no mesmo
+   workspace.
+3. Indebida externalização de decisão de config para o humano em
+   runtime. É exatamente o failure mode que a proposta `4a9f07c3`
+   fecha.
+4. Cada alteração recente (HR #10, WDL Gate, plantão de capabilities)
+   demanda sub-agent boot check, preflight, e toolchain inventory —
+   zero `ask` significa zero prompts nessas operações.
 
-**Quando `"*": "ask"` É correto:** quando o subagente é o
-**orchestrator** (default-agent), que tem escopo amplo e merece
-confirmação humana para paths novos. Ou quando o subagente está
-em modo de auditoria e queremos aprovação explícita.
+**Catch-all convention (substitui o antigo `ask`-default):**
+- `permission.bash` em todo frontmatter: termina com `"*": "deny"`.
+- `permission.external_directory` em todo frontmatter: termina com
+  `"*": "deny"` quando o subagente não cobre 100% do filesystem.
+- Paths não-listados = **deny** (declarado por config, não implícito
+  por runtime).
+- Adicionar um comando novo = entry `allow` explícita na allowlist.
+  Custo: 1 edit. Benefício: nenhuma permissão-breaking prompt.
+
+**Promise:** com `*`: `deny` como catch-all, o subagente age
+**dentro** do seu escopo sem prompt e **para+e reporta** ao
+orchestrator fora. O orchestrator, então, decide se ajusta a
+config (allowlist) ou redireciona o trabalho. Configuração vira
+arte explícita; runtime vira execução determinística.
+
+**Quando adicionar um allowlist novo:** releia o
+`.opencode/agent/<name>.md` do subagente. Se o path bate com o
+escopo declarado, adicione `"<pattern>": "allow"` no `bash` ou no
+`external_directory`. Rode `subagent_boot_check.py` para confirmar
+cobertura. Documente no §3 (e na ADR se for mudança transversal).
 
 ---
 

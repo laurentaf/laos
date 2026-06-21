@@ -81,10 +81,10 @@
     // ba9a9bd7-3686-4d6e-9f1b-3efc46f37a8c, 2026-06-19, supermaioria 4/4 SIM).
     // Architecture: hub + git submodule (upstream `santifer/career-ops` pinned
     // at SUBMODULE_SHA.txt). 8 MCP tools: health, list, evaluate, generate_pdf,
-    // scan_portals, batch_process, tracker, careeer_ops_sync (pin advance +
+    // scan_portals, batch_process, tracker, career_ops_sync (pin advance +
     // 4-check smoke + auto-rollback). Each user configures own profile.yml +
-    // cv.md in `config/` (gitignored). Status: BASIC (2026-06-13). Deadline
-    // STABLE: 2026-07-13. ADR-013 = submodule + sync tool architecture.
+    // cv.md in `config/` (gitignored). Status: BASIC (v1.1.0, 2026-06-19).
+    // Deadline STABLE: 2026-07-13. ADR-013 = submodule + sync tool architecture.
     "lacareerops": {
       "type": "local",
       "command": ["uv", "run", "python", "E:/projects/lacareerops-hub/mcp/server.py"],
@@ -244,22 +244,26 @@
     "edit": "allow",
     "webfetch": "allow",
     "bash": {
-      "*": "ask",
+      // Hard rule (2026-06-21): TWO values only — `allow` and `deny`.
+      // No `ask` anywhere. Paths not covered below are blocked (deny).
+      // Adding a new command = explicit allowlist entry (no implicit trust).
       "git *": "allow",
       "uv *": "allow",
+      "npx *": "allow",
       // subagent_boot_check.py é pre-flight obrigatório (AGENTS.md +
       // stack-decisions.md). Read-only, exit 0/1, sem efeito colateral.
       // Whitelisted aqui porque a chamada inclui redirecionamento 2>&1
       // e chain com Write-Output que o pattern "uv *" não casa.
       "uv run python scripts/subagent_boot_check.py *": "allow",
-      "npx *": "allow",
+      "uv run python scripts/toolchain_inventory.py *": "allow",
+      "uv run python scripts/preflight_check.py *": "allow",
       "rm -rf *": "deny"
     },
     "external_directory": {
       // Per Hard Rule #10 (AGENTS.md, 2026-06-07): all of E:/projects/**
-      // is pre-authorized. No catch-all "ask" — every legitimate path
-      // is covered by the umbrella below. Individual repo entries kept
-      // as explicit fallback for glob edge cases (dotfiles, backslash).
+      // is pre-authorized. No catch-all — every legitimate path is
+      // explicitly listed below. Individual repo entries kept as
+      // explicit fallback for glob edge cases (dotfiles, backslash).
       "E:/projects/**": "allow",
       "../latade/**": "allow",
       "../lan8n/**": "allow",
@@ -267,7 +271,7 @@
       "../laengine/**": "allow",
       "../lacouncil/**": "allow",
       "../laecon/**": "allow",
-      "E:/projects/career-ops/**": "allow"
+      "E:/projects/lacareerops-hub/**": "allow"
     }
   }
 }
