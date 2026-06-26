@@ -63,9 +63,9 @@ SUBAGENT_CHARTERS = {
     },
     "dashboard-designer": {
         "venv": ["laos"],
-        "daemon": ["ladesign"],
-        "mcp_primary": [],
-        "mcp_optional": ["ladesign", "context7", "exa"],
+        "daemon": [],
+        "mcp_primary": ["ladesign"],
+        "mcp_optional": ["context7", "exa"],
         "output_subclasses": ["design", "deck"],
         "env": [],
         "external_directory_required_paths": [
@@ -103,7 +103,7 @@ SUBAGENT_CHARTERS = {
     },
     "orchestrator": {
         "venv": ["laos", "lacouncil", "latade", "lan8n", "laecon"],
-        "daemon": ["ladesign"],
+        "daemon": [],
         "mcp_primary": ["lacouncil"],
         "mcp_optional": ["context7", "exa", "github"],
         "output_subclasses": ["_meta"],

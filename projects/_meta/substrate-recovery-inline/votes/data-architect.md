@@ -1,0 +1,13 @@
+# Conselho vote — data-architect (ADR-014)
+**date:** 2026-06-24
+**voting_member:** data-architect
+**vote:** SIM
+**confidence:** HIGH
+**rationale:** All five edits are confined to MCP runtime resolution, boot-check charter, and registry catalog entry; none touches LATADE's data-modeling, data.quality, or ETL pipeline contracts (`artifacts/data/`, `artifacts/dq/`, `artifacts/pipeline/`), nor the latade MCP server code, schema, or DQ baselines (d6c79133). Edit #3 (laos-infra.ts cwd unification) is actually a net positive for `data-architect` dispatch — `health_check component=latade` now resolves `opencode.jsonc` through the same path as `laos-doctor`, eliminating the parse-error variance that was masking venv-bounded health. Edit #4's `lacareerops` addition occupies only `career.*` sub-capabilities, with zero overlap with `latade`'s owns (data.modeling / data.engineering / data.quality / docs.technical / sql.duckdb), so the registry addition introduces no boundary conflict against my domain. LADESIGN edits (#1, #2) only affect dashboard-designer's tool surface and my `mcp_wall` allowlist for that agent — no data-path pollution because `dashboard-designer` writes to `artifacts/design, deck/` exclusively, never to my `artifacts/data, dq, pipeline/`.
+
+**blockers:** none
+
+**notes for ratification record:**
+- *Minor observed issue (not a blocker for this vote):* the `registry/capabilities.yaml` snapshot in `AGENTS.md` instructions shows two `lacareerops` blocks (`stable` + `basic`). The proposal's Edit #4 says "Add lacareerops entry to the registry" without disambiguating merge target. As a matter of substrate hygiene at ratification time, the orchestrator should dedupe the two blocks (the `basic` annotation predates the `stable` promotion recorded in the entries themselves). This is a registry hygiene concern, not a structural defect of ADR-014.
+- *Inline execution path is the right call.* LACOUNCIL offline (`lacouncil/.venv` missing) → lacouncil MCP unreachable → formal `create_proposal`/`register_vote` round-trip is not available in this session. User explicitly invoked "bypass LAOS, just do it inline" override. Markdown-vote manifests under `votes/` are the durable durability record per the same deliberative content, transported via filesystem rather than DuckDB. Ratification pathway documented in ADR-014 §"Ratification" is structurally sound and will close the loop when `lacouncil/.venv` is restored.
+- *Data lens unchanged.* P0-15 (synthetic-data compliance), DQ baseline checks (P1), and the per-model grain/keys/partitioning/refresh/source-lineage/owner invariant of my charter are intact. No data artifact, spec, or pipeline in any active project was modified by these 5 edits.

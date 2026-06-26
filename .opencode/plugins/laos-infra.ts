@@ -621,7 +621,7 @@ function runHealthCheck(component: string): string {
   }
 
   // Check if the MCP is configured in opencode.jsonc
-  const laosRoot = resolve(".")
+  const laosRoot = getLaosRoot()
   const config = parseOpencodeJsonc(laosRoot)
   if (!config) {
     return JSON.stringify({ status: "down", error: "Cannot parse opencode.jsonc" }, null, 2)
@@ -677,7 +677,7 @@ function runHealthCheck(component: string): string {
 // ─── TOOL 2: add_tool ────────────────────────────────────────
 
 function runAddTool(component: string, toolSpec: Record<string, any>): string {
-  const laosRoot = resolve(".")
+  const laosRoot = getLaosRoot()
   const config = parseOpencodeJsonc(laosRoot)
   if (!config) {
     return JSON.stringify({ config_diff: "ERROR", requires_restart: false, applied: false, error: "Cannot parse opencode.jsonc" }, null, 2)
@@ -741,7 +741,7 @@ function runScaffoldMcp(name: string, tools: any[]): string {
     }, null, 2)
   }
 
-  const laosRoot = resolve(".")
+  const laosRoot = getLaosRoot()
   const targetDir = resolve(laosRoot, "..", name)
 
   if (existsSync(targetDir)) {
@@ -1013,7 +1013,7 @@ function runDownloadFile(url: string, destPath: string, headers?: Record<string,
 // ─── TOOL 5: validate_agent ──────────────────────────────────
 
 function runValidateAgent(dispatchType: string): string {
-  const laosRoot = resolve(".")
+  const laosRoot = getLaosRoot()
   const agentsDir = join(laosRoot, ".opencode", "agent")
 
   if (!existsSync(agentsDir)) {
@@ -1097,7 +1097,25 @@ function runValidateAgent(dispatchType: string): string {
 }
 
 // ─── Shell usage tracking (shared file with WDL gate) ──────
-const SHELL_USAGE_PATH = join(resolve("."), ".opencode", "plugins", ".shell-usage.json")
+// Module-scoped LAOS root holder, set by the Infra factory at
+// plugin init. Tool entry points (runHealthCheck, runAddTool,
+// runScaffoldMcp, runValidateAgent, runGitLocal) read this instead
+// of computing resolve(".") themselves — that pattern misreads
+// cwd as the LAOS root when OpenCode launches plugin contexts
+// without setting cwd. See ADR-014 for the diagnostic context.
+let laosRootHolder: string | null = null
+export function setLaosRoot(root: string) {
+  laosRootHolder = resolve(root || ".")
+}
+function getLaosRoot(): string {
+  if (laosRootHolder) return laosRootHolder
+  // Fallback: assume cwd IS the LAOS root. Matches the legacy
+  // behaviour and is correct for sessions where OpenCode sets
+  // process.cwd() to the LAOS root.
+  return resolve(".")
+}
+
+const SHELL_USAGE_PATH = join(getLaosRoot(), ".opencode", "plugins", ".shell-usage.json")
 
 function readShellUsage(): Record<string, any> {
   try {
@@ -1111,7 +1129,7 @@ function readShellUsage(): Record<string, any> {
 // ─── TOOL 6: git_local (80/20 git operations) ───────────────
 
 function runGitLocal(op: string, params: Record<string, any>): string {
-  const laosRoot = resolve(".")
+  const laosRoot = getLaosRoot()
   const gitDir = params.path || laosRoot
   const safeOps = ["status", "diff", "add", "commit", "push", "log"]
 
@@ -1409,6 +1427,10 @@ export const Infra = async ({ project, client, $, directory, worktree }: {
   worktree?: string
 }) => {
   const laosRoot = resolve(directory || ".")
+  // Register LAOS root with module-scoped holder so the 5 tool entry
+  // points (commented at setLaosRoot declaration) read the same root,
+  // not process.cwd(). Fix for ADR-014 cross-cutting parse drift.
+  setLaosRoot(directory || ".")
 
   return {
     // ─── No-op hook — this plugin is tool-only ────────────────

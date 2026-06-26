@@ -152,7 +152,7 @@ capabilities:
     kind: domain
     mcp_server: lacareerops
     repo: https://github.com/laurentaf/lacareerops-hub
-    status: basic
+    status: stable
     owns:
       - career.evaluation
       - career.cv-pdf
@@ -183,6 +183,8 @@ capabilities:
       Refactor meta-projeto: projects/_meta/lacareerops-refactor/project.yaml
       ADR creation: projects/_meta/adr/ADR-003-lacareerops-creation.md
       ADR submodule refactor: projects/_meta/adr/ADR-013-lacareerops-submodule.md
+      ADR substrate recovery (lacareerops registry entry reconciliation):
+      F:\Projetos\Laos\projects\_meta/adr/ADR-014-substrate-recovery-2026-06-24.md
       Proposta LACOUNCIL creation: 2f1ccd2d-7d0a-44fc-8382-24c3e16ebd0c
       Proposta LACOUNCIL refactor: ba9a9bd7-3686-4d6e-9f1b-3efc46f37a8c
       Convenção _commomdata (E:/projects/_commomdata/) usada como fonte

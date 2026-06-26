@@ -118,13 +118,18 @@
     // MCP server via `od mcp` from the LADESIGN repo.
     // Prerequisites: `pnpm install` in ../ladesign (builds the daemon CLI).
     // The server exposes live-artifact and connector tools for design work.
+    // LADESIGN — design capability. Python MCP server (was a Node
+    // daemon under ADR-007; superseded by the Python implementation
+    // per registry/capabilities.yaml entry "ladesign" — STABLE).
+    // ADR-014 supersedes ADR-007 for the entry-point question; the
+    // `mcp_optional` workaround in subagent_boot_check.py is reverted
+    // in scripts/subagent_boot_check.py because the Python server
+    // exposes health() built-in.
     "ladesign": {
       "type": "local",
-      "command": ["node", "E:\\projects\\ladesign\\apps\\daemon\\dist\\cli.js", "mcp"],
+      "command": ["uv", "run", "python", "../ladesign/src/ladesign/mcp/server.py"],
       "enabled": true,
-      "env": {
-        "OD_DAEMON_URL": "http://localhost:7456"
-      }
+      "env": {}
     },
 
     // WORKFLOW-DECOMPOSER — WDL v1 plan analyzer (proposal a4fe9faa, supermaioria).
