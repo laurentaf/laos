@@ -35,7 +35,7 @@
     // Uses the latade venv (has duckdb, mcp, and latade sources).
     "latade": {
       "type": "local",
-      "command": ["..\\latade\\.venv\\Scripts\\python", "..\\latade\\mcp\\server.py"],
+      "command": ["..\\latade\\.venv\\Scripts\\python", "..\\latade\\mcp_server\\server.py"],
       "enabled": true,
       "env": {}
     },
@@ -44,7 +44,7 @@
     // Uses the LAN8N venv (has mcp and the repo's own server).
     "lan8n": {
       "type": "local",
-      "command": ["..\\n8n\\.venv\\Scripts\\python", "..\\n8n\\mcp\\server.py"],
+      "command": ["..\\lan8n\\.venv\\Scripts\\python", "-m", "lan8n.mcp.server"],
       "enabled": true,
       "env": {}
     },
@@ -68,7 +68,7 @@
     // Called by LAOS when structural gaps are detected.
     "lacouncil": {
       "type": "local",
-      "command": ["..\\lacouncil\\.venv\\Scripts\\python", "..\\lacouncil\\mcp\\server.py"],
+      "command": ["..\\lacouncil\\.venv\\Scripts\\python", "-m", "lacouncil.mcp.server"],
       "enabled": true,
       "env": {
         "LACOUNCIL_DB_PATH": "{workspaceFolder}\\..\\lacouncil\\memoria\\lacouncil.duckdb"
@@ -109,7 +109,7 @@
     // Uses the laecon pyproject deps (uv-managed venv at .venv/).
     "laecon": {
       "type": "local",
-      "command": ["uv", "run", "python", "../laecon/laecon/mcp/server.py"],
+      "command": ["uv", "run", "python", "../laecon/src/laecon/mcp/server.py"],
       "enabled": true,
       "env": {}
     },
