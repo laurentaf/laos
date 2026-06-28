@@ -361,7 +361,7 @@ def check_mcp(mcps, root):
 #      Primarios (latade, ladesign, lan8n, lacouncil): BLOCK se health() falhar.
 # Sem dependencias novas; usa apenas stdlib (subprocess, json, concurrent.futures, time).
 
-MCP_HEALTH_TIMEOUT_S = 2.5  # fail-fast por invocacao
+MCP_HEALTH_TIMEOUT_S = 5.0  # fail-fast por invocacao (aumentado de 2.5s para cold-start)
 MCP_STDIO_PROTOCOL_VERSION = "2024-11-05"
 
 
@@ -441,18 +441,19 @@ def _resolve_mcp_env(env_block, root):
 
 
 def _mcp_frame(req):
-    """Frame a JSON-RPC request for MCP stdio transport. FastMCP's stdio
-    server reads line-delimited JSON (`async for line in stdin` then
-    JSONRPCMessage.model_validate_json(line) — see mcp/server/stdio.py:63-65).
-    No Content-Length headers; one JSON object per newline.
+    """Frame a JSON-RPC request for MCP stdio transport.
+
+    The mcp PyPI package (v1.28) uses line-delimited JSON:
+        <JSON-body>\n
+    NOT Content-Length headers (that's the newer MCP spec).
     """
     return json.dumps(req) + "\n"
 
 
 def _parse_mcp_framed_messages(out_bytes):
-    """Parse newline-delimited JSON-RPC messages from stdout bytes.
-    FastMCP's stdio transport writes one JSON object per line; we split
-    on newlines and json.loads each non-empty line. Order preserved.
+    """Parse line-delimited MCP messages from stdout bytes.
+
+    The mcp PyPI package writes one JSON-RPC message per line.
     """
     msgs = []
     text = out_bytes.decode("utf-8", errors="replace")
