@@ -150,9 +150,9 @@ domain_constitution:
 
   game_simulation: "../laengine/CONSTITUTION.md"  # LAENGINE match rules
 
-  improvement: "../lacouncil/CONSTITUTION.md"     # LACOUNCIL council.yaml
-  investigation: "../lacouncil/CONSTITUTION.md"
-  council:     "../lacouncil/CONSTITUTION.md"
+  improvement: "./lacouncil/CONSTITUTION.md"     # LACOUNCIL council.yaml
+  investigation: "./lacouncil/CONSTITUTION.md"
+  council:     "./lacouncil/CONSTITUTION.md"
 
   # Fallback para needs não listadas → pergunta
 

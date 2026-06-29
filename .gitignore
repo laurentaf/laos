@@ -16,6 +16,13 @@ projects/*/artifacts/
 projects/*/.cache/
 projects/*/_child_clone/
 
+# Database files (DuckDB)
+*.duckdb
+*.duckdb.wal
+
+# lacouncil (inside repo) — venv já coberto por .venv/ acima
+lacouncil/.venv/
+
 # Editor / OS
 .vscode/
 .idea/

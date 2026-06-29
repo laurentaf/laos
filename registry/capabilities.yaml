@@ -131,7 +131,7 @@ capabilities:
   - id: lacouncil
     kind: domain
     mcp_server: lacouncil
-    repo: ../lacouncil
+    repo: ./lacouncil
     status: stable
     owns:
       - improvement.proposals

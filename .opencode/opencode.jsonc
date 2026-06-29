@@ -68,10 +68,10 @@
     // Called by LAOS when structural gaps are detected.
     "lacouncil": {
       "type": "local",
-      "command": ["..\\lacouncil\\.venv\\Scripts\\python", "-m", "lacouncil.mcp.server"],
+      "command": ["uv", "run", "--directory", "lacouncil", "python", "-m", "lacouncil.mcp.server"],
       "enabled": true,
       "env": {
-        "LACOUNCIL_DB_PATH": "{workspaceFolder}\\..\\lacouncil\\memoria\\lacouncil.duckdb"
+        "LACOUNCIL_DB_PATH": "{workspaceFolder}\\lacouncil\\memoria\\lacouncil.duckdb"
       }
     },
 

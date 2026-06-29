@@ -123,7 +123,7 @@ SUBAGENT_CHARTERS = {
             "E:/projects/**",                # le contexto de qualquer projeto
             "../latade/**",
             "../lan8n/**",
-            "../lacouncil/**",
+            "./lacouncil/**",
             "../laengine/**",
             "../laecon/**",
             "../ladesign/**",
@@ -142,7 +142,7 @@ SUBAGENT_CHARTERS = {
     #                            created by orchestrator, validated here)
     #   5. env                 — none required (lacouncil MCP carries its
     #                            own env via opencode.jsonc)
-    #   6. external_directory  — ../lacouncil/** allow (per charter
+    #   6. external_directory  — ./lacouncil/** allow (per charter
     #                            frontmatter; E:/projects/** is `ask`
     #                            not `allow`, so external_directory gate
     #                            does NOT block but does NOT require coverage)
@@ -160,13 +160,13 @@ SUBAGENT_CHARTERS = {
         "output_subclasses": ["wdl"],
         "env": [],
         "external_directory_required_paths": [
-            "../lacouncil/**",                # WDL's only data source
+            "./lacouncil/**",                # WDL's only data source
         ],
     },
 }
 
 VENV_DIRS = {
-    "laos": ".", "latade": "../latade", "lacouncil": "../lacouncil",
+    "laos": ".", "latade": "../latade", "lacouncil": "./lacouncil",
     "lan8n": "../lan8n", "ladesign": "../ladesign", "laengine": "../laengine",
     "laecon": "../laecon",
 }
