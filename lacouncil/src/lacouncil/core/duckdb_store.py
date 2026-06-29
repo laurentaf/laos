@@ -106,10 +106,12 @@ def ensure_schema(con: duckdb.DuckDBPyConnection) -> None:
         )
         """
     )
+    # DuckDB não suporta AUTOINCREMENT/GENERATED IDENTITY — usamos SEQUENCE
+    con.execute("CREATE SEQUENCE IF NOT EXISTS seq_project_id START 1;")
     con.execute(
         """
         CREATE TABLE IF NOT EXISTS projetos_registrados (
-            project_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id INTEGER PRIMARY KEY,
             project_slug VARCHAR NOT NULL UNIQUE,
             scope VARCHAR NOT NULL,
             capabilities_used_json VARCHAR NOT NULL,
@@ -130,10 +132,11 @@ def ensure_schema(con: duckdb.DuckDBPyConnection) -> None:
         )
         """
     )
+    con.execute("CREATE SEQUENCE IF NOT EXISTS seq_verbete_id START 1;")
     con.execute(
         """
         CREATE TABLE IF NOT EXISTS verbetes_conhecimento (
-            verbete_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            verbete_id INTEGER PRIMARY KEY,
             slug VARCHAR NOT NULL UNIQUE,
             titulo VARCHAR NOT NULL,
             body VARCHAR NOT NULL,
@@ -374,9 +377,9 @@ def record_project(project: Project, db_path: Optional[str] = None) -> ProjectRe
         con.execute(
             """
             INSERT INTO projetos_registrados
-                (project_slug, scope, capabilities_used_json,
+                (project_id, project_slug, scope, capabilities_used_json,
                  deliverable_summary, follow_up, follows_pattern, recorded_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (nextval('seq_project_id'), ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 project.project_slug,
