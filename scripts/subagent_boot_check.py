@@ -1019,19 +1019,27 @@ def _project_yaml_needs(project_dir):
 def _resolve_child_repo(root, project_name):
     """Locate the child repo for a project. The LAOS mirror is at
     `projects/<name>/` (contains `project.yaml`); the child repo is
-    the URL stored in `project.yaml` `repo:`. We do not clone here —
-    the SDD scaffold is checked against the LAOS mirror first, and
-    falls back to the child repo path if the mirror doesn't carry
-    the spec/ tree (e.g. when the orchestrator created the child
-    repo with `github.create_repository` and pushed the scaffold
-    there). For MVP, we check BOTH paths and accept the first one
-    that has the file.
+    the URL stored in `project.yaml` `repo:`. We check BOTH the mirror
+    and the child repo filesystem path (resolved relative to LAOS root).
     """
     candidates = []
     if project_name:
-        candidates.append(root / "projects" / project_name)
-        # TODO (future): also check the child repo URL from project.yaml
-        # once `github.*` MCP exposes `get_repository_local_path`.
+        mirror = root / "projects" / project_name
+        candidates.append(mirror)
+        # Resolve child repo from project.yaml `repo:` field
+        proj_yaml = mirror / "project.yaml"
+        if proj_yaml.exists():
+            try:
+                import yaml
+                with open(proj_yaml, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                repo = data.get("repo", "")
+                if repo and not repo.startswith(("http", "https", "git@")):
+                    repo_path = (root / repo).resolve()
+                    if repo_path.exists():
+                        candidates.append(repo_path)
+            except Exception:
+                pass  # non-blocking; fall back to mirror only
     return candidates
 
 
@@ -1100,7 +1108,15 @@ def check_child_repo_skeleton(subagent, root, project_name):
     if not candidates:
         ok("(sub-check `skeleton` skip: nenhum path candidato para o child repo)")
         return True
+    # Mirror (index 0) has project.yaml. Child repo (index 1) has spec/ files.
+    # Use mirror for needs/checks, child repo for skeleton file validation.
     project_dir = candidates[0]
+    # Check if a latter candidate has the spec/ tree (child repo)
+    skeleton_dir = project_dir
+    for c in candidates[1:]:
+        if (c / "spec" / "constitution.md").exists() or (c / "spec" / "todo.md").exists():
+            skeleton_dir = c
+            break
     # Meta-audit skip: se nao ha' project.yaml no project_dir, nao e' um
     # audit de projeto (e' meta-audit, ad-hoc review, etc.). Gate 7 nao
     # se aplica; sai com INFO. Cobre o caso chicken-and-egg onde o proprio
@@ -1120,7 +1136,7 @@ def check_child_repo_skeleton(subagent, root, project_name):
             if not any(n in spec["conditional"] for n in needs):
                 # Conditional nao disparada; gate nao reclama.
                 continue
-        file_path = project_dir / spec["path"]
+        file_path = skeleton_dir / spec["path"]
         passed, msg = _sdd_check_one(file_path, spec)
         if passed:
             ok(msg)
@@ -1128,7 +1144,7 @@ def check_child_repo_skeleton(subagent, root, project_name):
             fail(f"sub-check `skeleton`: {msg}")
             skeleton_failures += 1
     # ---- Sub-check (b): `first-real-adr` (gated) ----
-    adr_dir = project_dir / "spec" / "adr"
+    adr_dir = skeleton_dir / "spec" / "adr"
     real_adrs = []
     if adr_dir.exists():
         real_adrs = [
