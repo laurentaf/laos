@@ -8,12 +8,12 @@ permission:
     "*": deny
     "git *": allow
     "uv *": allow
+    "uv run python scripts/subagent_boot_check.py *": allow
     "npx *": allow
     "rm -rf *": deny
   webfetch: allow
   external_directory:
     "E:/projects/**": allow
-    "../lan8n/**": allow
     "../lan8n/**": allow
 ---
 

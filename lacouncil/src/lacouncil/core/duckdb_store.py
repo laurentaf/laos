@@ -177,7 +177,7 @@ def _now_ts() -> datetime:
 
 def _row_to_proposal(row: tuple) -> Proposal:
     payload = json.loads(row[1])
-    payload["status"] = row[5]  # status column overrides if pending
+    payload["status"] = row[6]  # status column (index 6, not 5 — row[5] is autor)
     return Proposal.model_validate(payload)
 
 
@@ -336,8 +336,7 @@ def register_vote(vote: Vote, db_path: Optional[str] = None) -> Vote:
         ).fetchone()[0]
         if status_now == ProposalStatus.PENDENTE.value:
             con.execute(
-                "UPDATE propostas SET payload_json = json_set(payload_json, '$.status', 'em_votacao') "
-                "WHERE proposal_id = ?",
+                "UPDATE propostas SET status = 'em_votacao' WHERE proposal_id = ?",
                 [vote.proposal_id],
             )
         return vote
