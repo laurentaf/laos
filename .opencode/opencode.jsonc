@@ -20,6 +20,7 @@
   "skills": {
     "paths": [
       ".opencode/skill",
+      ".opencode/skills",
       "../ladesign/skills"
     ]
   },
@@ -73,23 +74,6 @@
       "env": {
         "LACOUNCIL_DB_PATH": "{workspaceFolder}\\lacouncil\\memoria\\lacouncil.duckdb"
       }
-    },
-
-    // LACAREEROPS — job search optimization (career-ops CLI wrapper).
-    // Repo: github.com/laurentaf/lacareerops-hub (PRIVATE hub; replaces legacy
-    // fork github.com/laurentaf/career-ops per LACOUNCIL proposal
-    // ba9a9bd7-3686-4d6e-9f1b-3efc46f37a8c, 2026-06-19, supermaioria 4/4 SIM).
-    // Architecture: hub + git submodule (upstream `santifer/career-ops` pinned
-    // at SUBMODULE_SHA.txt). 8 MCP tools: health, list, evaluate, generate_pdf,
-    // scan_portals, batch_process, tracker, career_ops_sync (pin advance +
-    // 4-check smoke + auto-rollback). Each user configures own profile.yml +
-    // cv.md in `config/` (gitignored). Status: BASIC (v1.1.0, 2026-06-19).
-    // Deadline STABLE: 2026-07-13. ADR-013 = submodule + sync tool architecture.
-    "lacareerops": {
-      "type": "local",
-      "command": ["uv", "run", "python", "E:/projects/lacareerops-hub/mcp/server.py"],
-      "enabled": true,
-      "env": {}
     },
 
     // LAENGINE — game development capability (sports simulation, match engine).
@@ -267,7 +251,7 @@
       "../laengine/**": "allow",
       "../lacouncil/**": "allow",
       "../laecon/**": "allow",
-      "E:/projects/lacareerops-hub/**": "allow"
+      "../career-ops/**": "allow"
     }
   }
 }

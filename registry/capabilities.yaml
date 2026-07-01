@@ -148,32 +148,6 @@ capabilities:
       Backed by DuckDB in memoria/lacouncil.duckdb (tabelas: propostas,
       projetos_registrados, verbetes_conhecimento, trust_scores).
 
-  - id: lacareerops
-    kind: domain
-    mcp_server: lacareerops
-    repo: https://github.com/laurentaf/lacareerops-hub
-    status: deprecated
-    owns:
-      - career.evaluation
-      - career.cv-pdf
-      - career.portal-scan
-      - career.batch
-      - career.tracker
-      - career.sync (career_ops_sync — submodule pin advance with smoke + rollback; see ADR-013)
-    notes: |
-      ⛔ DEPRECATED per LACOUNCIL e65617ec (2026-07-01, 4/4 SIM).
-      The lacareerops MCP wrapper was never functional locally — the hub repo was
-      never cloned, the MCP server never ran, and all 8 promised tools were
-      unreachable. The submodule architecture (ADR-013) added complexity without
-      solving the wrapper anti-pattern. The original upstream
-      `santifer/career-ops` is actively maintained and directly usable via npx.
-      Career needs (career-evaluation, cv-generation, job-scan, career-tracker)
-      were removed from needs-to-capabilities.yaml — compose existing capabilities
-      or use career-ops CLI directly instead.
-      Historical ADRs preserved: ADR-003 (creation), ADR-013 (submodule refactor),
-      ADR-014 (substrate recovery). Meta-projetos mantidos como registro histórico.
-      LACOUNCIL proposal e65617ec-5b61-4d03-b6e8-365a84ca8286.
-
   - id: ladesign
     kind: domain
     mcp_server: ladesign

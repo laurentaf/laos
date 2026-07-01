@@ -1,0 +1,32 @@
+project: career-ops-skill-source
+version: 1.0.0
+status: active
+criado_em: 2026-07-01
+type: meta-project
+
+brief: |
+  Substituir wrapper MCP lacareerops (deprecated) por clone direto de
+  santifer/career-ops como external skill source (Opção B). Cleanup total
+  de todo rastro do lacareerops. Anti-drift via skill do OpenCode.
+
+needs:
+  - improvement
+
+deliverables:
+  structural_changes:
+    - .opencode/skills/career-ops/SKILL.md
+    - knowledge/external-tools.md
+    - projects/_meta/adr/ADR-015-career-ops-external-skill-source.md
+
+capabilities_used:
+  primary:
+    - lacouncil
+  optional: []
+
+repo: null
+git_sync_regime: A
+governance:
+  flow: LACOUNCIL proposta → Conselho vota → capability-architect implementa → delivery-reviewer valida → orchestrator push
+  proposal_id: 2dded628-e2f4-4d3f-8e5f-a349c32c019d
+  votes_required: supermaioria
+  strategy: supermaioria

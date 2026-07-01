@@ -1,86 +1,27 @@
-# Review: laecon-capability
+# Checklist delivery-reviewer — career-ops-skill-source
 
-**Project:** laecon-capability (meta-project)  
-**Capability repo:** `E:/projects/laecon/`  
-**Review date:** 2026-06-14  
-**Reviewer:** delivery-reviewer (read-only)  
-**Scope:** G4 (Constitution Complete) + G5 (SDD Scaffold)  
-**Preflight:** Stage 0 — PREFLIGHT_PASS, 0 findings, tier=M2, exit_code=0
-
----
-
-## Stage 0: PASS (wdl_gate exit_code=0)
-
-Preflight consumed from orchestrator output. Exit code: 0. Findings: []. Stage 0 is CLEAN.
+**Data:** 2026-07-01
+**Reviewer:** delivery-reviewer
+**Proposal:** 2dded628-e2f4-4d3f-8e5f-a349c32c019d
+**WDL verdict:** artifacts/wdl/career-ops-skill-source-001/verdict.yaml (state: READY, quality_score: 8/9)
+**Preflight:** exit_code=0 (0 blocking, 1 advisory)
 
 ---
 
-## Stage 1: P0 Walk
+## Verdict: DELIVERABLE — G4 BASIC sign-off
 
-- [PASS] **SDD scaffold existe.** 8 fixed files present, all minimum sizes met.
-- [PASS] **`spec/todo.md` populado desde Stage 0.** First task = Stage 0.
-- [PASS] **`contract.md` existe e espelha project.yaml em prosa.** ~1140 chars.
-- [PASS] **`project.yaml` existe e declara needs + deliverables.**
-- [PASS] **Nenhum segredo em arquivos versionados.**
-- [PASS] **Não há código de implementação dentro de LAOS.**
-- [PASS] **ADR-mínimo-1 com gatilho temporal.** Meta-project at G5, only templates.
-- [PASS] **Path único de ADRs.** ADR-002 at correct location.
-- [PASS] **README do child repo** (268 lines). "O que é", "Como rodar", "Onde está o quê".
-- [PASS] **PR-1 presente.** Constitution Art. 10 §7.
-- [PASS] **Preflight passou.** Exit code: 0.
+| Stage | Result | Evidence |
+|-------|--------|----------|
+| Stage 0 (preflight) | PASS | exit_code=0, M0 tier, 0 blocking |
+| Stage 1 (P0 walk) | PASS | 0 FAIL, all applicable rules passed or N/A |
+| Stage 2 (criteria) | PASS | 3/3 deliverables verified, 16/16 cleanup items confirmed |
+| Stage 3 (coverage) | ALL EXPLICITLY_VERIFIED | Each deliverable read and validated |
+| Stage 4 (reflection) | Advisory noted | skills.paths fix applied |
 
-## Stage 2: G4 + G5 Validation
+### Deliverables verified
+- `.opencode/skills/career-ops/SKILL.md` — 94 lines, valid frontmatter, anti-drift instructions
+- `knowledge/external-tools.md` — 48 lines, canonical reference for career-ops as external tool
+- `projects/_meta/adr/ADR-015-career-ops-external-skill-source.md` — 173 lines, full ADR format
 
-### G4 — Constitution Complete
-
-- [PASS] **All 10 articles have full content.** 926 lines, COMPLETE, no skeleton markers.
-- [PASS] **Art. 4 (I/O Contracts).** LATADE handoff, feature engineering, credentials.
-- [PASS] **Art. 6 (Model Registry).** model_id format, registry.json schema, persistence.
-- [PASS] **Art. 7 (Reporting Standards).** 11 plot types, format rules, language rules.
-- [PASS] **Art. 9 (Evolution Path).** M0-M4+ roadmap, 17 conditions mapped.
-- [PASS] **Art. 10 (Methodological Detail).** 7 questions, 12 sources, PR-1, §8 protocol.
-
-### G5 — SDD Scaffold
-
-- [PASS] **spec/constitution.md.** ~1800 chars, 9 articles, Non-Goals.
-- [PASS] **spec/todo.md.** 43 lines, tasks for Stage 0 through M1.
-- [PASS] **spec/adr/_template.md.** Stub-by-design.
-- [PASS] **spec/adr/README.md.** "ADR Index" present.
-- [PASS] **spec/harness/_template.md.** Stub-by-design.
-- [PASS] **spec/specs/000-bootstrap/spec.md.** Contexto, Decisão inicial, Critérios de pronto.
-- [PASS] **contract.md.** Brief, needs, deliverables, capabilities_used, repo.
-- [PASS] **README.md.** 268 lines, actionable, MCP tools documented.
-- [PASS] **No spec/design-direction.md.** Correct — no dashboard/design need.
-- [PASS] **6 opencode-templates.** PLAN, TASKS, SPEC, GSD, ADR, HARNESS.
-
-## Stage 3: Coverage Verification
-
-| Rule | Status |
-|------|--------|
-| P0 SDD scaffold | EXPLICITLY_VERIFIED |
-| P0 spec/todo.md populated | EXPLICITLY_VERIFIED |
-| P0 contract.md mirrors project.yaml | EXPLICITLY_VERIFIED |
-| P0 project.yaml exists + valid | EXPLICITLY_VERIFIED |
-| P0 no secrets | EXPLICITLY_VERIFIED |
-| P0 no implementation code in LAOS | EXPLICITLY_VERIFIED |
-| P0 README ≥400 chars | EXPLICITLY_VERIFIED |
-| P0 preflight pass | EXPLICITLY_VERIFIED |
-| G4 Constitution all 10 articles | EXPLICITLY_VERIFIED |
-| G4 Art. 4 I/O Contracts | EXPLICITLY_VERIFIED |
-| G4 Art. 6 Model Registry | EXPLICITLY_VERIFIED |
-| G4 Art. 7 Reporting Standards | EXPLICITLY_VERIFIED |
-| G4 Art. 9 Evolution Path | EXPLICITLY_VERIFIED |
-| G4 Art. 10 Methodological Detail | EXPLICITLY_VERIFIED |
-| G5 SDD scaffold (8 files) | EXPLICITLY_VERIFIED |
-| G5 opencode-templates (6) | EXPLICITLY_VERIFIED |
-| PR-1 Calibration | EXPLICITLY_VERIFIED |
-
-## Stage 4: Reflection
-
-**Advisory note:** `spec/constitution.md` uses "Article I–IX" headers instead of literal "Princípios"/"Scope" from the SDD matrix. Content is substantively equivalent. LACOUNCIL should clarify whether matrix headers are literal (regex-matched) or semantic (content-equivalent) for capability scaffolds.
-
----
-
-## Verdict: DELIVERABLE
-
-All P0 items satisfied. G4 and G5 validated. No blocking findings.
+### Cleanup verified (16/16)
+All lacareerops remnants removed: opencode.jsonc clean, capabilities.yaml clean, needs-to-capabilities.yaml clean, ADR-003/013/014 deleted, meta-projects deleted, handoff KB deleted, WDL artifacts deleted, AGENTS.md clean, legacy clone deleted, career-ops clone exists at F:/Projetos/career-ops/
