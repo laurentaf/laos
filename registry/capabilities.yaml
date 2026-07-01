@@ -152,7 +152,7 @@ capabilities:
     kind: domain
     mcp_server: lacareerops
     repo: https://github.com/laurentaf/lacareerops-hub
-    status: stable
+    status: deprecated
     owns:
       - career.evaluation
       - career.cv-pdf
@@ -161,35 +161,18 @@ capabilities:
       - career.tracker
       - career.sync (career_ops_sync — submodule pin advance with smoke + rollback; see ADR-013)
     notes: |
-      Job search optimization capability for LAOS. Repo: PRIVATE hub
-      `github.com/laurentaf/lacareerops-hub` (replaces legacy fork
-      `laurentaf/career-ops` per LACOUNCIL `ba9a9bd7`, 2026-06-19).
-      Architecture: **submodule** — `upstream/` is a pinned git submodule
-      pointing at `santifer/career-ops`; `SUBMODULE_SHA.txt` records the
-      last-known-good SHA. The new tool `career_ops_sync` advances the pin
-      with a 4-check smoke battery + automatic rollback. Contains sensitive
-      data (CV, salary history, career trajectory) — each user configures
-      `config/profile.yml` + `config/cv.md` locally; only templates
-      (`*.example.*`) ship in the repo. Privacy invariants SC-1/SC-2/SC-3
-      preserved.
-      Exposes 8 MCP tools: health, list_supported_operations,
-      career_ops_evaluate, career_ops_generate_pdf, career_ops_scan_portals,
-      career_ops_batch_process, career_ops_tracker, career_ops_sync.
-      Fork relationship: upstream = santifer/career-ops (submodule, not fork).
-      STATUS: BASIC — promotable to STABLE 2026-07-13 if delivery-reviewer
-      signs off on the v1.1.0 hub + submodule + sync tool.
-      Tracking: projects/_meta/capability-evolution/lacareerops.md
-      Meta-projeto: projects/_meta/lacareerops/project.yaml
-      Refactor meta-projeto: projects/_meta/lacareerops-refactor/project.yaml
-      ADR creation: projects/_meta/adr/ADR-003-lacareerops-creation.md
-      ADR submodule refactor: projects/_meta/adr/ADR-013-lacareerops-submodule.md
-      ADR substrate recovery (lacareerops registry entry reconciliation):
-      F:\Projetos\Laos\projects\_meta/adr/ADR-014-substrate-recovery-2026-06-24.md
-      Proposta LACOUNCIL creation: 2f1ccd2d-7d0a-44fc-8382-24c3e16ebd0c
-      Proposta LACOUNCIL refactor: ba9a9bd7-3686-4d6e-9f1b-3efc46f37a8c
-      Convenção _commomdata (E:/projects/_commomdata/) usada como fonte
-      de dados cross-project — ver knowledge/data-conventions.md.
-      Domain specialist reviewer: automation-engineer (G3).
+      ⛔ DEPRECATED per LACOUNCIL e65617ec (2026-07-01, 4/4 SIM).
+      The lacareerops MCP wrapper was never functional locally — the hub repo was
+      never cloned, the MCP server never ran, and all 8 promised tools were
+      unreachable. The submodule architecture (ADR-013) added complexity without
+      solving the wrapper anti-pattern. The original upstream
+      `santifer/career-ops` is actively maintained and directly usable via npx.
+      Career needs (career-evaluation, cv-generation, job-scan, career-tracker)
+      were removed from needs-to-capabilities.yaml — compose existing capabilities
+      or use career-ops CLI directly instead.
+      Historical ADRs preserved: ADR-003 (creation), ADR-013 (submodule refactor),
+      ADR-014 (substrate recovery). Meta-projetos mantidos como registro histórico.
+      LACOUNCIL proposal e65617ec-5b61-4d03-b6e8-365a84ca8286.
 
   - id: ladesign
     kind: domain

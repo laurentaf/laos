@@ -1,6 +1,13 @@
 # Handoff Boundaries — lacareerops
 
-**Capability:** lacareerops | **Kind:** domain (automation/career)
+> **⛔ DEPRECATED** per LACOUNCIL `e65617ec` (2026-07-01, 4/4 SIM).
+> The lacareerops MCP wrapper never functioned locally — the hub repo was
+> never cloned, the MCP server never ran, and all 8 promised tools were
+> unreachable. Upstream `santifer/career-ops` is actively maintained and
+> usable directly via `npx`. Routing entries removed from
+> `needs-to-capabilities.yaml`. This file is preserved as historical record.
+
+**Capability:** lacareerops | **Kind:** domain (automation/career) | **Status:** DEPRECATED
 **Created:** 2026-06-13 | **G2 requirement (binding conditions)**
 
 ---

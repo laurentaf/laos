@@ -66,21 +66,14 @@ integration:
 alerts:
   primary: [lan8n]
 
-# ─── Career / job search needs (NEW: lacareerops) ──────────────
-
-career-evaluation:
-  primary: [lacareerops]
-  optional: [context7]
-
-cv-generation:
-  primary: [lacareerops]
-
-job-scan:
-  primary: [lacareerops]
-  optional: [context7]
-
-career-tracker:
-  primary: [lacareerops]
+# ─── Career / job search needs (DEPRECATED: lacareerops) ─────
+# Removed per LACOUNCIL e65617ec (2026-07-01, 4/4 SIM).
+# The lacareerops MCP wrapper was never functional.
+# Use `npx @santifer/career-ops` directly or compose existing capabilities.
+# career-evaluation → lacareerops (removed)
+# cv-generation     → lacareerops (removed)
+# job-scan          → lacareerops (removed)
+# career-tracker    → lacareerops (removed)
 
 # ─── Modeling & ML needs (NEW: laecon) ───────────────────────
 
