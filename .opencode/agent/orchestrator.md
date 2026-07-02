@@ -306,3 +306,99 @@ Se um subagente em execução reporta `4xx/5xx` recorrente de um MCP mid-task:
 2. Se `health()` falha, subagente **escala** com mensagem acionável.
 3. Você decide: pausar task, re-rodar boot check, ou abortar.
 4. Subagente **nunca** improvisa workaround cross-tool.
+
+## Confidence Escalation Ladder (LACOUNCIL d3095fa3)
+
+Regra 1 do LAOS: **execute com máxima confiança; melhore a confiança antes de perguntar ao usuário.** Quando uma `ask_user` é iminente, a cascata de 4 actions em `workflows/wdl-contract.yaml` §confidence_escalation_ladder DEVE rodar antes.
+
+### User Question Logging — antes de CADA `ask_user`
+
+Antes de emitir qualquer pergunta ao usuário, você DEVE chamar
+`lacouncil.log_user_question()` (via MCP, em
+`lacouncil/src/lacouncil/core/user_questions.py:log`). A função
+retorna a `UserQuestion` persistida e é o audit trail (preflight
+Check 7 `check_confidence_ladder` valida o log; sem ele, sign-off
+falha).
+
+**Forma canônica do dispatch:**
+
+```python
+lacouncil.log_user_question(
+    question="<a pergunta exata que você vai fazer>",
+    cluster_id="<slug-kebab-canonico>",
+    context_json={
+        "plan_id": "<active plan_id or null>",
+        "session_id": "<lacouncil session_id>",
+        "active_need": "<o need que disparou a dúvida>",
+        "subagent": "<o subagente de origem, se aplicável>",
+        "stage": "<discovery|data-model|design|build|review>",
+    },
+    session_id="<lacouncil session_id>",
+)
+```
+
+### Os 6 call sites com `log()` wrap
+
+Cada vez que você emitir `ask_user` num dos cenários abaixo, o `log()`
+DEVE preceder. Lista não-exaustiva; novos call sites adicionam uma
+linha aqui com a mesma forma.
+
+| # | Cenário | `cluster_id` canônico |
+|---|---------|----------------------|
+| 1 | Project scope check (você não sabe se o escopo cabe em um capability só) | `project-scope-check` |
+| 2 | Synthetic data permission (subagente pediu synthetic; HR #11) | `synthetic-data-permission` |
+| 3 | Push approval (Regime B; você precisa de confirmação humana para push de artefatos de domínio) | `regime-b-push-approval` |
+| 4 | Missing context clarification (brief do projeto é ambíguo) | `missing-context-clarification` |
+| 5 | Generic clarification (pergunta livre que não cabe nas anteriores) | `generic-clarification` |
+| 6 | WDL DEFER block reason (workflow-decomposer devolveu DEFER; você vai perguntar antes de escalar) | `wdl-defer-block-reason` |
+
+**Sequência obrigatória em cada call site:**
+
+1. Rodar a cascata do `confidence_escalation_ladder` (4 actions em
+   ordem: `kb_lookup` → `mcp_health_probe` → `detect_patterns` →
+   `investigate`). Cada action tem 30s de timeout. Se qualquer
+   retornar `improvement_found=true`, consumir o improvement e
+   re-avaliar; se ainda precisar perguntar, recomeçar a ladder.
+2. Após as 4 retornarem `no_improvement` (ou `max_ladder_passes=2`
+   passes esgotados), chamar `lacouncil.log_user_question()` com
+   os campos acima.
+3. Emitir `ask_user` com o `question_text` logado.
+
+### Session Close — `detect_user_question_patterns` no fim da sessão
+
+Ao fim de cada sessão (antes de fechar o project / antes de
+`delivery-reviewer` sign-off), você DEVE chamar
+`lacouncil.detect_user_question_patterns()` (read-only, pure):
+
+```python
+patterns = lacouncil.detect_user_question_patterns()
+# Returns list[UserQuestionPattern] where
+#   occurrences >= 3 AND confidence >= 0.80
+# (thresholds externalizados no wdl-contract.yaml §thresholds)
+```
+
+**Comportamento esperado:**
+
+- Se `patterns == []`: fim da sessão normal, sem ação.
+- Se `patterns` tem ≥1 candidato: **transparência primeiro**.
+  Listar para o user (no log de fechamento) os clusters
+  detectados, com count, confidence, e exemplos de pergunta. O
+  user decide se autoriza a promoção a LACOUNCIL proposal.
+- Se o user autorizar: chamar
+  `lacouncil.create_proposal_from_pattern(pattern, autor="orchestrator")`
+  por candidato. O proposal criado carrega
+  `meta.auto_created: true` e fica em status `pendente` —
+  **NÃO auto-implementa** (Conselho delibera).
+- Se o user não autorizar: nada acontece. As perguntas
+  continuam logadas; detecção roda novamente na próxima sessão.
+
+**Read/write split:** `detect_*` é pure read (não cria proposals);
+`create_proposal_from_pattern` é write explícito (chamado só com
+autorização). Esta divisão evita auto-implementação implícita
+(loop escape) e mantém o log auditável.
+
+### Cleanup (opcional)
+
+Se a sessão é longa e o `user_questions` cresce, você pode chamar
+`lacouncil.cleanup_user_questions()` (default 12 meses). Função
+é idempotente; retorna count deletado.

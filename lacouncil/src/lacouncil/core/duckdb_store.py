@@ -8,6 +8,11 @@ Storage layout:
         sessoes_investigacao     -- investigation results (audit trail)
         verbetes_conhecimento    -- knowledge entries promoted from projects
         wdl_signatures           -- WDL v1 verified-verdict ledger
+        user_questions           -- Confidence Escalation Ladder log
+                                    (LACOUNCIL d3095fa3, 2026-07-02):
+                                    every orchestrator ask_user is recorded
+                                    with cluster_id, context_json, session_id.
+                                    Powers detect_user_question_patterns().
 
 All writes go through this module. Reads can be raw SQL but should use the
 typed helpers.
@@ -157,11 +162,45 @@ def ensure_schema(con: duckdb.DuckDBPyConnection) -> None:
         )
         """
     )
+    # user_questions — Confidence Escalation Ladder log.
+    # LACOUNCIL d3095fa3-4570-413c-82b4-47442a90e947 (workflow / maioria / 4-4 SIM).
+    # The orchestrator logs every ask_user here BEFORE asking the user
+    # (audit trail). detect_user_question_patterns() reads from this
+    # table to find recurrence (HR #7, ≥3 occurrences → auto-create
+    # LACOUNCIL proposal, with meta.auto_created: true).
+    #
+    # Idempotency: CREATE TABLE IF NOT EXISTS is a no-op if the table
+    # already exists with a compatible schema. cluster_id is a
+    # canonical kebab-case slug (validated in UserQuestion model).
+    # No UNIQUE on question_id only — we want one row per (session_id,
+    # cluster_id) so re-asks in the same session overwrite (idempotent
+    # write, chief-engineer condition style: same session, same
+    # question class = no duplicate).
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_questions (
+            question_id    VARCHAR PRIMARY KEY,
+            question_text  VARCHAR NOT NULL,
+            cluster_id     VARCHAR NOT NULL,
+            context_json   VARCHAR NOT NULL,
+            asked_at       TIMESTAMP NOT NULL,
+            answered_with  VARCHAR,
+            session_id     VARCHAR NOT NULL
+        )
+        """
+    )
     # Indexes (idempotent)
     for stmt in [
         "CREATE INDEX IF NOT EXISTS idx_votos_proposal ON votos(proposal_id)",
         "CREATE INDEX IF NOT EXISTS idx_propostas_status ON propostas(status)",
         "CREATE INDEX IF NOT EXISTS idx_projetos_pattern ON projetos_registrados(follows_pattern)",
+        # Chief-engineer condition #6/7: efficient pattern detection.
+        # detect_user_question_patterns() groups by cluster_id; the
+        # composite index makes "WHERE cluster_id = ? ORDER BY asked_at"
+        # O(log n + k) instead of O(n). Also covers retention cleanup
+        # (DELETE WHERE asked_at < cutoff).
+        "CREATE INDEX IF NOT EXISTS idx_user_questions_cluster_asked "
+        "ON user_questions(cluster_id, asked_at)",
     ]:
         con.execute(stmt)
 

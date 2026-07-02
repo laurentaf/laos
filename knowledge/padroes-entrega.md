@@ -121,13 +121,16 @@ arquivo.
       revisão por par (humano ou subagente) que o output seria aceito
       por 80% dos praticantes do campo para o mesmo problema.
       Implementação: Constitution laecon Art. 10 §7 (referência canônica),
-      pré-flight mecânico em `scripts/preflight_check.py` (5 checks).
+      pré-flight mecânico em `scripts/preflight_check.py` (7 checks:
+      YAML, paths, secrets, cross-refs, no-impl-code, WDL gate,
+      Confidence Escalation Ladder).
 - [ ] **Preflight mecânico (Stage 0 do delivery-reviewer) passou.**
       O orchestrator deve rodar `uv run python scripts/preflight_check.py
       projects/<name>` antes de dispatchar o `delivery-reviewer`. Se
-      exit ≠ 0, corrigir antes de prosseguir. Cobre 5 checks mecânicos:
+      exit ≠ 0, corrigir antes de prosseguir. Cobre 7 checks mecânicos:
       YAML+arithmetic, path existence, secret scan, cross-reference
-      integrity, no implementation code in LAOS.
+      integrity, no implementation code in LAOS, WDL preflight gate
+      (a4fe9faa + 7fd94c1a), Confidence Escalation Ladder (d3095fa3).
 - [ ] **Boot check 6ª dimensão passou (`child-repo-skeleton`).**
        O orchestrator deve rodar `uv run python scripts/subagent_boot_check.py
        <subagent> --project-name <name>` antes de cada dispatch. O
@@ -170,6 +173,18 @@ arquivo.
        Framework: `knowledge/eval-methodology.md` §10.
 
 ## P1 - bloqueia se a entrega for para cliente externo
+
+- [ ] **HITL só após `confidence_escalation_ladder` exhausted (LACOUNCIL
+      d3095fa3, maioria, 2026-07-02).** Toda `ask_user` do orchestrator DEVE
+      ser precedida pelas 4 actions da ladder (kb_lookup → mcp_health_probe →
+      detect_patterns → investigate) e DEVE ser logada em
+      `lacouncil.user_questions` via `log_user_question()`. Lacuna na
+      cobertura aparece no `delivery-reviewer` review (preflight Check 7
+      `check_confidence_ladder`). Contrato: `workflows/wdl-contract.yaml`
+      §confidence_escalation_ladder. Thresholds: `min_occurrences=3`,
+      `min_confidence=0.80`, `per_action_timeout=30s`, `retention_months=12`.
+      Justificativa: Regra 1 do LAOS (HR #11) é princípio; a ladder é a
+      mecanização; HITL-reduction rate é o KPI.
 
 - [ ] **DQ baseline checks (LACOUNCIL d6c79133, 2026-06-09).** Para cada
 artefato de dados, os 6 DQ baseline checks (null profiling, column existence,

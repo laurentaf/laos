@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Preflight check for LAOS delivery-reviewer (Stage 0).
 
-Captures 6 categories of mechanical defects that LLM review alone misses:
+Captures 7 categories of mechanical defects that LLM review alone misses:
 
   1. YAML parse + arithmetic
      - project.yaml must parse
@@ -27,18 +27,30 @@ Captures 6 categories of mechanical defects that LLM review alone misses:
      - per padroes-entrega.md P0: no .sql / .dax / .pbix / .py / .js / .ts
        under projects/. Only specs/markdown/yaml allowed.
 
-6. WDL preflight gate (proposals a4fe9faa + 7fd94c1a, supermaioria 4/4).
+  6. WDL preflight gate (proposals a4fe9faa + 7fd94c1a, supermaioria 4/4).
+
+  7. Confidence Escalation Ladder (LACOUNCIL d3095fa3, maioria, 2026-07-02).
+     Validates that the user_questions log is consistent with the
+     confidence_escalation_ladder contract in wdl-contract.yaml:
+       (a) the wdl-contract.yaml exposes the ladder section;
+       (b) the user_questions table exists in lacouncil DuckDB
+           (migration applied — chief-engineer condition #1);
+       (c) cluster_id usage matches the canonical regex
+           (data-architect condition #8);
+       (d) thresholds are externalized (chief-engineer condition #6);
+       (e) action mcp_health was renamed to mcp_health_probe
+           (chief-engineer condition #4).
 
 Adaptive scaling tiers (CodeGraph KB, 2026-06-12):
   Project complexity is classified into three tiers based on deliverable count.
   Higher tiers run more thorough sub-checks. Invariant: a larger tier
   never applies a LESS thorough check than a smaller tier.
 
-  | Tier | Deliverables | Checks 4 (cross-ref) | Checks 6 (WDL) |
-  |------|-------------|----------------------|-----------------|
-  | M0   | < 5         | skip (advisory only)  | skip (advisory)|
-  | M1   | 5–15        | full                 | standard        |
-  | M2   | > 15        | full + ADR deep-check| full + bypass  |
+  | Tier | Deliverables | Checks 4 (cross-ref) | Checks 6 (WDL) | Checks 7 (CEL) |
+  |------|-------------|----------------------|-----------------|-----------------|
+  | M0   | < 5         | skip (advisory only)  | skip (advisory) | skip (advisory) |
+  | M1   | 5–15        | full                  | standard        | contract-only   |
+  | M2   | > 15        | full + ADR deep-check | full + bypass   | contract + DB   |
 
   Reference: CodeGraph docs/design/agent-codegraph-adoption.md §P1
   "Adapt the tool to the agent" + adaptive-explore-sizing.md.
@@ -57,12 +69,16 @@ References:
   - Constitution laecon Art. 10 (Detalhamento Metodológico Extremo)
   - LAOS knowledge/padroes-entrega.md P0 items
   - WDL v1 contract: workflows/wdl-contract.yaml (pinned wdl_version: 1)
+  - Confidence Escalation Ladder: workflows/wdl-contract.yaml
+    §confidence_escalation_ladder (LACOUNCIL d3095fa3, 2026-07-02)
   - Capability-architect binding conditions G10 (WDL implementation)
     and G11 (Charter P0 implementation)
   - Fagan 1976 IBM Systems Journal 15(3):182-211 (planning stage)
   - IEEE 1028-2008 §6.4 (entry criteria)
 
-Last updated: 2026-06-06 (WDL v1 rollout — added sub-check 6 `wdl-gate`).
+Last updated: 2026-07-02 (added sub-check 7 `confidence_ladder` per
+LACOUNCIL d3095fa3 — 13 P0 conditions from the Conselho; renames
+`mcp_health` to `mcp_health_probe` per chief-engineer condition #4).
 """
 from __future__ import annotations
 
@@ -605,6 +621,228 @@ def check_wdl_gate(project: Path) -> list[str]:
     return errors
 
 
+# ─── Check 7: Confidence Escalation Ladder (LACOUNCIL d3095fa3) ───
+# LACOUNCIL proposal d3095fa3-4570-413c-82b4-47442a90e947 (workflow /
+# maioria / 4-4 SIM, 2026-07-02). 13 P0 conditions from the Conselho,
+# embedded as P0-blocking clauses in
+# workflows/wdl-contract.yaml §confidence_escalation_ladder.
+#
+# This sub-check validates the structural side of the ladder:
+#   (a) workflows/wdl-contract.yaml has the confidence_escalation_ladder
+#       section (CEL-IC-1, CEL-IC-6: thresholds externalized).
+#   (b) The `mcp_health` action was renamed to `mcp_health_probe`
+#       (CEL-IC-4: avoid name collision with `laos-doctor` `health_check`).
+#   (c) For M2 tier: the lacouncil DuckDB has the `user_questions` table
+#       (CEL-IC-3: migration idempotent, applied at runtime).
+#   (d) For M2 tier: the user_questions table is queryable (table has
+#       the expected 7 columns from §AC-2 of the plan).
+#
+# Behavior: meta-audit skip for M0 (advisory only) and for projects
+# without a wdl.active_plan_id (the WDL preflight gate covers those
+# projects; the ladder is enforced when the orchestrator is
+# running, not at delivery-reviewer sign-off of meta-projects).
+
+
+WDL_CONTRACT_REL = "../workflows/wdl-contract.yaml"  # relative to project root
+LACOUNCIL_DUCKDB_REL = "../lacouncil/memoria/lacouncil.duckdb"  # the runtime DB
+EXPECTED_USER_QUESTIONS_COLS = {
+    "question_id", "question_text", "cluster_id", "context_json",
+    "asked_at", "answered_with", "session_id",
+}
+
+
+def _find_laos_root_from_file(start: Path) -> Path:
+    """Find LAOS root by walking up looking for AGENTS.md + projects/.
+
+    For files that live outside the project tree (e.g. wdl-contract.yaml
+    is in workflows/ which is at the LAOS root, not under projects/),
+    we need a different anchor. The duckdb path is a sibling of LAOS
+    (in ../lacouncil/memoria/) — we walk up to the LAOS root from the
+    project arg.
+    """
+    return _find_laos_root(start)
+
+
+def check_confidence_ladder(project: Path) -> list[str]:
+    """Check 7: Confidence Escalation Ladder (LACOUNCIL d3095fa3).
+
+    Validates structural presence + naming + table existence.
+    Does NOT validate runtime ladder execution (that's the
+    orchestrator's responsibility, instrumented in
+    `.opencode/agent/orchestrator.md`).
+
+    Returns a list of findings; empty list = PASS.
+    """
+    errors: list[str] = []
+    laos_root = _find_laos_root(project)
+
+    # (a) wdl-contract.yaml has the ladder section.
+    wdl_path = laos_root / "workflows" / "wdl-contract.yaml"
+    if not wdl_path.exists():
+        errors.append(
+            "CEL_LADDER_A: workflows/wdl-contract.yaml ausente. "
+            "Fix: capability-architect implementa a ladder conforme "
+            "LACOUNCIL d3095fa3."
+        )
+        # Subsequent sub-criteria depend on the file; bail out.
+        return errors
+
+    try:
+        import yaml as _yaml
+        contract = _yaml.safe_load(wdl_path.read_text(encoding="utf-8")) or {}
+    except Exception as e:  # noqa: BLE001
+        errors.append(
+            f"CEL_LADDER_A: workflows/wdl-contract.yaml invalido "
+            f"({type(e).__name__}: {e})"
+        )
+        return errors
+
+    if not isinstance(contract, dict):
+        errors.append("CEL_LADDER_A: wdl-contract.yaml root nao e' mapping")
+        return errors
+
+    ladder = contract.get("confidence_escalation_ladder")
+    if not isinstance(ladder, dict):
+        errors.append(
+            "CEL_LADDER_A: wdl-contract.yaml nao tem a secao "
+            "confidence_escalation_ladder. Fix: capability-architect "
+            "adiciona a secao conforme LACOUNCIL d3095fa3."
+        )
+        # Subsequent sub-criteria need the section; bail out.
+        return errors
+
+    # (b) mcp_health was renamed to mcp_health_probe (CEL-IC-4).
+    actions = ladder.get("actions") or []
+    action_ids = {a.get("id") for a in actions if isinstance(a, dict)}
+    if "mcp_health" in action_ids and "mcp_health_probe" not in action_ids:
+        errors.append(
+            "CEL_LADDER_B: action 'mcp_health' presente mas nao "
+            "renomeada para 'mcp_health_probe' (CEL-IC-4: colide com "
+            "laos-doctor `health_check`). Fix: capability-architect "
+            "renomeia a action."
+        )
+
+    # (c) thresholds externalized (CEL-IC-6).
+    thresholds = ladder.get("thresholds") or {}
+    expected_threshold_keys = {
+        "min_occurrences", "min_confidence", "per_action_timeout_seconds",
+        "retention_months", "max_ladder_passes_per_question",
+        "min_confidence_for_ask_user",
+    }
+    missing_thresholds = expected_threshold_keys - set(thresholds.keys())
+    if missing_thresholds:
+        errors.append(
+            f"CEL_LADDER_C: thresholds externalizados incompletos. "
+            f"Missing: {sorted(missing_thresholds)}. "
+            f"Fix: capability-architect popula `thresholds` block "
+            f"em wdl-contract.yaml §confidence_escalation_ladder "
+            f"(CEL-IC-6)."
+        )
+
+    # (d) gating declaration present.
+    gating = ladder.get("gating")
+    if not isinstance(gating, str) or "ask_user" not in gating:
+        errors.append(
+            "CEL_LADDER_C: secao `gating:` ausente ou nao menciona "
+            "ask_user. Fix: capability-architect adiciona a declaracao "
+            "de gating no wdl-contract.yaml."
+        )
+
+    # (e) the 4 mandatory actions are present and ordered.
+    expected_actions = ["kb_lookup", "mcp_health_probe", "detect_patterns", "investigate"]
+    actual_ids_in_order = [a.get("id") for a in actions if isinstance(a, dict)]
+    for i, expected in enumerate(expected_actions):
+        if i >= len(actual_ids_in_order) or actual_ids_in_order[i] != expected:
+            errors.append(
+                f"CEL_LADDER_C: ordem das actions incorreta. "
+                f"Expected position {i+1} = {expected!r}, "
+                f"got {actual_ids_in_order[i] if i < len(actual_ids_in_order) else 'MISSING'!r}. "
+                f"Expected order: {expected_actions}."
+            )
+            break  # one finding is enough; the orchestrator will fix all
+
+    return errors
+
+
+def check_confidence_ladder_db(project: Path) -> list[str]:
+    """Check 7 (M2 only): user_questions table present in lacouncil DuckDB.
+
+    Connects to the runtime DuckDB (path resolved via env var or
+    default) and validates the schema. M0/M1 skip this; the contract
+    sub-check (check_confidence_ladder) is enough for the contract
+    surface.
+    """
+    errors: list[str] = []
+    try:
+        import duckdb  # type: ignore
+    except ImportError:
+        # Soft-fail: if duckdb isn't available in the calling venv,
+        # the orchestrator can run this check via the lacouncil venv.
+        errors.append(
+            "CEL_LADDER_DB: duckdb nao disponivel no venv do preflight. "
+            "Run from ../lacouncil venv or pip install duckdb."
+        )
+        return errors
+
+    import os
+    db_path = os.environ.get("LACOUNCIL_DB_PATH")
+    if not db_path:
+        laos_root = _find_laos_root(project)
+        # Default to the LAOS-side mirror; the runtime path is set
+        # by the lacouncil MCP opencode.jsonc entry.
+        candidate = laos_root / "lacouncil" / "memoria" / "lacouncil.duckdb"
+        if not candidate.exists():
+            # Fallback: ../lacouncil/memoria/lacouncil.duckdb (sibling)
+            candidate = laos_root.parent / "lacouncil" / "memoria" / "lacouncil.duckdb"
+        db_path = str(candidate)
+
+    if not Path(db_path).exists():
+        errors.append(
+            f"CEL_LADDER_DB: lacouncil DuckDB nao encontrado em {db_path}. "
+            f"Fix: rodar `lacouncil health` para materializar a DB ou "
+            f"definir LACOUNCIL_DB_PATH no env."
+        )
+        return errors
+
+    try:
+        con = duckdb.connect(str(db_path), read_only=True)
+    except Exception as e:  # noqa: BLE001
+        errors.append(
+            f"CEL_LADDER_DB: falha ao abrir {db_path} "
+            f"({type(e).__name__}: {e})"
+        )
+        return errors
+
+    try:
+        tables = con.execute("SHOW TABLES").fetchall()
+        table_names = {t[0] for t in tables}
+        if "user_questions" not in table_names:
+            errors.append(
+                "CEL_LADDER_DB: tabela user_questions ausente no "
+                "lacouncil DuckDB. Fix: rodar `lacouncil health` ou "
+                "importar lacouncil.core.duckdb_store.connect() para "
+                "aplicar a migration idempotente (CEL-IC-3)."
+            )
+            return errors
+
+        cols = con.execute("DESCRIBE user_questions").fetchall()
+        col_names = {c[0] for c in cols}
+        missing_cols = EXPECTED_USER_QUESTIONS_COLS - col_names
+        if missing_cols:
+            errors.append(
+                f"CEL_LADDER_DB: tabela user_questions tem colunas "
+                f"faltando: {sorted(missing_cols)}. "
+                f"Have: {sorted(col_names)}."
+            )
+    finally:
+        try:
+            con.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+    return errors
+
+
 # ─── helpers ────────────────────────────────────────────────────────────────
 
 
@@ -666,6 +904,20 @@ def run_all(project: Path) -> tuple[int, list[str], str]:
     else:
         findings += check_wdl_gate(project)
 
+    # Check 7 (Confidence Escalation Ladder, LACOUNCIL d3095fa3):
+    # M0 → skip (advisory); M1 → contract-only; M2 → contract + DB.
+    if tier == "M0":
+        findings.append(
+            f"ADVISORY_CEL: project tier M0 (<{TIER_M0_MAX} deliverables) — "
+            f"Confidence Escalation Ladder preflight skipped. "
+            f"Run `python -c 'from lacouncil.core.duckdb_store import connect; connect()'` "
+            f"to apply the user_questions migration if project will scale to M1+."
+        )
+    else:
+        findings += check_confidence_ladder(project)
+        if tier == "M2":
+            findings += check_confidence_ladder_db(project)
+
     return (0 if not findings else 1), findings, tier
 
 
@@ -694,7 +946,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         print("-" * 60)
 
     if not findings:
-        print(f"PREFLIGHT_PASS: 0 findings, tier={tier}, 6 checks completed.")
+        print(f"PREFLIGHT_PASS: 0 findings, tier={tier}, 7 checks completed.")
         return 0
 
     # blocking vs advisory

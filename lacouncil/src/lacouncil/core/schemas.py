@@ -324,6 +324,163 @@ class DetectPatternsRequest(BaseModel):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Confidence Escalation Ladder (LACOUNCIL d3095fa3)
+# ──────────────────────────────────────────────────────────────────────────────
+# The `UserQuestion` record is the persistence unit for every
+# orchestrator-side `ask_user` invocation. The intent: every question
+# to the user must (a) be logged with a canonical `cluster_id` slug
+# (kebab-case, e.g. "synthetic-data-permission"), and (b) be passed
+# through the `confidence_escalation_ladder` declared in
+# `workflows/wdl-contract.yaml` before being emitted. The `context_json`
+# captures the WHO/WHAT/WHERE of the question so the audit trail is
+# complete (P0-20 sufficiency — no "use Read to confirm").
+#
+# Provenance: LACOUNCIL proposal d3095fa3-4570-413c-82b4-47442a90e947
+# (workflow / maioria / 4-4 SIM / 2026-07-02). The full ladder contract
+# lives in `workflows/wdl-contract.yaml` §confidence_escalation_ladder.
+# The `cluster_id` MUST be a canonical slug — see field_validator below.
+
+
+# Canonical cluster_id regex: kebab-case, 3-80 chars, starts with a
+# letter. Stable enough to dedup across sessions; loose enough for
+# real-world question classes.
+_CLUSTER_ID_RE = re.compile(r"^[a-z][a-z0-9-]{2,80}$")
+
+
+class UserQuestion(BaseModel):
+    """A single `ask_user` invocation by the orchestrator.
+
+    The orchestrator emits one of these BEFORE asking the user, then
+    `log_user_question()` persists it. `cluster_id` is the canonical
+    class label (e.g., "synthetic-data-permission",
+    "regime-b-push-approval", "wdl-defer-block-reason"); the same
+    cluster across sessions is what `detect_user_question_patterns()`
+    counts to find recurrence (HR #7, ≥3 occurrences).
+
+    Read/write split (data-architect condition #9): this model is the
+    shape of a single record. Aggregation is a separate function
+    (`detect_user_question_patterns` in user_questions.py), and
+    promotion to a LACOUNCIL proposal is yet another explicit call
+    (`create_proposal_from_pattern`). The split makes the read path
+    pure, the write path explicit, and prevents auto-implementation
+    (delivery-reviewer condition #10).
+    """
+
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+    question_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    question_text: str = Field(min_length=10, max_length=4000)
+    cluster_id: str  # canonical kebab-case slug; see _CLUSTER_ID_RE
+    context_json: dict[str, Any]  # WHO (orchestrator session_id,
+                                 # active plan_id) + WHAT (the need
+                                 # that triggered the question) +
+                                 # WHERE (subagent or stage). P0-20:
+                                 # complete enough that a reviewer
+                                 # can audit the question without
+                                 # reading additional files.
+    asked_at: str = Field(default_factory=_utc_now_iso)
+    answered_with: Optional[str] = None  # the user's reply, if captured
+    session_id: str  # orchestrator session_id (matches
+                    # wdl-contract.yaml §versioning.session_id)
+
+    @field_validator("cluster_id")
+    @classmethod
+    def _validate_cluster_id(cls, v: str) -> str:
+        if not _CLUSTER_ID_RE.match(v):
+            raise ValueError(
+                f"cluster_id {v!r} must match {_CLUSTER_ID_RE.pattern} "
+                f"(kebab-case, 3-80 chars, starts with a letter). "
+                f"Use a stable canonical slug — this is the dedup key."
+            )
+        return v
+
+    @field_validator("question_text")
+    @classmethod
+    def _non_trivial_question(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 10:
+            raise ValueError("question_text must be >= 10 chars (the actual question)")
+        return v
+
+    @field_validator("context_json")
+    @classmethod
+    def _context_json_is_object(cls, v: Any) -> dict[str, Any]:
+        if not isinstance(v, dict):
+            raise ValueError("context_json must be a JSON object (dict)")
+        return v
+
+
+class LogUserQuestionRequest(BaseModel):
+    """Input shape for `log_user_question` (write path, idempotent on session)."""
+
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+    question_text: str = Field(min_length=10)
+    cluster_id: str
+    context_json: dict[str, Any] = Field(default_factory=dict)
+    session_id: str
+    answered_with: Optional[str] = None
+
+
+class DetectUserQuestionPatternsRequest(BaseModel):
+    """Input shape for `detect_user_question_patterns` (pure read).
+
+    Returns candidate `Pattern` records where:
+      occurrences >= min_occurrences AND
+      confidence >= min_confidence
+    The pure-read contract is enforced: this function MUST NOT create
+    proposals, MUST NOT write to user_questions, MUST NOT call any
+    LACOUNCIL write tool. Promotion is a separate explicit call
+    (data-architect condition #9).
+    """
+
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+    min_occurrences: int = 3
+    min_confidence: float = 0.80
+    scope: Optional[list[str]] = None  # limit by cluster_id list
+
+
+class UserQuestionPattern(BaseModel):
+    """A candidate recurrence pattern over `user_questions`.
+
+    Read-only output of `detect_user_question_patterns()`. The orchestrator
+    uses this to decide whether to call `create_proposal_from_pattern()`
+    (an explicit, write-side action). The split ensures read purity
+    (condition #9) and forbids implicit auto-implementation (condition #10).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    cluster_id: str
+    occurrences: int
+    question_samples: list[str] = Field(default_factory=list, max_length=5)
+    session_ids: list[str] = Field(default_factory=list, max_length=5)
+    confidence: float = Field(ge=0.0, le=1.0)
+    first_asked_at: str
+    last_asked_at: str
+
+
+class CreateProposalFromPatternRequest(BaseModel):
+    """Input shape for `create_proposal_from_pattern` (explicit write).
+
+    Caller (orchestrator) MUST pass a verified `Pattern` plus `autor`.
+    The created proposal carries `meta.auto_created: true` to flag
+    its origin (delivery-reviewer condition #10 audit trail). The
+    function does NOT call `lacouncil.implement_proposal`; that
+    remains a Conselho-gated step (R3 + R4 separation of duties).
+    """
+
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+    cluster_id: str
+    occurrences: int
+    confidence: float
+    question_samples: list[str] = Field(default_factory=list, max_length=3)
+    autor: str  # agente_id (orchestrator, by convention)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Signature helper
 # ──────────────────────────────────────────────────────────────────────────────
 

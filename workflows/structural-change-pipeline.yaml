@@ -86,9 +86,11 @@ stages:
       - boot check exit code
     description: |
       Orchestrator roda verificações mecânicas:
-      1. `uv run python scripts/preflight_check.py` — 5 checks: YAML
+      1. `uv run python scripts/preflight_check.py` — 7 checks: YAML
          validation, path existence, secret scan, cross-reference
-         integrity, no implementation code in LAOS.
+         integrity, no implementation code in LAOS, WDL preflight
+         gate (a4fe9faa + 7fd94c1a), Confidence Escalation Ladder
+         (d3095fa3).
       2. `uv run python scripts/subagent_boot_check.py` — valida
          venv, daemon, MCPs, paths, env vars.
     gate:

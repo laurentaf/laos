@@ -263,7 +263,7 @@ escalation:
       route:
         - workflow-decomposer emits `ESCALATE` in verdict.yaml
         - orchestrator dispatches `capability-architect` with the
-          escalation_payload (per ADR-003 R5: separation of duties)
+          escalation_payload (per ADR-003 R5 - separation of duties)
         - capability-architect authors LACOUNCIL proposal
         - LACOUNCIL Conselho votes
         - if approved → capability-architect implements
@@ -632,6 +632,247 @@ implementation_conditions:
       G-VERDICT-10, NOT blocking at sign-off.
     enforced_via: "decomposition.signals[id=multi_owns].cross_capability_calibration"
 
+# ─── confidence_escalation_ladder (LACOUNCIL d3095fa3) ──────────────
+# Codifica Regra 1 do LAOS mecanicamente (HR #11, AGENTS.md, 2026-06-07):
+# "execute com máxima confiança; melhore a confiança antes de perguntar
+# ao usuário". Quando o WDL verdict é DEFER ou confidence < threshold,
+# o orchestrator DEVE executar uma cascata mandatória de 4 actions em
+# ordem antes de poder emitir `ask_user`.
+#
+# Provenance: LACOUNCIL d3095fa3-4570-413c-82b4-47442a90e947
+# (workflow / maioria / 4-4 SIM / 2026-07-02). Implementation lives in:
+#   - lacouncil/src/lacouncil/core/user_questions.py (log, detect, create)
+#   - .opencode/agent/orchestrator.md (instrumentation at 6 call sites)
+#   - scripts/preflight_check.py (Check 7: check_confidence_ladder)
+#   - knowledge/padroes-entrega.md (P1 line)
+# 13 condições P0 do Conselho (chief-engineer x7, data-architect x2,
+# delivery-reviewer x4) são embedded como cláusulas obrigatórias.
+#
+# Breaking-change policy: este bloco é uma adição ao contract; NÃO
+# altera o verdict shape (WDL-IC-5 + §8 versioning.breaking_changes_policy).
+# O `recommendation: ask_user` permanece do lado do orchestrator, NÃO
+# do verdict. A cascata é enforçada no orchestrator + preflight; o
+# verdict continua tri-state (READY | DEFER | ESCALATE). Esta é a
+# interpretação que evita supermaioria (delivery-reviewer condition #11).
+confidence_escalation_ladder:
+
+  purpose: |
+    Transformar a Regra 1 do LAOS (HR #11 — "execute com máxima
+    confiança; melhore a confiança antes de perguntar ao usuário")
+    de convenção dispersa em workflow codificado. A cascata roda
+    automaticamente antes de CADA `ask_user` do orchestrator. Sem
+    isto, o caminho de menor atrito (perguntar) é o caminho default
+    — falha que esta ladder fecha.
+
+  trigger:
+    - description: |
+        WDL verdict é DEFER e o orchestrator está prestes a
+        perguntar ao user (não está escalando para capability-architect
+        nem emitindo ESCALATE). Cada `block_reason` em
+        `verdicts.states[name=DEFER].block_reasons_enum` conta.
+      applies_at: "post_defer_user_question"
+    - description: |
+        Confidence score de uma chamada do orchestrator para um
+        subagente (Agreement Matrix em
+        `knowledge/stack-decisions.md`) cai abaixo de
+        `thresholds.min_confidence_for_ask_user` (default 0.80). A
+        ladder é a remediation primária antes de perguntar.
+      applies_at: "low_confidence_dispatch"
+
+  gating: |
+    `ask_user` SÓ pode ser emitido se TODAS as 4 actions da ladder
+    retornarem `no_improvement` (ou expirarem por timeout, marcado
+    também como `no_improvement` no output). Qualquer action que
+    retornar `improvement` (qualquer `improvement_action` populated)
+    faz o orchestrator CONSUMIR o improvement, re-avaliar, e
+    recomeçar a ladder a partir do início se ainda precisar perguntar.
+    Loop máximo: `thresholds.max_ladder_passes_per_question` (default 2).
+
+  actions:
+    # Ordem mandatória. As actions 2-4 são namespaced em
+    # `lacouncil.*` (mesma família da investigação WDL); a action 1
+    # é uma busca no KB local do LAOS (knowledge/) + capability KBs.
+    - id: kb_lookup
+      order: 1
+      namespace: local
+      action: "Read knowledge/glossario-negocio.md, knowledge/padroes-entrega.md, knowledge/stack-decisions.md e a KB do capability primário (se aplicável)"
+      timeout_seconds: 30  # externalized below; chief-engineer condition #2
+      output_schema: |
+        {
+          "improvements_found": bool,
+          "hits": [{"file": "<relpath>", "section": "<heading>", "quote": "<text>"}],
+          "kb_path": "<relpath of canonical KB hit, or null>"
+        }
+      no_improvement_signal: "improvements_found == false OR hits == []"
+
+    - id: mcp_health_probe
+      order: 2
+      # Renomeado de "mcp_health" para "mcp_health_probe" por
+      # chief-engineer condition #4: o nome "mcp_health" colide
+      # semanticamente com o tool `health_check` exposto pelo plugin
+      # laos.infra (laos-doctor). O sufixo "_probe" deixa claro que
+      # é uma sondagem diagnóstica para satisfazer a Regra 1, não o
+      # health check de produção.
+      namespace: laos.infra (custom tool `health_check`)
+      action: "Probe primary capability MCP server health; if degraded, route to fallback or skip and continue"
+      timeout_seconds: 30
+      output_schema: |
+        {
+          "improvements_found": bool,
+          "components": [{"name": "<mcp>", "status": "ok|degraded|down", "latency_ms": <int>}],
+          "summary": "<1-line human-readable>"
+        }
+      no_improvement_signal: "all components status == 'ok'"
+
+    - id: detect_patterns
+      order: 3
+      namespace: lacouncil
+      action: "Call lacouncil.detect_patterns() with min_occurrences from thresholds"
+      timeout_seconds: 30
+      output_schema: |
+        {
+          "improvements_found": bool,
+          "patterns": [{"pattern": "<slug>", "occurrences": <int>, "confidence": <float>, "projects": [...]}],
+          "count": <int>
+        }
+      no_improvement_signal: "count == 0 OR all patterns confidence < min_confidence_for_ask_user"
+
+    - id: investigate
+      order: 4
+      namespace: lacouncil
+      action: "Call lacouncil.investigate(gap) and persist the result if a root cause is identified"
+      timeout_seconds: 30
+      output_schema: |
+        {
+          "improvements_found": bool,
+          "session_id": "<uuid>",
+          "root_causes": ["<causa1>", "<causa2>"],
+          "proposed_action": "<1-2 sentence recommendation>"
+        }
+      no_improvement_signal: "root_causes == [] OR proposed_action starts with 'no actionable root cause'"
+
+  # Thresholds externalizados no YAML (chief-engineer condition #6).
+  # Mudanças aqui NÃO requerem nova proposta LACOUNCIL — são tunable
+  # parameters, parte do operating contract. Mudanças de estratégia
+  # (ex: turn min_occurrences de 3 para 5) requerem proposal por
+  # impactarem o cross-session dedup behavior.
+  thresholds:
+    min_occurrences: 3
+    min_confidence: 0.80
+    per_action_timeout_seconds: 30
+    retention_months: 12
+    max_ladder_passes_per_question: 2
+    min_confidence_for_ask_user: 0.80
+    # cross-reference: knowledge/stack-decisions.md "Agreement Matrix"
+    # base scores. The ladder is the remediation; the agreement matrix
+    # is the score that triggers it.
+
+  on_exhaustion: |
+    Após as 4 actions retornarem `no_improvement` (ou a ladder ter
+    passado `max_ladder_passes_per_question` vezes), o orchestrator
+    PODE emitir `ask_user`. ANTES de emitir, chama
+    `lacouncil.log_user_question()` com:
+      - question_text: a pergunta exata
+      - cluster_id: slug kebab-case canônico (validado por regex)
+      - context_json: {plan_id, session_id, active_need, subagent, stage}
+      - session_id: lacouncil session_id
+    Esta chamada é o audit trail. Sem ela, o preflight
+    `check_confidence_ladder` falha o sign-off (P0-blocking).
+
+  # 13 condições P0 do Conselho (proposta d3095fa3). Embedded here so
+  # delivery-reviewer walks this list at G4 sign-off.
+  implementation_conditions:
+    - id: CEL-IC-1
+      source: "chief-engineer #1"
+      clause: |
+        Preflight sub-check para a ladder — `check_confidence_ladder`
+        em `scripts/preflight_check.py` Check 7. Falha se
+        `user_questions` tem entradas cuja `cluster_id` aparece ≥3
+        vezes sem uma `LACOUNCILProposal` correspondente no projeto
+        ativo (sinal de que o orchestrator não tentou a ladder).
+    - id: CEL-IC-2
+      source: "chief-engineer #2"
+      clause: |
+        Per-action timeout de 30s (default) externalizado no YAML.
+        Fallback em timeout = `no_improvement` (sinal não-bloqueante;
+        a próxima action da cascata é tentada).
+    - id: CEL-IC-3
+      source: "chief-engineer #3"
+      clause: |
+        `lacouncil/tests/test_user_questions.py` com unit tests
+        para: `log()` (idempotência), `detect_user_question_patterns`
+        (pure read, ≥3 threshold), `create_proposal_from_pattern`
+        (write, meta.auto_created true), migration idempotente
+        (re-run no-op), smoke test E2E.
+    - id: CEL-IC-4
+      source: "chief-engineer #4"
+      clause: |
+        Action `mcp_health` renomeada para `mcp_health_probe` para
+        evitar colisão semântica com o tool `health_check` em
+        `laos.infra` (laos-doctor).
+    - id: CEL-IC-5
+      source: "chief-engineer #5"
+      clause: |
+        Coverage gap fechado: 6 call sites do orchestrator
+        (`ask_user` callsites em `.opencode/agent/orchestrator.md`)
+        cada um com `log_user_question()` wrap antes da pergunta.
+        Sites: scope-check, synthetic-data, push-approval,
+        missing-context, generic-clarification, wdl-defer-block-reason.
+    - id: CEL-IC-6
+      source: "chief-engineer #6"
+      clause: |
+        Thresholds externalizados no YAML: min_occurrences=3,
+        min_confidence=0.80, per_action_timeout=30s, retention_months=12.
+    - id: CEL-IC-7
+      source: "chief-engineer #7"
+      clause: |
+        Retention policy: cleanup automático > 12 meses (default).
+        `cleanup_user_questions(retention_months=12)` idempotente;
+        chamada explícita, não agendada (orchestrator decides when).
+    - id: CEL-IC-8
+      source: "data-architect #8"
+      clause: |
+        `cluster_id` é string canônica (kebab-case slug,
+        regex `^[a-z][a-z0-9-]{2,80}$`). Não fuzzy match —
+        é class label literal, dedup key.
+    - id: CEL-IC-9
+      source: "data-architect #9"
+      clause: |
+        Read/write split: `detect_user_question_patterns()` é
+        pure read (NÃO cria proposals). `create_proposal_from_pattern()`
+        é write explícito, chamado pelo orchestrator somente após
+        review do pattern pelo user ou Conselho.
+    - id: CEL-IC-10
+      source: "delivery-reviewer #10"
+      clause: |
+        Loop escape: proposals criados por `create_proposal_from_pattern`
+        carregam `meta.auto_created: true` no payload_json. NÃO
+        auto-implementa (sem call a `lacouncil.implement_proposal`
+        nem a capability-architect). Conselho delibera.
+    - id: CEL-IC-11
+      source: "delivery-reviewer #11"
+      clause: |
+        Verdict shape NÃO alterado. `recommendation: ask_user` NÃO
+        é adicionado ao schema do verdict.yaml. A ladder é enforced
+        no orchestrator + preflight, não no verdict. Esta decisão
+        evita breaking change (supermaioria). DEFER verdict com
+        `block_reason` permanece o surface para "ainda bloqueado".
+    - id: CEL-IC-12
+      source: "delivery-reviewer #12 (P0-20)"
+      clause: |
+        Suficiência de output por layer. Cada action da ladder
+        retorna output COMPLETO (não "use Read para confirmar").
+        Ver `actions[*].output_schema` neste bloco.
+    - id: CEL-IC-13
+      source: "delivery-reviewer #13"
+      clause: |
+        Acceptance criteria explícitos no plan (9 items) — ver
+        `projects/_meta/capability-architect/plans/d3095fa3-*.md`.
+
+  # P0-20 sufficiency: every action returns the structured output
+  # above. The orchestrator MUST NOT make the caller re-read the
+  # KB or the MCP server; the ladder output is enough to act on.
+
 # ─── Cross-references ────────────────────────────────────────────────
 cross_references:
   proposals:
@@ -643,6 +884,10 @@ cross_references:
       title: "Orchestrator charter amendment: P0 hard rule for workflow-decomposer invocation"
       strategy: supermaioria
       status: aprovada
+    - id: d3095fa3-4570-413c-82b4-47442a90e947
+      title: "Confidence Escalation Ladder + User Question Log (codifica Regra 1 do LAOS mecanicamente)"
+      strategy: maioria
+      status: implementada
   adrs:
     - ADR-011-wdl-workflow-decomposer
     - ADR-012-orchestrator-wdl-preflight-p0

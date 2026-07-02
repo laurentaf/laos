@@ -35,7 +35,6 @@ from lacouncil.core.duckdb_store import (
     list_proposals,
     record_project,
     register_vote,
-    tally_votes as _tally_votes,
     upsert_proposal,
 )
 from lacouncil.core.schemas import (
@@ -50,6 +49,7 @@ from lacouncil.core.schemas import (
 from lacouncil.core.voting import (
     compute_tally,
     default_strategy_for_category,
+    tally_votes as _tally_votes,
 )
 
 app = typer.Typer(

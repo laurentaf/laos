@@ -11,6 +11,11 @@ Exposed tools (per registry/capabilities.yaml):
     Implementation:   implement_proposal
     Pattern:          record_project, detect_patterns
     Investigation:    investigate
+    Confidence Ladder (d3095fa3, 2026-07-02):
+                       log_user_question,
+                       detect_user_question_patterns,
+                       create_proposal_from_pattern,
+                       cleanup_user_questions
 """
 
 from __future__ import annotations
@@ -31,6 +36,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
 from lacouncil import __version__, __status__
+from lacouncil.core import user_questions as __user_questions
 from lacouncil.core.duckdb_store import (
     connect,
     detect_patterns as _detect_patterns,
@@ -79,6 +85,9 @@ def _list_supported_operations() -> list[str]:
         "health", "list_supported_operations", "investigate", "create_proposal",
         "get_proposal", "list_proposals", "register_vote", "tally_votes",
         "implement_proposal", "record_project", "detect_patterns",
+        # Confidence Escalation Ladder (LACOUNCIL d3095fa3, 2026-07-02)
+        "log_user_question", "detect_user_question_patterns",
+        "create_proposal_from_pattern", "cleanup_user_questions",
     ]
 
 
@@ -167,6 +176,94 @@ def __detect_patterns_tool(min_occurrences: int = 3, scope: list[str] | None = N
     return [dict(r) for r in rows]
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Confidence Escalation Ladder tools (LACOUNCIL d3095fa3, 2026-07-02)
+# ──────────────────────────────────────────────────────────────────────────────
+# These tools back the orchestrator's `ask_user` instrumentation
+# (see .opencode/agent/orchestrator.md §"User Question Logging").
+# Read/write split (data-architect condition #9): log + create_proposal_from
+# are writes; detect_user_question_patterns is pure read. The split is
+# visible in the function naming (`__` prefix on internal helpers).
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def _log_user_question(
+    question_text: str,
+    cluster_id: str,
+    context_json: dict[str, Any],
+    session_id: str,
+    answered_with: str | None = None,
+) -> dict:
+    """Log a single ask_user invocation. Idempotent on (session_id, cluster_id).
+
+    Per chief-engineer convention: re-asking the same cluster in the same
+    session UPDATEs the row (preserves question_id, refreshes text/timestamp).
+    """
+    uq = __user_questions.log(
+        question=question_text,
+        cluster_id=cluster_id,
+        context=context_json,
+        session_id=session_id,
+        answered_with=answered_with,
+    )
+    return uq.model_dump(mode="json")
+
+
+def _detect_user_question_patterns(
+    min_occurrences: int | None = None,
+    min_confidence: float | None = None,
+    scope: list[str] | None = None,
+) -> list[dict]:
+    """Pure read: detect recurring user-question clusters.
+
+    Returns list of `UserQuestionPattern` records. MUST NOT create
+    proposals (data-architect condition #9).
+    """
+    patterns = __user_questions.detect_user_question_patterns(
+        min_occurrences=min_occurrences,
+        min_confidence=min_confidence,
+        scope=scope,
+    )
+    return [p.model_dump(mode="json") for p in patterns]
+
+
+def _create_proposal_from_pattern(
+    cluster_id: str,
+    occurrences: int,
+    confidence: float,
+    question_samples: list[str] | None = None,
+    autor: str = "orchestrator",
+) -> dict:
+    """Explicit write: create a LACOUNCIL proposal from a pattern.
+
+    The orchestrator calls this AFTER the user has approved promotion
+    (transparency, see orchestrator.md §"Session Close"). The created
+    proposal carries `meta.auto_created: true` and stays in status
+    `pendente` — does NOT auto-implement (delivery-reviewer condition
+    #10 loop escape). Conselho votes normally.
+    """
+    from lacouncil.core.schemas import UserQuestionPattern
+
+    pattern = UserQuestionPattern(
+        cluster_id=cluster_id,
+        occurrences=occurrences,
+        confidence=confidence,
+        question_samples=question_samples or [],
+    )
+    proposal = __user_questions.create_proposal_from_pattern(
+        pattern=pattern, autor=autor
+    )
+    return proposal.model_dump(mode="json")
+
+
+def _cleanup_user_questions(retention_months: int | None = None) -> dict:
+    """Idempotent retention cleanup. Returns count of rows deleted."""
+    deleted = __user_questions.cleanup_user_questions(
+        retention_months=retention_months
+    )
+    return {"deleted_rows": deleted, "retention_months": retention_months}
+
+
 # Build tool registry from function signatures
 TOOL_FUNCTIONS = {
     "health": _health,
@@ -180,6 +277,11 @@ TOOL_FUNCTIONS = {
     "implement_proposal": _implement_proposal,
     "record_project": _record_project,
     "detect_patterns": __detect_patterns_tool,
+    # Confidence Escalation Ladder (LACOUNCIL d3095fa3, 2026-07-02)
+    "log_user_question": _log_user_question,
+    "detect_user_question_patterns": _detect_user_question_patterns,
+    "create_proposal_from_pattern": _create_proposal_from_pattern,
+    "cleanup_user_questions": _cleanup_user_questions,
 }
 
 TOOL_DEFINITIONS = [
@@ -216,6 +318,47 @@ TOOL_DEFINITIONS = [
                ["project_slug", "scope", "capabilities_used", "deliverable_summary"]),
     _make_tool("detect_patterns", "Detect recurring patterns across registered projects",
                {"min_occurrences": {"type": "integer"}, "scope": {"type": "array", "items": {"type": "string"}}}, []),
+    # Confidence Escalation Ladder (LACOUNCIL d3095fa3, 2026-07-02)
+    _make_tool(
+        "log_user_question",
+        "Log an orchestrator ask_user invocation. Idempotent on (session_id, cluster_id).",
+        {
+            "question_text": {"type": "string"},
+            "cluster_id": {"type": "string"},
+            "context_json": {"type": "object"},
+            "session_id": {"type": "string"},
+            "answered_with": {"type": "string"},
+        },
+        ["question_text", "cluster_id", "context_json", "session_id"],
+    ),
+    _make_tool(
+        "detect_user_question_patterns",
+        "Pure read: detect recurring user-question clusters (>= min_occurrences, confidence >= min_confidence).",
+        {
+            "min_occurrences": {"type": "integer"},
+            "min_confidence": {"type": "number"},
+            "scope": {"type": "array", "items": {"type": "string"}},
+        },
+        [],
+    ),
+    _make_tool(
+        "create_proposal_from_pattern",
+        "Explicit write: create a LACOUNCIL proposal from a detected pattern. Status starts pendente; does NOT auto-implement.",
+        {
+            "cluster_id": {"type": "string"},
+            "occurrences": {"type": "integer"},
+            "confidence": {"type": "number"},
+            "question_samples": {"type": "array", "items": {"type": "string"}},
+            "autor": {"type": "string"},
+        },
+        ["cluster_id", "occurrences", "confidence"],
+    ),
+    _make_tool(
+        "cleanup_user_questions",
+        "Idempotent retention cleanup. Returns deleted row count.",
+        {"retention_months": {"type": "integer"}},
+        [],
+    ),
 ]
 
 
