@@ -52,7 +52,13 @@ from lacouncil.core.schemas import (
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]
+# Path layout: file = lacouncil/src/lacouncil/core/duckdb_store.py
+#   parents[0] = lacouncil/src/lacouncil/core/
+#   parents[1] = lacouncil/src/lacouncil/
+#   parents[2] = lacouncil/src/                  # OLD (produce orphan DB)
+#   parents[3] = lacouncil/                      # canonical, aligns with opencode.jsonc env var
+# DEFAULT_DB_PATH = lacouncil/memoria/lacouncil.duckdb (canonical)
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_DB_PATH = _REPO_ROOT / "memoria" / "lacouncil.duckdb"
 
 
