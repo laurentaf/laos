@@ -17,8 +17,40 @@ The CLI is the human/admin interface. Specialists use the MCP server.
 
 from __future__ import annotations
 
-import json
 import sys
+
+
+def _ensure_utf8_stdout() -> None:
+    """Force UTF-8 on sys.stdout if reconfigure is available.
+
+    Safe to call multiple times. No-op if:
+      - sys.stdout is not a TextIOWrapper (captured, redirected, frozen)
+      - reconfigure raises (wrapped by colorama, IPython, etc.)
+
+    Rationale (LACOUNCIL b43ca63d C-B1):
+      sys.stdout.reconfigure(encoding="utf-8") does not exist on:
+      - colorama-wrapped streams (Windows < 3.10 with colorama)
+      - IPython/Jupyter captured streams
+      - PyInstaller frozen streams
+      - pytest capture (capsys, capfd)
+      The guard hasattr+try/except makes reconfigure no-op in those edge
+      cases instead of AttributeError fatal. Idempotent in UTF-8 environments.
+    """
+    out = sys.stdout
+    if not hasattr(out, "reconfigure"):
+        return
+    try:
+        out.reconfigure(encoding="utf-8")
+    except (ValueError, OSError, AttributeError):
+        # ValueError: closed stream
+        # OSError: pipe/redirect on Windows
+        # AttributeError: wrapped stream (defensive — hasattr should catch)
+        pass
+
+
+_ensure_utf8_stdout()
+
+import json
 from pathlib import Path
 from typing import Optional
 

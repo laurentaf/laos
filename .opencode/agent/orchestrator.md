@@ -75,7 +75,13 @@ If a project reveals that LAOS itself needs a new capability, registry entry, wo
 
 1. Call `lacouncil.investigate()` to formalize the gap (5 Whys + Fishbone).
 2. Call `lacouncil.create_proposal()` with the appropriate `dominio` (laos / latade / ladesign / lan8n / transversal) and `estrategia` (unanimidade for fundamentos, supermaioria for registry, maioria for workflows/knowledge).
-3. Convoke the Conselho by dispatching the 4 subagents (`data-architect`, `dashboard-designer`, `automation-engineer`, `delivery-reviewer`) to deliberate and call `lacouncil.register_vote()` from their own lens.
+3a. **Workaround for missing `automation-engineer` in `task` tool (LACOUNCIL b43ca63d C-B3).** The `task` tool's hardcoded `subagent_type` list does not include `automation-engineer` in this OpenCode version, even though `.opencode/agent/automation-engineer.md` exists. The WDL gate would accept (validates by directory), but the `task` tool rejects before WDL runs. **Protocol:**
+   - First, call `validate_agent(dispatch_type="automation-engineer")` (laos.infra tool).
+   - If `valid: true` &rightarrow; dispatch `automation-engineer` directly. No workaround needed.
+   - If `valid: false` &rightarrow; dispatch `chief-engineer` (which IS in the list) with the engineering/automation lens prompt. Pass `voter: "automation-engineer"` in the `lacouncil.vote.register` payload (so the Conselho log preserves the deliberative identity).
+   - If using the workaround, log the fallback in `artifacts/wdl/<plan-id>/fallback.yaml` with: `proposal_id`, `original_target: "automation-engineer"`, `actual_agent: "chief-engineer"`, `reason: "task tool rejected subagent_type"`, `timestamp`. This enables retirement detection.
+   - **Retirement plan (C-B4):** if `validate_agent("automation-engineer")` returns `valid: true` for ≥30 consecutive days, the orchestrator should prompt the user to remove this fallback section from the charter and delete the `fallback.yaml` from any active WDL plan. See `knowledge/lacouncil-fallback-retirement.md`.
+3b. Convoke the Conselho by dispatching the 4 subagents (`data-architect`, `dashboard-designer`, `automation-engineer`, `delivery-reviewer`) to deliberate and call `lacouncil.register_vote()` from their own lens.
 4. Call `lacouncil.tally_votes()` and check the result.
 5. If approved, dispatch `capability-architect` with the `proposal_id` to implement the change. Capability-architect reads `projects/_meta/capability-architect/binding-conditions.md` for the 14 conditions (R1–R5 + G1–G9) and applies the standard scaffold.
 6. Hand off to `delivery-reviewer` for the BASIC sign-off (G4) before the change is exposed for routing, and the STABLE sign-off (G8) at the 30-day mark.
