@@ -582,7 +582,7 @@ Each MCP server has its own documentation. Quick links:
 - **LACOUNCIL** — [`../lacouncil/`](https://github.com/laurentaf/lacouncil) — Governance engine, proposals, Conselho voting, DuckDB memory, pattern detection
 - **LAECON** — [`../laecon/`](https://github.com/laurentaf/laecon) — Econometrics & interpretable ML, regressions, GLM, causal inference, diagnostic reports
 - **LAENGINE** — [`../laengine/`](https://github.com/laurentaf/laengine) — Sports simulation, match engine, squad management, league standings
-- **CAREEROPS** — [`../career-ops/`](https://github.com/santifer/career-ops) — External skill source for job search optimization, CV generation, portal scanning *(MIT, upstream: santifer/career-ops)*
+- **LACAREEROPS** — [`../lacareerops-hub/`](https://github.com/laurentaf/lacareerops-hub) — Job search optimization via career-ops CLI, CV generation, portal scanning, career tracker *(private repo, replaces legacy `laurentaf/career-ops`)*
 
 > Platform MCPs: `context7` (library docs), `exa` (web research), `github` (repo ops)
 

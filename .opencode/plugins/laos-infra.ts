@@ -97,6 +97,7 @@ const EXPECTED_PLUGINS = [
   "laos-infra.ts",
   "laos-plan-format-validator.ts",
   "laos-format-guard.ts",
+  "laos-completion-gate.ts",
 ]
 
 const MCP_COMPONENTS = [
