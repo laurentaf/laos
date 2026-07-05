@@ -22,7 +22,7 @@ De A, obtenha:
 | `<<A_HOSTNAME>>` | Em A: `$env:COMPUTERNAME` | `LAURENT-CPS` |
 | `<<A_TAILSCALE_IP>>` | Em A: `tailscale ip -4` | `100.97.85.82` |
 | `<<TAILSCALE_AUTH_KEY>>` | Gere em https://login.tailscale.com/admin/settings/keys | `tskey-auth-kdxUAKSWii11CNTRL-rnrCBfJiAv7HFNJAZwBYu74EeBJP8W1RG` |
-| `<<B_HOSTNAME>>` | Em B: abra PowerShell e digite `$env:COMPUTERNAME` | _preencher_ |
+| `<<B_HOSTNAME>>` | Em B: abra PowerShell e digite `$env:COMPUTERNAME` | `DESKTOP-3R2IA7Q` |
 | `<<WINDOWS_USER>>` | Mesmo user nas duas máquinas: `$env:USERNAME` | `Ryzen` |
 | `<<BACKUP_DRIVE>>` | Drive para backup (pode ser o mesmo F:) | `F` |
 | `<<VOLUME_NUMERO>>` | Se ainda não converteu: `Get-Partition -DriveLetter E \| Select-Object PartitionNumber` | _já convertido_ |
