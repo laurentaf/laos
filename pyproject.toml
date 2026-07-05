@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "Laurent Agent Operating System - orchestration layer"
 requires-python = ">=3.11"
 dependencies = [
+    "duckdb>=1.5.4",
     "mcp[cli]>=1.0.0",
     "pyyaml>=6.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [tool.uv]

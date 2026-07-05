@@ -1,5 +1,6 @@
 .env
 .env.local
+.env.shared
 
 # Local Python venv (managed by uv)
 .venv/

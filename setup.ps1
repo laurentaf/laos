@@ -16,15 +16,39 @@ Write-Host "[1/3] Creating local .venv via uv sync..." -ForegroundColor Yellow
 uv sync
 if ($LASTEXITCODE -ne 0) { throw "uv sync failed" }
 
-# 2. .env from template if missing
+# 2. .env* files from templates
 Write-Host ""
-Write-Host "[2/3] .env file..." -ForegroundColor Yellow
+Write-Host "[2/3] .env files..." -ForegroundColor Yellow
+
+# .env (legacy, for opencode.jsonc compat)
 if (Test-Path -LiteralPath ".env") {
-    Write-Host "  .env already exists, leaving alone."
+    Write-Host "  .env exists, leaving alone."
 } else {
     Copy-Item -LiteralPath ".env.example" -Destination ".env"
     Write-Host "  created .env from .env.example - fill in N8N_API_KEY when ready."
 }
+
+# .env.local (machine-specific paths)
+if (Test-Path -LiteralPath ".env.local") {
+    Write-Host "  .env.local exists, leaving alone."
+} else {
+    if (Test-Path -LiteralPath "env-local-template.txt") {
+        Copy-Item -LiteralPath "env-local-template.txt" -Destination ".env.local"
+        Write-Host "  created .env.local from env-local-template.txt - adjust paths for this machine."
+    }
+}
+
+# .env.shared (shared API keys, sync'd between machines)
+if (Test-Path -LiteralPath ".env.shared") {
+    Write-Host "  .env.shared exists, leaving alone."
+} else {
+    if (Test-Path -LiteralPath "env-shared-template.txt") {
+        Copy-Item -LiteralPath "env-shared-template.txt" -Destination ".env.shared"
+        Write-Host "  created .env.shared from env-shared-template.txt - fill in API keys."
+    }
+}
+
+Write-Host "  Run 'uv run python scripts/load_env.py' to verify env vars."
 
 # 3. Sibling capability sanity check
 Write-Host ""

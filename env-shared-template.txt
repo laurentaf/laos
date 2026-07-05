@@ -1,0 +1,4 @@
+# .env.shared — sincronizado entre A e B (privado, nunca no git)
+CONTEXT7_API_KEY=
+N8N_API_URL=http://localhost:5678/api/v1
+N8N_API_KEY=
