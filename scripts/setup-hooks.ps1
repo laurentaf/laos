@@ -9,9 +9,9 @@
 $ErrorActionPreference = "Stop"
 
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
-# $SCRIPT_DIR = F:\Projetos\Laos\scripts
+# $SCRIPT_DIR = F:\projects\Laos\scripts
 $REPO_ROOT = Split-Path -Parent $SCRIPT_DIR
-# $REPO_ROOT = F:\Projetos\Laos
+# $REPO_ROOT = F:\projects\Laos
 $HOOKS_DIR = Join-Path $REPO_ROOT ".git\hooks"
 
 # Detect environment

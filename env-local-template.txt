@@ -1,3 +1,3 @@
 # .env.local — MÁQUINA LOCAL (NÃO sincronizado)
-LATADE_DB_PATH=F:\Projetos\Laos\memoria\latade.duckdb
-LACOUNCIL_DB_PATH=F:\Projetos\Laos\memoria\lacouncil.duckdb
+LATADE_DB_PATH=F:\projects\Laos\memoria\latade.duckdb
+LACOUNCIL_DB_PATH=F:\projects\Laos\memoria\lacouncil.duckdb

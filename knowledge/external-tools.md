@@ -8,14 +8,14 @@ de deliverable de projeto.
 
 - **Repo:** https://github.com/santifer/career-ops (MIT, publico)
 - **Autor:** Santiago Fernandez de Valderrama
-- **Clone local:** F:/Projetos/career-ops/ (repo irmao, nao fork, nao submodule)
+- **Clone local:** F:/projects/career-ops/ (repo irmao, nao fork, nao submodule)
 - **Tipo:** Skill system agnostico de CLI (14 modos: scan, pdf, cover, batch,
   tracker, apply, pipeline, contacto, deep, training, project, etc.)
 - **CLIs suportados:** Claude Code, OpenCode, Gemini CLI, Qwen, Copilot
-- **Atualizacao:** `git -C F:/Projetos/career-ops pull` (upstream = fonte unica)
+- **Atualizacao:** `git -C F:/projects/career-ops pull` (upstream = fonte unica)
 - **Skill LAOS:** .opencode/skills/career-ops/SKILL.md (router/pointer)
 - **NÃO e:** capability LAOS, MCP server, registry entry, needs-routable
-- **Artefatos:** ficam em F:/Projetos/career-ops/ (nao em projects/<name>/artifacts/)
+- **Artefatos:** ficam em F:/projects/career-ops/ (nao em projects/<name>/artifacts/)
 
 ### Por que nao e uma capability MCP
 
@@ -28,15 +28,15 @@ dentro de AI CLIs.
 
 ### Como usar
 
-1. Abrir sessao OpenCode em F:/Projetos/career-ops/ (recomendado)
-2. Ou executar comandos via `run_command(cwd="F:/Projetos/career-ops")`
+1. Abrir sessao OpenCode em F:/projects/career-ops/ (recomendado)
+2. Ou executar comandos via `run_command(cwd="F:/projects/career-ops")`
 3. Slash commands: `/career-ops scan`, `/career-ops pdf`, `/career-ops tracker`,
    `/career-ops batch`, `/career-ops apply`, etc.
 
 ### Configuracao do usuario
 
 Cada usuario configura seus proprios `config/cv.md` e `config/profile.yml`
-dentro de `F:/Projetos/career-ops/config/`. Esses arquivos sao gitignored
+dentro de `F:/projects/career-ops/config/`. Esses arquivos sao gitignored
 pelo proprio career-ops. LAOS nao gerencia nem armazena esses dados.
 
 ### Historico

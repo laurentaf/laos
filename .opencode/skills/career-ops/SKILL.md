@@ -8,7 +8,7 @@ description: >-
   evaluation, ATS, PDF generation for jobs, career dashboard, pipeline
   de candidaturas, job description analysis, salary evaluation, company
   research. Routes to the career-ops workspace (santifer/career-ops clone
-  at F:/Projetos/career-ops/). Do NOT generate CV, resume, cover letter,
+  at F:/projects/career-ops/). Do NOT generate CV, resume, cover letter,
   or job evaluation content inline in LAOS — use career-ops slash commands
   instead.
 ---
@@ -30,7 +30,7 @@ E uma ferramenta externa consumida diretamente, como git, uv, npx.
 O workspace do career-ops esta clonado em:
 
 ```
-F:/Projetos/career-ops/
+F:/projects/career-ops/
 ```
 
 Este e um clone direto do upstream `santifer/career-ops`. LAOS nunca
@@ -44,7 +44,7 @@ Quando o usuario quer trabalhar com career-ops (avaliar vaga, gerar CV,
 escanear portais, etc.):
 
 1. Instrua o usuario a abrir uma sessao OpenCode separada em
-   `F:/Projetos/career-ops/`
+   `F:/projects/career-ops/`
 2. Nessa sessao, os slash commands do career-ops estao disponiveis
    nativamente (`/career-ops scan`, `/career-ops pdf`, etc.)
 3. O career-ops gerencia seu proprio config/ (cv.md, profile.yml),
@@ -54,9 +54,9 @@ escanear portais, etc.):
 
 Se precisar executar career-ops a partir da sessao LAOS:
 
-1. Use `run_command` com `cwd: "F:/Projetos/career-ops"`
-2. Exemplo: `run_command(command="npx @santifer/career-ops scan", cwd="F:/Projetos/career-ops")`
-3. Os artefatos (PDFs, avaliacoes, tracker) ficam em `F:/Projetos/career-ops/`,
+1. Use `run_command` com `cwd: "F:/projects/career-ops"`
+2. Exemplo: `run_command(command="npx @santifer/career-ops scan", cwd="F:/projects/career-ops")`
+3. Os artefatos (PDFs, avaliacoes, tracker) ficam em `F:/projects/career-ops/`,
    NAO em `projects/<name>/artifacts/`
 
 ## Regra absoluta
@@ -67,19 +67,19 @@ usuario pedir "gera meu CV" ou "avalia essa vaga", voce:
 
 1. Carrega esta skill (ja feita se voce esta lendo isto)
 2. Informa que career-ops e a ferramenta correta
-3. Orienta para o workspace `F:/Projetos/career-ops/` (Opcao 1 ou 2 acima)
+3. Orienta para o workspace `F:/projects/career-ops/` (Opcao 1 ou 2 acima)
 
 ## Atualizacao
 
 Para atualizar o career-ops para a ultima versao do upstream:
 
 ```bash
-git -C F:/Projetos/career-ops pull
+git -C F:/projects/career-ops pull
 ```
 
 LAOS nao pinna versao, nao tem sync tool, nao tem smoke test wrapper.
 O upstream e a fonte unica. Se uma atualizacao quebrar algo, o usuario
-pode fazer `git -C F:/Projetos/career-ops reset --hard <sha-anterior>`.
+pode fazer `git -C F:/projects/career-ops reset --hard <sha-anterior>`.
 
 ## Por que nao e uma capability MCP
 

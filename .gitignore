@@ -24,6 +24,9 @@ projects/*/_child_clone/
 # lacouncil (inside repo) — venv já coberto por .venv/ acima
 lacouncil/.venv/
 
+# Tailscale machine credentials
+.tailscale-creds.json
+
 # Editor / OS
 .vscode/
 .idea/
