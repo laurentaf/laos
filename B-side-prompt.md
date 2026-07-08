@@ -244,6 +244,11 @@ Set-SmbShare -Name "LAOS_STATE" -EncryptData $true
 Get-SmbShare -Name "LAOS_STATE"
 ```
 
+> **Após reboot**, rode como Admin para evitar divergência entre `memoria/` e `lacouncil/memoria/`:
+> ```powershell
+> .\scripts\sync\fix-memoria-junction.ps1
+> ```
+
 ---
 
 ## Passo 11 — Conectar a A via SMB
