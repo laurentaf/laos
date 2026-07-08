@@ -24,6 +24,23 @@ projects/*/_child_clone/
 # lacouncil (inside repo) — venv já coberto por .venv/ acima
 lacouncil/.venv/
 
+# LAOS runtime state
+.laos/
+
+# LACOUNCIL memory (DuckDB) — lives in lacouncil/memoria/
+memoria/
+
+# User-provided data (CVs, personal files)
+user_input_data/
+
+# Root-level generated artifacts (WDL plans, debug output)
+artifacts/
+
+# Temp/scratch scripts
+_temp_cleanup.py
+scripts/temp_rename_*.ps1
+scripts/temp_rename_*.py
+
 # Tailscale machine credentials
 .tailscale-creds.json
 

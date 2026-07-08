@@ -1,0 +1,157 @@
+# project.yaml — Avaliação Estratégica de Carreira (Laurent Ferreira → AI Data Engineer)
+#
+# Projeto para avaliar posicionamento no mercado de AI Data Engineer /
+# Data Specialist. Consome o CV fornecido pelo usuário via
+# `user_input_data/Laurent_Ferreira_Engenheiro_de_dados_para_Inteligencia_Artificial_2026.docx`
+# e produz 5 eixos de análise: gaps de ferramentas, gaps do portfolio
+# GitHub, gaps curriculares, estratégia LinkedIn, faixa salarial.
+#
+# Capability routing principal: lacareerops (career-evaluation) + ladesign
+# (apresentação visual dos 30 posts) + exa/context7 (research salarial
+# + tendências de mercado) + github (auditoria dos repos laurentaf).
+#
+# Proveniência:
+#   - Brief do usuário em 2026-06-21 (single-shot inquiry).
+#   - Input: F:\projects\LAOS\user_input_data\Laurent_Ferreira_Engenheiro_de_dados_para_Inteligencia_Artificial_2026.docx
+#   - Convenção: `user_input_data/` (novo diretório de grounding do
+#     usuário em LAOS). Diretório ainda não formalizado em
+#     `knowledge/data-conventions.md` — fora do escopo deste projeto;
+#     se repetir, promove-se para convenção.
+#
+# Workflow: este projeto é ad-hoc (não usa dashboard-completo nem
+# apresentacao-executiva). Passa pelo WDL preflight gate
+# (workflow-decomposer) antes de dispatch.
+
+nome: lacareerops-selfeval
+tipo: agentic-adhoc
+
+brief: |
+  Avaliar Laurent Ferreira contra o mercado de AI Data Engineer / Data
+  Specialist em 2026, em 5 eixos: (1) ferramentas/skills exigidos pelo
+  mercado, (2) qualidade e gaps do portfolio GitHub (laurentaf), (3)
+  gaps curriculares cruzando 1×2, (4) estratégia LinkedIn (avaliar
+  ideia de post do usuário + gerar backlog de 30 posts + sugestão de
+  âncora de autoridade), (5) faixa salarial para negociação em
+  entrevistas. Outputs entregues em formato textual estruturado (não
+  dashboard HTML).
+
+needs:
+  - career-evaluation
+  - research
+  - design
+  - documentation-lookup
+  - repo-operations
+
+capabilities_used:
+  - lacareerops          # CV evaluation via career-ops
+  - exa                  # weblead wage research
+  - context7             # libs/frameworks docs lookup
+  - github               # audit dos repos laurentaf
+  - ladesign             # 30 LinkedIn posts → apresentação
+  - latade               # opcional, data sanity checks
+  - lacouncil            # investigation se necessário
+
+repo: null
+  # Não há child repo — outputs ficam todos em projects/lacareerops-selfeval
+
+external_delivery: false
+  # Self-eval — entregue ao próprio Laurent, não a cliente externo.
+
+inputs:
+  - cv_docx
+  - target_roles
+  - linkedin_strategy_idea
+
+input_values:
+  cv_docx: 'F:\projects\LAOS\user_input_data\Laurent_Ferreira_Engenheiro_de_dados_para_Inteligencia_Artificial_2026.docx'
+  target_roles:
+    - AI Data Engineer
+    - Data Specialist
+    - Data Engineer para IA
+  linkedin_strategy_idea: |
+    Estratégia proposta pelo usuário: posts aplicados, linguagem simples,
+    exemplos não-técnicos usando incidentes reais (e.g., McDonald's em
+    que IA recebia pedidos de itens inexistentes e gerava código em vez
+    de recusar). Topic guardrails em 3 camadas: (1) limpeza do input,
+    (2) auto-avaliação do LLM dentro do prompt, (3) LLM-evaluator sobre
+    a resposta final antes do output ao usuário.
+
+deliverables:
+  - path: projects/lacareerops-selfeval/artifacts/cv/parsed-cv.md
+    type: parsed_input
+    description: Texto extraído do docx com 9 seções estruturadas, 51 tech keywords.
+    validation: docx extraído + estrutura visível
+    status: completed
+
+  - path: projects/lacareerops-selfeval/artifacts/cv/curriculum-gaps.md
+    type: synthesis
+    description: Matriz CV × mercado × portfolio com 19 skills, 3 zonas de gap, sprint 7 dias.
+    validation: matriz 3 zonas + plano 30d
+    status: completed
+
+  - path: projects/lacareerops-selfeval/artifacts/market/tools-gaps.md
+    type: analysis
+    description: 19 tools/skills de AI Data Engineer, frequência de mercado × cobertura, 3 zonas.
+    validation: ≥10 skills com justificativa + cobertura CV
+    status: completed
+
+  - path: projects/lacareerops-selfeval/artifacts/market/wage-bands.md
+    type: research
+    description: Faixas salariais BR CLT, BR PJ, US remote, EU remote para AI Data Engineer 2026.
+    validation: ≥3 mercados × 3 brackets com fontes
+    status: completed
+
+  - path: projects/lacareerops-selfeval/artifacts/portfolio/github-audit.md
+    type: analysis
+    description: "Auditoria 9 dimensões (D1-D9) dos 25 repos. 4 deep audits + 11 light audits."
+    validation: ≥10 repos auditados + ranking + gaps
+    status: completed
+
+  - path: projects/lacareerops-selfeval/artifacts/portfolio/repos-inventory.md
+    type: inventory
+    description: Inventário completo dos 25 repos laurentaf (13 public, 12 private) com stack, activity, visibility.
+    validation: todos os repos contados
+    status: completed
+
+  - path: projects/lacareerops-selfeval/artifacts/strategy/strategy-evaluation.md
+    type: evaluation
+    description: Avaliação crítica da proposta McDonald's 3-layer guardrails. Pontuação 3.5/5, 6 melhorias.
+    validation: ≥5 critérios + 2 alternativas
+    status: completed
+
+  - path: projects/lacareerops-selfeval/artifacts/strategy/30-posts-backlog.md
+    type: backlog
+    description: 30 posts LinkedIn, calendário 10 semanas, formato wheel (W1-W4), 3 layers.
+    validation: 30 posts + 4 pillars equilibrados
+    status: completed
+
+  - path: projects/lacareerops-selfeval/artifacts/strategy/visuals-deck.html
+    type: deck
+    description: Single-file HTML deck, 12 slides (cover + 10 posts + closing), Boardroom palette.
+    validation: 10 cards visuais navegáveis
+    status: completed
+
+  - path: projects/lacareerops-selfeval/spec/adr/001-tools-gaps-methodology.md
+    type: adr
+    description: Metodologia de frequency extraction de JDs para identificar gaps de skills.
+    validation: formato ADR (Contexto, Decisão, Alternativas, Consequências)
+    status: completed
+
+  - path: projects/lacareerops-selfeval/spec/adr/002-linkedin-content-strategy.md
+    type: adr
+    description: Adoção da framework McDonald's 3-layer com format wheel + brand pillar + metrics.
+    validation: formato ADR
+    status: completed
+
+  - path: projects/lacareerops-selfeval/spec/adr/003-wage-bands-sources.md
+    type: adr
+    description: Multi-source convergence method para wage bands de AI Data Engineer.
+    validation: formato ADR
+    status: completed
+
+data_policy:
+  allow_synthetic: false
+  scope: []
+
+criado_em: 2026-06-21
+estado: review_pending
