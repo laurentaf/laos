@@ -1,0 +1,102 @@
+name: eixo-do-mal
+description: |
+  Eixo do Mal — MMO 4X/strategy turn-based game.
+  SaaS proprietário, rewrite moderno.
+  Engine Python puro + FastAPI + PostgreSQL 16 + Redis 7 + React 18/Vite/TypeScript.
+  Base de design: QM Promisance 4.81 (QMT Productions, GPL-2.0, reference only).
+  In-house project, no public remote.
+workflow: null
+external_delivery: false
+
+# In-house, no public remote. All code stays local.
+repo: ../eixo_do_mal
+
+# Nota: econometrics removido para POC. Banking é aritmética simples
+# (juros = taxa * saldo) implementada no engine diretamente.
+# LAECON será usado depois para balance tuning (simulações, regressões).
+needs:
+  - data
+  - design
+  - automation
+
+deliverables:
+  - spec/
+  - contract.md
+  - README.md
+  - LICENSE
+  - design/DESIGN.md
+  - design/wireframes/
+  - engine/src/eixo_engine/domain/economy/
+  - engine/src/eixo_engine/domain/combat/
+  - engine/src/eixo_engine/domain/races/
+  - engine/src/eixo_engine/domain/turns/
+  - engine/src/eixo_engine/domain/world/
+  - engine/src/eixo_engine/domain/spells/
+  - engine/src/eixo_engine/domain/clans/
+  - engine/src/eixo_engine/domain/events/
+  - engine/src/eixo_engine/tests/
+  - server/app/main.py
+  - server/app/api/v1/
+  - server/app/ws/
+  - server/app/db/
+  - server/app/models/
+  - server/app/schemas/
+  - server/migrations/
+  - server/tests/
+  - web/src/routes/
+  - web/src/components/game/
+  - web/src/hooks/
+  - web/src/api/
+  - web/tests/
+  - docker-compose.yaml
+  - docs/game-mechanics/
+  - docs/balance-book/constants.yaml
+  - docs/architecture/
+  - docs/development/
+  - analytics/marts/leaderboard.sql
+  - infra/grafana/dashboards/
+  - legal/terms-of-service.md
+  - legal/privacy-policy.md
+
+inputs:
+  - brief
+  - game_spec
+  - prominence_reference
+
+input_values:
+  brief: |
+    Eixo do Mal — MMO 4X/strategy turn-based game.
+    Recursos: Dinheiro, Comida, Runas (Mana), População (Camponeses).
+    Construção de terras com custo crescente (scaling cost).
+    Banking (depósitos com juros, empréstimos).
+    Combate: OffPower vs DefPower, distribuição Gaussiana de baixas, Networth ratio.
+    3 tipos de ataque: Standard (conquista), Surprise (extermínio), Focused (por fileira).
+    4 fileiras militar: Arm (exército), Lnd (terrestre), Fly (aviação), Sea (naval).
+    Spells (magia), Clans (alianças + guerras), Eras (progressão), Mercados (público + privado).
+    SaaS proprietário. POC local-first com 8+ jogadores simultâneos.
+    Rewrite moderno completo. Engine Python puro, zero I/O, testável.
+    Stack: Python 3.11+ / FastAPI / PostgreSQL 16 / Redis 7 / React 18 / Vite / TypeScript / Canvas2D.
+    Base de design: QM Promisance 4.81 (QMT Productions, GPL-2.0, read-only reference).
+    Licença do child repo: Proprietário (All Rights Reserved).
+    In-house, no public remote Git.
+    Artes complexas (sprites/avatares/animations) postergadas para Phase 2.
+  game_spec: |
+    ECONOMIA:
+    - Dinheiro, Comida, Runas, População
+    - Se comida acaba, população morre (efeito domino)
+    - Construção: terras exploradas com turnos, edifícios com custo crescente
+    - Banking: depósitos rendem juros (4%/turn), empréstimos (7.5%)
+    COMBATE:
+    - OffPower = tropa_atk * sum * health * race * military_pct * tech
+    - DefPower = tropa_def * sum + guard_towers + shields
+    - Off > Def = atacante vence
+    - Baixas: distribuição Gaussiana (10-30%), imprevisível
+    - Saque: recursos + terras em ataques vitoriosos
+    - Networth ratio: penalidade se atacante muito maior, bonus se menor furar
+    TIPOS DE ATAQUE:
+    - Standard: conquista de terras + edifícios
+    - Surprise: dano massivo, sem conquista
+    - Focused: mira em fileira específica (Arm/Lnd/Fly/Sea)
+  prominence_reference:
+    path: _reference/prominence-4.81.tar.bz2
+    note: GPL-2.0 reference only. NOT for distribution. Read-only design inspiration.

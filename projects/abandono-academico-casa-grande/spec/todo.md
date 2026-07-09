@@ -30,3 +30,8 @@
 ## Stage 4: Dashboard + Simulacao
 - [x] Dashboard interativo em artifacts/dashboard/index.html
 - [x] Dashboard atualizado para OULAD (metricas, features, sliders)
+
+## Improvement: Melhorias Pós-Entrega (2026-07-03)
+- [ ] Ponto 1: Treinar 6 modelos (Dummy, LR, RF, GBM, XGB, LGBM) + ADR-003 + comparativo em model.md + model_proxy.json
+- [x] Ponto 2: Dashboard com meta configurável, 3 sliders top-3 indicadores, esforço por indicador + ADR-004
+- [x] Ponto 3: conclusions-and-actions.md (correlação vs causalidade, 3 ações concretas)

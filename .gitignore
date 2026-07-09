@@ -11,6 +11,22 @@ __pycache__/
 .opencode/cache/
 .opencode/logs/
 .opencode/state/
+.opencode/temp/
+
+# LAOS state persistence (laos-recovery plugin)
+.laos/
+
+# WDL build artifacts
+artifacts/wdl/
+
+# Raw data (CSVs, extracts)
+data/
+
+# Memory database (DuckDB audit)
+memoria/
+
+# Archived scratch scripts
+scripts/_archive/
 
 # Per-project artifacts
 projects/*/artifacts/

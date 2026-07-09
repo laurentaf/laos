@@ -122,6 +122,48 @@ function runCli(command: string): { ok: boolean; output: string } {
   }
 }
 
+// ─── Command execution with allowlist enforcement (ADR-014)
+// Mirrors the bash allowlist in .opencode/opencode.jsonc §permission.bash.
+// This function is the ONLY shell entry point for the orchestrator.
+function isCommandAllowed(command: string): { allowed: boolean; reason?: string } {
+  // Deny list (checked first)
+  if (command.startsWith("rm -rf ")) {
+    return { allowed: false, reason: "Command 'rm -rf *' is explicitly denied in opencode.jsonc bash allowlist" }
+  }
+
+  // Allow list — prefix matching, same semantics as WDL gate
+  const allowedPrefixes = [
+    "git ",
+    "uv ",
+    "npx ",
+    "uv run python scripts/subagent_boot_check.py ",
+    "uv run python scripts/toolchain_inventory.py ",
+    "uv run python scripts/preflight_check.py ",
+  ]
+
+  for (const prefix of allowedPrefixes) {
+    if (command.startsWith(prefix)) {
+      return { allowed: true }
+    }
+  }
+
+  return { allowed: false, reason: "Command does not match any allowed prefix in opencode.jsonc bash allowlist" }
+}
+
+function runCommand(command: string, cwd?: string): { ok: boolean; output: string; error?: string } {
+  try {
+    const result = execSync(command, {
+      cwd: cwd || process.cwd(),
+      timeout: 60000,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    })
+    return { ok: true, output: result.trim() }
+  } catch (e: any) {
+    return { ok: false, output: "", error: e.stderr ? String(e.stderr) : String(e) }
+  }
+}
+
 function stripJsoncComments(text: string): string {
   const out: string[] = []
   let i = 0
@@ -1617,6 +1659,49 @@ export const Infra = async ({ project, client, $, directory, worktree }: {
           _context: any
         ): Promise<string> {
           return runValidateAgent(args.dispatch_type)
+        },
+      },
+
+      // Tool 5.5: run_command (scoped shell execution)
+      "run_command": {
+        description:
+          "Execute a shell command scoped to the existing bash allowlist " +
+          "from .opencode/opencode.jsonc. Supports optional cwd override. " +
+          "Replaces manual terminal usage for venv syncs and other " +
+          "cross-directory operations. Returns structured JSON with " +
+          "stdout, stderr, and exit code. Blocked commands: rm -rf.",
+        args: {
+          command: {
+            type: "string" as const,
+            description: "Shell command to execute. Allowed prefixes: git *, uv *, npx *",
+          },
+          cwd: {
+            type: "string" as const,
+            description: "Optional working directory (default: current process cwd)",
+          },
+        },
+        async execute(
+          args: { command: string; cwd?: string },
+          _context: any
+        ): Promise<string> {
+          const check = isCommandAllowed(args.command)
+          if (!check.allowed) {
+            return JSON.stringify({
+              status: "denied",
+              command: args.command,
+              reason: check.reason,
+              hint: "Allowed: git *, uv *, npx *",
+            }, null, 2)
+          }
+
+          const result = runCommand(args.command, args.cwd)
+          return JSON.stringify({
+            status: result.ok ? "ok" : "error",
+            command: args.command,
+            cwd: args.cwd || process.cwd(),
+            output: result.output,
+            error: result.error,
+          }, null, 2)
         },
       },
 

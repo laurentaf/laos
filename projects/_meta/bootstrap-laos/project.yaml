@@ -1,0 +1,125 @@
+project: bootstrap-laos
+version: 0.1.0
+status: active
+criado_em: 2026-06-22
+type: meta-project
+scope: workspace-infrastructure
+
+# -----------------------------------------------------------------------
+# Meta-project: bootstrap LAOS workspace (capability repos + venvs)
+# -----------------------------------------------------------------------
+# This meta-project tracks the bootstrap of LAOS's full capability
+# ecosystem on the user's PC, ahead of the Databricks POC project.
+# It is part of the same work-stream as `databricks-lakehouse` but
+# its scope is infrastructure provisioning, not capability extension.
+# -----------------------------------------------------------------------
+
+brief: |
+  Bootstrap do ecossistema LAOS na máquina do usuário: clonar repos de
+  capability faltantes (lacouncil ausente em disco), sincronizar os venvs
+  Python (`uv sync` em latade, lacouncil, lan8n, laecon, laengine) e
+  reinstalar o daemon Node do ladesign (`pnpm install`). Finalidade:
+  habilitar o structural-change pipeline (Conselho + voto + tally +
+  implementação) para que a próxima etapa (LACOUNCIL proposal
+  `sql.databricks` para LATADE) possa ser executada.
+
+needs:
+  - improvement    # bootstrap enables the LACOUNCIL loop
+  - data           # bootstrap ensures latade venv exists (target of change outstanding)
+
+deliverables:
+  laos_side:
+    - scripts/bootstrap_laos.ps1  # reproducible bootstrap recipe
+  workspace:
+    - F:/Projetos/lacouncil        # git clone from github.com/laurentaf/lacouncil
+    - F:/Projetos/latade/.venv     # uv sync
+    - F:/Projetos/lacouncil/.venv  # uv sync
+    - F:/Projetos/lan8n/.venv      # uv sync
+    - F:/Projetos/laecon/.venv     # uv sync
+    - F:/Projetos/laengine/.venv   # uv sync
+    - F:/Projetos/ladesign/apps/daemon/dist/cli.js  # pnpm install
+  verification:
+    - laos-doctor: venvs dimension PASS for >5/6 capability repos
+
+capabilities_used:
+  primary:
+    - laos.infra   # scaffolding tools (download_file, scaffold_mcp)
+  optional:
+    - context7     # for Node daemon / uv install semantics if needed
+
+repo: https://github.com/laurentaf/laos
+local_paths:
+  scripts: F:/Projetos/Laos/scripts/bootstrap_laos.ps1
+
+successor_meta: projects/_meta/databricks-lakehouse/project.yaml
+outstanding_change: LACOUNCIL proposal to add sql.databricks to LATADE
+
+wdl:
+  prerequisite_for: databricks-lakehouse-pipeline
+  plan_id: n/a                              # no plan analyzer; bootstrap is infra not project work
+  pre_dispatch_required: false              # no specialist dispatch occurs in this meta-project
+
+git_sync_regime: A                          # bootstrap script lives in LAOS repo
+regime_a_note: |
+  A bootstrap script is a structural change to LAOS (new operational script
+  in scripts/). Após o usuário rodar o script com sucesso e validar
+  `laos-doctor`, é aplicado regime A: commit + push ao origin/main dentro
+  desta sessão. Não requer delivery-reviewer porque é documentável como
+  utility code (categoria A3 do padroes-entrega).
+
+runtime:
+  driver: human    # the user runs the bootstrap script; LAOS does not auto-clone
+  rationale: |
+    Cloning capability repos is a workspace-level authority. The orchestrator
+    must never auto-clone on the user's filesystem without explicit consent.
+    Hard Rule #10 covers file permissions but not arbitrary new repos.
+
+binding_conditions:
+  applied_to:
+    - R1 (proposal gate): n/a                  # bootstrap is not LACOUNCIL — it's prerequisite setup
+    - R2 (no project artifacts): cleared       # only meta-project + bootstrap script
+    - R3 (no voting): n/a                      # orchestrator writes the bootstrap
+    - R4 (no self-proposal): n/a
+    - R5 (no subagent prompt edits): cleared
+    - G1 (observability): cleared              # laos-doctor verifies post-bootstrap
+    - G2 (handoff boundaries): cleared         # bootstrap has clear handoff to databricks-lakehouse
+    - G3 (domain-specialist review): n/a       # bootstrap doesn't add capability; capability-architect hides
+    - G4 (delivery-reviewer BASIC): n/a        # not a capability change; no G4 invocations needed
+    - G5 (registry + opencode.jsonc): n/a      # scripts dir is internal LAOS infra, not registry
+    - G6 (capability-evolution): cleared       # laengine/laecon.md continue to track health
+    - G7 (ADR): cleared                        # no binding principle changes
+    - G8 (30d STABLE): n/a                     # n/a — bootstrap is workspace setup
+    - G9 (commit + push): schedule             # commit after user verifies bootstrap ran
+    - G10 (WDL v1): n/a                        # no specialist dispatch
+    - G11 (Charter P0): n/a                    # no new charter
+
+sign_off_state:
+  user_authorization: granted-2026-06-22       # user said "correct with is needed"
+  runner: human
+  script_path: F:/Projetos/Laos/scripts/bootstrap_laos.ps1
+  verification_command: uv run python scripts/laos-doctor.py
+  expected_post_state:
+    venvs_dimension: 7/7 PASS                     # LAOS + 6 capability repos
+    workspace_dimension: 8/8 PASS
+    plugins_dimension: 13/13 PASS                 # unchanged
+    config_dimension: 12/12 PASS                  # unchanged
+    mcp_health_dimension: 8/10 PASS or higher     # ladesign may still need restart
+
+adrs:
+  candidates:
+    - ADR-014 workspace-bootstrap-script-permission-grant
+      title: "Bootstrap scripts in LAOS scripts/ are human-driven and pre-authorized"
+      rationale: |
+        Cloning repos, syncing venvs, installing binaries all change the
+        user's filesystem in non-trivial ways. Per Hard Rule #10, the
+        LAOS orchestrator must not perform these on its own initiative.
+        Bootstrap scripts in scripts/bootstrap_*.ps1 are LAOS-authored
+        recipes that the user runs manually, with reproducible steps.
+        This is the canonical pattern for workspace setup operations.
+
+dependency_graph:
+  depends_on: []
+  unblocks:
+    - LACOUNCIL proposal `databricks-to-latade-addition` (proposed id not yet assigned)
+    - databricks-lakehouse POC project (projects/_meta/databricks-lakehouse/project.yaml)
+  blocked_by_user: browser MCP fix (independent)
