@@ -128,15 +128,15 @@ deliverables:
   - artifacts/discovery/requirements.md
   - artifacts/data/model.md
   - artifacts/design/
-  - artifacts/dashboard/
-  - artifacts/automation/
-  - artifacts/review/checklist.md
-  # Extensões do POC
   - artifacts/data/source-profile.md
   - artifacts/data/train-validation-split.md
-  - artifacts/pipeline/            # scraper + chunker
   - artifacts/dq/checks.md
-  - artifacts/ml/                  # modelo + métricas
+  - dashboard/                      # child repo: atual (Chart.js dashboard)
+  - pipeline/                       # child repo: atual (scraper, pipeline, backtest)
+  - artifacts/automation/           # Phase 5 — futuro
+  - artifacts/ml/                   # Phase 4 — futuro
+  - artifacts/design/               # Phase 3 — futuro (wireframes, component breakdown)
+  - artifacts/review/checklist.md
   # Repositório filho
   - repo: laurentaf/previsao-concursos
-    nota: "Todos os artefatos acima serão commitados no repo filho, não em LAOS."
+    nota: "Todos os artefatos serão commitados no repo filho, não em LAOS. Os paths pipeline/ e dashboard/ no child repo correspondem aos deliverables (sem prefixo artifacts/)."

@@ -77,10 +77,39 @@ deliverables:
     artifacts:
       - "artifacts/data/pricing-model.md"
 
-  - name: inventory-forecast
-    label: "Previsão de Estoque"
+  - name: table-relationships
+    label: "Validação de Integridade Referencial"
+    stage: 2
+    artifacts:
+      - "artifacts/data/referential-integrity-report.md"
+      - "artifacts/dq/fk-validation.sql"
+
+  - name: goods-receipt-process
+    label: "Documentação do Processo de Entrada de Mercadorias"
+    stage: 2
+    artifacts:
+      - "artifacts/design/processo-entrada-mercadorias.md"
+
+  - name: sales-generator
+    label: "Gerador de Vendas Sintéticas (ARIMA + Sazonalidade)"
     stage: 3
-    status: pending
+    artifacts:
+      - "artifacts/data/sales-generator.py"
+      - "artifacts/data/sales-generator-spec.md"
+
+  - name: simulation-engine
+    label: "Motor de Simulação de Estoque"
+    stage: 3
+    artifacts:
+      - "artifacts/simulation/simulation_engine.py"
+      - "artifacts/simulation/simulation_config.json"
+      - "artifacts/simulation/output/daily_log.csv"
+      - "artifacts/simulation/output/stockouts.csv"
+      - "artifacts/simulation/output/purchase_alerts.csv"
+      - "artifacts/simulation/output/supplier_performance.csv"
+      - "artifacts/simulation/output/slow_movers.csv"
+      - "artifacts/simulation/output/summary.json"
+      - "artifacts/simulation/dashboard/simulation_dashboard.html"
 
   - name: automation
     label: "Pipelines Automatizados (n8n)"
