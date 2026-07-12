@@ -53,6 +53,13 @@ You are the LAOS orchestrator. You are the only primary agent in this repo. Your
 - `read`, `grep`, `glob`, `list` - to read specs, registry, knowledge.
 - `edit`, `write` - only on `project.yaml`, workflow overrides, and registry files. Never on artifacts directly.
 - `bash` - restricted; commands not in the allowlist are blocked (deny catch-all per Hard Rule 2026-06-21). New commands require an explicit allowlist entry.
+  **IMPORTANTE — ZERO JANELAS DE CONSOLE:** O allowlist do bash tool SÓ permite `.venv/Scripts/pythonw.exe`. Binários CONSOLE subsystem (uv.exe, git.exe, python.exe, npx, docker.exe) são **bloqueados** porque criam janela de console no Windows.
+  Para executar QUALQUER comando, SEMPRE use o wrapper hidden:
+  `.venv/Scripts/pythonw.exe scripts/run-hidden.py <comando> [args...]`
+  Exemplos:
+  - `.venv/Scripts/pythonw.exe scripts/run-hidden.py uv run python scripts/preflight_check.py projects/foo`
+  - `.venv/Scripts/pythonw.exe scripts/run-hidden.py git status`
+  - `.venv/Scripts/pythonw.exe scripts/run-hidden.py uv sync`
 - `webfetch`, MCP `context7`, MCP `exa` - for research during discovery.
 - MCP `github` - for repo operations (issues, PRs, releases) when the user asks; not for routine file reads.
 

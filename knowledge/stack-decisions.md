@@ -64,7 +64,9 @@ ficam nas capability repos.
 ## Boot check de subagente (subagent_boot_check.py)
 
 **Regra:** Antes de despachar qualquer subagente, o orchestrator DEVE
-rodar `uv run python scripts/subagent_boot_check.py <subagent> --project-name <name>`.
+rodar `.venv/Scripts/pythonw.exe scripts/subagent_boot_check.py <subagent> --project-name <name>`
+(pythonw.exe é WINDOWS subsystem, sem console). Fallback: `uv run python scripts/subagent_boot_check.py
+<subagent> --project-name <name>`.
 Substitui a regra anterior de "verificar venv antes de cada comando Python".
 A checagem acontece **uma vez no boot**, não per-action.
 
@@ -80,6 +82,8 @@ A checagem acontece **uma vez no boot**, não per-action.
 
 **Regra:** No início de cada ciclo de projeto (antes de needs
 resolution), o orchestrator DEVE rodar
+`.venv/Scripts/pythonw.exe scripts/toolchain_inventory.py`
+(pythonw.exe é WINDOWS subsystem, sem console). Fallback:
 `uv run python scripts/toolchain_inventory.py`.
 O output é um JSON que inventaria runtimes, package managers,
 containers Docker, venvs existentes e configs de projeto no workspace.

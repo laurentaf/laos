@@ -20,9 +20,13 @@ import argparse
 import json
 import os
 import shutil
-import subprocess
+import subprocess  # kept for exception types (TimeoutExpired, FileNotFoundError)
 import sys
 from pathlib import Path
+
+# Importa run_hidden.run() que usa CREATE_NO_WINDOW (0x08000000) no Windows
+# para que NENHUM binário de console crie janela visível.
+from run_hidden import run as _hidden_run
 
 
 def check_command(cmd: str) -> dict:
@@ -34,7 +38,7 @@ def check_command(cmd: str) -> dict:
     version = None
     for flag in ["--version", "-v", "-version", "version"]:
         try:
-            r = subprocess.run(
+            r = _hidden_run(
                 [cmd, flag],
                 capture_output=True, text=True, timeout=10
             )
@@ -51,7 +55,7 @@ def check_command(cmd: str) -> dict:
 def check_docker_containers() -> list:
     """List running Docker containers."""
     try:
-        r = subprocess.run(
+        r = _hidden_run(
             ["docker", "ps", "--format", "{{.Names}}\t{{.Image}}\t{{.Status}}"],
             capture_output=True, text=True, timeout=10
         )
@@ -74,7 +78,7 @@ def check_docker_containers() -> list:
 def check_docker_images() -> list:
     """List local Docker images (top 20)."""
     try:
-        r = subprocess.run(
+        r = _hidden_run(
             ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}\t{{.Size}}"],
             capture_output=True, text=True, timeout=10
         )

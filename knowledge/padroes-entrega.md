@@ -125,15 +125,18 @@ arquivo.
       YAML, paths, secrets, cross-refs, no-impl-code, WDL gate,
       Confidence Escalation Ladder).
 - [ ] **Preflight mecânico (Stage 0 do delivery-reviewer) passou.**
-      O orchestrator deve rodar `uv run python scripts/preflight_check.py
-      projects/<name>` antes de dispatchar o `delivery-reviewer`. Se
-      exit ≠ 0, corrigir antes de prosseguir. Cobre 7 checks mecânicos:
+      O orchestrator deve rodar `.venv/Scripts/pythonw.exe scripts/preflight_check.py
+      projects/<name>` (via pythonw.exe, sem console window) antes de dispatchar
+      o `delivery-reviewer`. Fallback: `uv run python scripts/preflight_check.py
+      projects/<name>`. Se exit ≠ 0, corrigir antes de prosseguir. Cobre 7 checks mecânicos:
       YAML+arithmetic, path existence, secret scan, cross-reference
       integrity, no implementation code in LAOS, WDL preflight gate
       (a4fe9faa + 7fd94c1a), Confidence Escalation Ladder (d3095fa3).
 - [ ] **Boot check 6ª dimensão passou (`child-repo-skeleton`).**
-       O orchestrator deve rodar `uv run python scripts/subagent_boot_check.py
-       <subagent> --project-name <name>` antes de cada dispatch. O
+       O orchestrator deve rodar `.venv/Scripts/pythonw.exe scripts/subagent_boot_check.py
+       <subagent> --project-name <name>` (via pythonw.exe, sem console window)
+       antes de cada dispatch. Fallback: `uv run python scripts/subagent_boot_check.py
+       <subagent> --project-name <name>`. O
        sub-check `skeleton` (sempre ativo) valida a matriz per-file
        da Missão 0; o sub-check `first-real-adr` (gated) valida o
        ADR-mínimo-1 só após o 1º estágio decisório. Se exit ≠ 0,

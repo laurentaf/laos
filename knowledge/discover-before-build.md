@@ -22,8 +22,9 @@ como base para a sugestão.
 ### 1.1 Inventário obrigatório (checklist de planning)
 
 **Este inventário não é opcional.** O orchestrator roda
-`uv run python scripts/toolchain_inventory.py` no início de cada
-ciclo de projeto. O output JSON é incluído no dispatch brief de
+`.venv/Scripts/pythonw.exe scripts/toolchain_inventory.py` (sem console)
+no início de cada ciclo de projeto. Fallback: `uv run python scripts/toolchain_inventory.py`.
+O output JSON é incluído no dispatch brief de
 todo subagente. Subagentes que ignoram o inventário violam a regra.
 
 O inventário mecanizado cobre estas verificações:

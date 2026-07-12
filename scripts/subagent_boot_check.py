@@ -306,12 +306,11 @@ def check_venv(cap, root):
     lock = (root / VENV_DIRS[cap] / "uv.lock").resolve()
     ref = lock if lock.exists() else pyp
     if ref is not None and ref.exists():
-        import subprocess
+        from run_hidden import run as _hidden_run
         try:
-            result = subprocess.run(
+            result = _hidden_run(
                 ["uv", "lock", "--check"],
-                cwd=str(ref.parent),
-                capture_output=True, text=True, timeout=10
+                cwd=str(ref.parent), capture_output=True, text=True, timeout=10
             )
             if result.returncode != 0:
                 fail(f"{cap}: lockfile out of sync with venv")
@@ -481,6 +480,7 @@ def _smoke_test_mcp(name, cfg_block, root, timeout=MCP_HEALTH_TIMEOUT_S):
     full_env = _resolve_mcp_env(env_block, root)
     t0 = time.monotonic()
     try:
+        from run_hidden import popen as _hidden_popen
         kwargs = dict(
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -488,9 +488,7 @@ def _smoke_test_mcp(name, cfg_block, root, timeout=MCP_HEALTH_TIMEOUT_S):
             env=full_env,
             cwd=str(root),
         )
-        if os.name == "nt":
-            kwargs["creationflags"] = 0x08000000  # CREATE_NO_WINDOW
-        proc = subprocess.Popen(command, **kwargs)
+        proc = _hidden_popen(command, **kwargs)
     except (OSError, ValueError) as e:
         return (False, f"spawn failed: {type(e).__name__}: {e}", time.monotonic() - t0)
 

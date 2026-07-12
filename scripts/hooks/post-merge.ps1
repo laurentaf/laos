@@ -1,33 +1,32 @@
-#Requires -Version 5.1
-<#
-.SYNOPSIS
-  Git post-merge hook: automatic uv sync after pull/merge.
-
-  Install:
-    Copy to .git/hooks/post-merge
-    Or run:  .\scripts\setup-hooks.ps1
-
-  This hook runs 'uv sync' silently after every git pull/merge,
-  ensuring .venv is always up to date with pyproject.toml + uv.lock.
-#>
+#!/usr/bin/env pwsh
+# post-merge.ps1 — LAOS automatic uv sync after git pull/merge
+#
+# 100% HIDDEN: .NET Process.CreateNoWindow=$true → sem console.
+# Roda uv sync sem absolutamente nenhuma janela.
+#
+# Instalação:
+#   .\scripts\setup-hooks.ps1  (copia para .git/hooks/post-merge)
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path | Split-Path -Parent
+$PYTHONW = "$root\.venv\Scripts\pythonw.exe"
+$RUNNER = "$root\scripts\run-hidden.py"
 
-Write-Host "[post-merge] Sincronizando ambiente..." -ForegroundColor DarkGray
+if (-not (Test-Path $PYTHONW)) { exit 0 }
 
-# Stop on first error
-$ErrorActionPreference = "Stop"
+# uv sync via run_hidden (CREATE_NO_WINDOW) + pythonw.exe (GUI subsystem)
+$psi = New-Object System.Diagnostics.ProcessStartInfo
+$psi.FileName = $PYTHONW
+$psi.Arguments = "`"$RUNNER`" uv sync --quiet"
+$psi.UseShellExecute = $false
+$psi.CreateNoWindow = $true
+$psi.RedirectStandardOutput = $true
+$psi.RedirectStandardError = $true
 
 try {
-    Push-Location $root
-    uv sync --quiet
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "[post-merge] uv sync OK" -ForegroundColor DarkGray
-    } else {
-        Write-Host "[post-merge] [AVISO] uv sync exit code: $LASTEXITCODE" -ForegroundColor Yellow
-    }
+    $p = [System.Diagnostics.Process]::Start($psi)
+    $p.StandardOutput.ReadToEnd() | Out-Null
+    $p.StandardError.ReadToEnd() | Out-Null
+    $p.WaitForExit()
 } catch {
-    Write-Host "[post-merge] [ERRO] $_" -ForegroundColor Red
-} finally {
-    Pop-Location
+    # silently ignore post-merge errors
 }

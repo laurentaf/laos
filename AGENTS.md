@@ -333,7 +333,7 @@ if FAIL → subagent fixes → back to delivery-reviewer
 The orchestrator's session loop, numbered for surface of enforcement:
 
 1. **Read** `projects/<name>/project.yaml` and any brief context.
-2. **Toolchain inventory** — run `uv run python scripts/toolchain_inventory.py`. Output informs all subsequent planning (stack suggestions, dependency reuse). See `knowledge/stack-decisions.md` §"Toolchain inventory" and `knowledge/discover-before-build.md` §Fase 1.
+2. **Toolchain inventory** — run `.venv/Scripts/pythonw.exe scripts/toolchain_inventory.py`. Uses pythonw.exe (WINDOWS subsystem, sem console) para evitar flashing de janela. Se pythonw não estiver disponível, fallback `uv run python scripts/toolchain_inventory.py`. Output informs all subsequent planning (stack suggestions, dependency reuse). See `knowledge/stack-decisions.md` §"Toolchain inventory" and `knowledge/discover-before-build.md` §Fase 1.
 3. **Resolve** needs via `registry/needs-to-capabilities.yaml`.
 4. **Plan template** — if a workflow template matches, plan via template; else ad-hoc.
 5. **Dispatch** specialist (data-architect, dashboard-designer, automation-engineer, capability-architect, or any future subagent).

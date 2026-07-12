@@ -89,11 +89,19 @@ try {
             Copy-Item $remoteDuck $stagingDuck -Force
             Write-Host "[pull] DuckDB copied ($remoteDuck -> $stagingDuck)"
 
-            # Merge
-            Write-Host "[merge] Unindo DuckDBs..." -ForegroundColor Yellow
-            $result = uv run python "$LAOS\scripts\sync\merge_duckdb.py" `
-                --local $localDuck --remote $stagingDuck `
-                --output $localDuck --audit-log $LOG
+            # Merge (100% hidden: .NET Process.CreateNoWindow + pythonw)
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = "$LAOS\.venv\Scripts\pythonw.exe"
+            $psi.Arguments = "`"$LAOS\scripts\run-hidden.py`" uv run python `"$LAOS\scripts\sync\merge_duckdb.py`" --local `"$localDuck`" --remote `"$stagingDuck`" --output `"$localDuck`" --audit-log `"$LOG`""
+            $psi.UseShellExecute = $false
+            $psi.CreateNoWindow = $true
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            try {
+                $p = [System.Diagnostics.Process]::Start($psi)
+                $result = $p.StandardOutput.ReadToEnd()
+                $p.WaitForExit()
+            } catch { $result = "merge error: $_" }
             Write-Host "[merge] $result"
         } else {
             Write-Warning "DuckDB remoto nao encontrado em $remoteDuck. Pulando."

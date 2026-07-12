@@ -33,19 +33,21 @@
     // ─── DOMAIN CAPABILITIES ──────────────────────────────────
 
     // LATADE — data engineering. Real MCP server lives in the LATADE repo.
-    // Uses the latade venv (has duckdb, mcp, and latade sources).
+    // Uses pythonw.exe (windowless) to avoid flashing console windows.
+    // pythonw.exe still has stdin/stdout for MCP stdio protocol — it just
+    // doesn't allocate a visible console. (Same for all local MCP entries.)
     "latade": {
       "type": "local",
-      "command": ["..\\latade\\.venv\\Scripts\\python", "..\\latade\\mcp_server\\server.py"],
+      "command": ["..\\latade\\.venv\\Scripts\\pythonw", "..\\latade\\mcp\\server.py"],
       "enabled": true,
       "env": {}
     },
 
     // LAN8N — n8n automation. Real MCP server lives in the LAN8N repo (../lan8n).
-    // Uses the LAN8N venv (has mcp and the repo's own server).
+    // Uses pythonw.exe (windowless) to avoid flashing console windows.
     "lan8n": {
       "type": "local",
-      "command": ["..\\lan8n\\.venv\\Scripts\\python", "-m", "lan8n.mcp.server"],
+      "command": ["..\\lan8n\\.venv\\Scripts\\pythonw", "-m", "lan8n.mcp.server"],
       "enabled": true,
       "env": {}
     },
@@ -69,7 +71,7 @@
     // Called by LAOS when structural gaps are detected.
     "lacouncil": {
       "type": "local",
-      "command": ["..\\lacouncil\\.venv\\Scripts\\python", "-m", "lacouncil.mcp.server"],
+      "command": ["..\\lacouncil\\.venv\\Scripts\\pythonw", "..\\lacouncil\\mcp\\server.py"],
       "enabled": true,
       "env": {
         "LACOUNCIL_DB_PATH": "{workspaceFolder}\\lacouncil\\memoria\\lacouncil.duckdb"
@@ -77,9 +79,10 @@
     },
 
     // LAENGINE — game development capability (sports simulation, match engine).
+    // Uses pythonw.exe (windowless) to avoid flashing console windows.
     "laengine": {
       "type": "local",
-      "command": ["uv", "run", "python", "../laengine/src/laengine/mcp/server.py"],
+      "command": ["..\\laengine\\.venv\\Scripts\\pythonw", "..\\laengine\\src\\laengine\\mcp\\server.py"],
       "enabled": true,
       "env": {}
     },
@@ -90,29 +93,25 @@
     // (health, list_supported_operations) + 7 stubs. Routed via
     // needs-to-capabilities.yaml for ml, data-science, econometrics,
     // nps-driver-analysis, causal-inference, predictive-modeling.
-    // Uses the laecon pyproject deps (uv-managed venv at .venv/).
+    // Uses pythonw.exe (windowless) to avoid flashing console windows.
     "laecon": {
       "type": "local",
-      "command": ["uv", "run", "python", "../laecon/src/laecon/mcp/server.py"],
+      "command": ["..\\laecon\\.venv\\Scripts\\pythonw", "..\\laecon\\laecon\\mcp\\server.py"],
       "enabled": true,
       "env": {}
     },
 
     // LADESIGN — design capability (dashboards, decks, wireframes, design systems).
-    // MCP server via `od mcp` from the LADESIGN repo.
-    // Prerequisites: `pnpm install` in ../ladesign (builds the daemon CLI).
-    // The server exposes live-artifact and connector tools for design work.
-    // LADESIGN — design capability. Python MCP server (was a Node
-    // daemon under ADR-007; superseded by the Python implementation
-    // per registry/capabilities.yaml entry "ladesign" — STABLE).
-    // ADR-014 supersedes ADR-007 for the entry-point question; the
-    // `mcp_optional` workaround in subagent_boot_check.py is reverted
-    // in scripts/subagent_boot_check.py because the Python server
-    // exposes health() built-in.
+    // ATENÇÃO: O repo em ../ladesign contém o projeto Open Design (Node.js/TypeScript),
+    // NÃO o servidor Python MCP esperado em src/ladesign/mcp/server.py que não existe.
+    // Issue estrutural: repositório não corresponde ao declarado em capabilities.yaml.
+    // Desabilitado até que o servidor Python MCP correto seja implementado ou o path
+    // seja ajustado via LACOUNCIL.
+    // O repo tem um MCP server TypeScript em apps/daemon/src/mcp.ts (via `od mcp`).
     "ladesign": {
       "type": "local",
-      "command": ["uv", "run", "python", "../ladesign/src/ladesign/mcp/server.py"],
-      "enabled": true,
+      "command": ["..\\ladesign\\.venv\\Scripts\\pythonw", "..\\ladesign\\src\\ladesign\\mcp\\server.py"],
+      "enabled": false,
       "env": {}
     },
 
@@ -227,16 +226,30 @@
       // Hard rule (2026-06-21): TWO values only — `allow` and `deny`.
       // No `ask` anywhere. Paths not covered below are blocked (deny).
       // Adding a new command = explicit allowlist entry (no implicit trust).
-      "git *": "allow",
-      "uv *": "allow",
-      "npx *": "allow",
-      // subagent_boot_check.py é pre-flight obrigatório (AGENTS.md +
-      // stack-decisions.md). Read-only, exit 0/1, sem efeito colateral.
-      // Whitelisted aqui porque a chamada inclui redirecionamento 2>&1
-      // e chain com Write-Output que o pattern "uv *" não casa.
-      "uv run python scripts/subagent_boot_check.py *": "allow",
-      "uv run python scripts/toolchain_inventory.py *": "allow",
-      "uv run python scripts/preflight_check.py *": "allow",
+      //
+      // ─── REGRA ABSOLUTA: ZERO BINÁRIOS DE CONSOLE ──────────
+      // NENHUM binário CONSOLE subsystem (uv.exe, git.exe, python.exe,
+      // npx.cmd, docker.exe) pode ser executado diretamente via bash tool.
+      // TODO(S) criam janela de console no Windows, mesmo que brevemente.
+      //
+      // Apenas WINDOWS subsystem binaries (pythonw.exe) são permitidos.
+      // pythonw.exe NUNCA aloca console, em nenhuma circunstância.
+      // Internamente, run_hidden.run() usa CREATE_NO_WINDOW (0x08000000)
+      // para que subprocessos de console também não criem janela.
+      //
+      // ─── ENTRADAS 100% HIDDEN ────────────────────────────────
+      // Via pythonw.exe (GUI subsystem) + run_hidden.py (CREATE_NO_WINDOW)
+      ".venv/Scripts/pythonw.exe": "allow",
+      ".venv/Scripts/pythonw.exe *": "allow",
+      ".venv/Scripts/pythonw.exe scripts/run-hidden.py *": "allow",
+      ".venv/Scripts/pythonw.exe scripts/subagent_boot_check.py *": "allow",
+      ".venv/Scripts/pythonw.exe scripts/toolchain_inventory.py *": "allow",
+      ".venv/Scripts/pythonw.exe scripts/preflight_check.py *": "allow",
+      // ─── SEM FALLBACKS ──────────────────────────────────────
+      // NÃO há entradas para uv, git, npx, docker ou python.exe.
+      // Se o orchestrator precisar de algo não coberto, DEVE usar
+      // .venv/Scripts/pythonw.exe scripts/run-hidden.py <comando>
+      // para garantir execução sem janela.
       "rm -rf *": "deny"
     },
     "external_directory": {
