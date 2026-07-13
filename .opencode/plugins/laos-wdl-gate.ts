@@ -296,6 +296,14 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
       if (input.tool === "bash") {
         const command = output.args?.command || ""
 
+        // ALLOW: commands already wrapped with pythonw.exe (GUI subsystem).
+        // The opencode.jsonc permission.bash allowlist already validates these.
+        // pythonw.exe NEVER allocates a console, even for console-subsystem child processes.
+        if (command.startsWith(".venv/Scripts/pythonw.exe ")) {
+          trackShellCommand(command)
+          return // Already wrapped — pass through
+        }
+
         // REWRITE git, uv, npx, python commands through pythonw.exe wrapper
         // (CREATE_NO_WINDOW flag) to avoid flashing console windows on Windows.
         // This respects the opencode.jsonc permission.bash allowlist which
