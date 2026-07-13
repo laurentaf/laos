@@ -292,16 +292,21 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
         )
       }
 
-      // ─── BLOCK: Obviously bad actions ───────────────────────────
+      // ─── BLOCK / REWRITE: Obviously bad actions ─────────────────
       if (input.tool === "bash") {
         const command = output.args?.command || ""
 
-        // Allow git, uv, npx, python toolchain operations
+        // REWRITE git, uv, npx, python commands through pythonw.exe wrapper
+        // (CREATE_NO_WINDOW flag) to avoid flashing console windows on Windows.
+        // This respects the opencode.jsonc permission.bash allowlist which
+        // ONLY allows .venv/Scripts/pythonw.exe entries.
         if (command.startsWith("git ") || command.startsWith("uv ") ||
             command.startsWith("npx ") || command.startsWith("python ")) {
-          // Track usage for 80/20 tool promotion (5+ threshold)
+          // Track original command for 80/20 tool promotion
           trackShellCommand(command)
-          return // Toolchain operations are allowed
+          // Rewrite: prepend the hidden wrapper (pythonw.exe + run-hidden.py)
+          output.args.command = `.venv/Scripts/pythonw.exe scripts/run-hidden.py ${command}`
+          return // Toolchain operations allowed via hidden wrapper
         }
 
         // Block shell — must route through specialist or MCP

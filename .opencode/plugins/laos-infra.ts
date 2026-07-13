@@ -115,6 +115,7 @@ function runCli(command: string): { ok: boolean; output: string } {
       timeout: 5000,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true,
     })
     return { ok: true, output: result.trim() }
   } catch {
@@ -131,14 +132,14 @@ function isCommandAllowed(command: string): { allowed: boolean; reason?: string 
     return { allowed: false, reason: "Command 'rm -rf *' is explicitly denied in opencode.jsonc bash allowlist" }
   }
 
-  // Allow list — prefix matching, same semantics as WDL gate
+  // Allow list — prefix matching, matching opencode.jsonc permission.bash allowlist.
+  // Windows-only: only pythonw.exe (GUI subsystem) is allowed for direct execution.
+  // All console binaries (git, uv, npx, python.exe) must use run-hidden.py wrapper.
   const allowedPrefixes = [
+    ".venv/Scripts/pythonw.exe ",
     "git ",
     "uv ",
     "npx ",
-    "uv run python scripts/subagent_boot_check.py ",
-    "uv run python scripts/toolchain_inventory.py ",
-    "uv run python scripts/preflight_check.py ",
   ]
 
   for (const prefix of allowedPrefixes) {
@@ -147,7 +148,7 @@ function isCommandAllowed(command: string): { allowed: boolean; reason?: string 
     }
   }
 
-  return { allowed: false, reason: "Command does not match any allowed prefix in opencode.jsonc bash allowlist" }
+  return { allowed: false, reason: "Command does not match any allowed prefix. Use .venv/Scripts/pythonw.exe scripts/run-hidden.py <cmd> for console binaries" }
 }
 
 function runCommand(command: string, cwd?: string): { ok: boolean; output: string; error?: string } {
@@ -157,6 +158,7 @@ function runCommand(command: string, cwd?: string): { ok: boolean; output: strin
       timeout: 60000,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true,
     })
     return { ok: true, output: result.trim() }
   } catch (e: any) {
@@ -920,9 +922,11 @@ uv run python mcp/server.py
   filesCreated.push("README.md")
 
   // Generate MCP server entry for opencode.jsonc
+  // Uses pythonw.exe (GUI subsystem) to avoid console window flashing on Windows.
+  // Never use uv/run/python directly — those are CONSOLE subsystem binaries.
   const mcpServerEntry = {
     type: "local",
-    command: ["uv", "run", "python", `../${name}/mcp/server.py`],
+    command: [".venv/Scripts/pythonw", `../${name}/mcp/server.py`],
     enabled: true,
     env: {},
   }
@@ -1175,6 +1179,7 @@ function runGitLocal(op: string, params: Record<string, any>): string {
   const laosRoot = getLaosRoot()
   const gitDir = params.path || laosRoot
   const safeOps = ["status", "diff", "add", "commit", "push", "log"]
+  const HIDE = { windowsHide: true } as const
 
   if (!safeOps.includes(op)) {
     return JSON.stringify({ error: `Unsupported git operation "${op}". Valid: ${safeOps.join(", ")}` }, null, 2)
@@ -1183,8 +1188,8 @@ function runGitLocal(op: string, params: Record<string, any>): string {
   try {
     switch (op) {
       case "status": {
-        const raw = execSync(`git -C "${gitDir}" status --porcelain`, { encoding: "utf-8", timeout: 10000 })
-        const branch = execSync(`git -C "${gitDir}" branch --show-current`, { encoding: "utf-8", timeout: 5000 }).trim()
+        const raw = execSync(`git -C "${gitDir}" status --porcelain`, { encoding: "utf-8", timeout: 10000, ...HIDE })
+        const branch = execSync(`git -C "${gitDir}" branch --show-current`, { encoding: "utf-8", timeout: 5000, ...HIDE }).trim()
         const lines = raw.trim().split("\n").filter(Boolean)
         const staged = lines.filter(l => l.startsWith("M ") || l.startsWith("A ") || l.startsWith("D ") || l.startsWith("R "))
           .map(l => ({ status: l.substring(0, 2), file: l.substring(3) }))
@@ -1195,38 +1200,38 @@ function runGitLocal(op: string, params: Record<string, any>): string {
 
       case "diff": {
         const fileFilter = params.file ? ` -- "${params.file}"` : ""
-        const raw = execSync(`git -C "${gitDir}" diff${fileFilter}`, { encoding: "utf-8", timeout: 10000 })
-        const stats = execSync(`git -C "${gitDir}" diff --stat${fileFilter}`, { encoding: "utf-8", timeout: 5000 }).trim()
+        const raw = execSync(`git -C "${gitDir}" diff${fileFilter}`, { encoding: "utf-8", timeout: 10000, ...HIDE })
+        const stats = execSync(`git -C "${gitDir}" diff --stat${fileFilter}`, { encoding: "utf-8", timeout: 5000, ...HIDE }).trim()
         return JSON.stringify({ diff: raw, stats: stats || "no changes", files_changed: raw ? raw.split("\ndiff --git").length - 1 : 0 }, null, 2)
       }
 
       case "add": {
         const files = Array.isArray(params.files) ? params.files.map(f => `"${f}"`).join(" ") : "."
-        execSync(`git -C "${gitDir}" add ${files}`, { encoding: "utf-8", timeout: 15000 })
-        const status = execSync(`git -C "${gitDir}" status --porcelain`, { encoding: "utf-8", timeout: 5000 })
+        execSync(`git -C "${gitDir}" add ${files}`, { encoding: "utf-8", timeout: 15000, ...HIDE })
+        const status = execSync(`git -C "${gitDir}" status --porcelain`, { encoding: "utf-8", timeout: 5000, ...HIDE })
         const staged = status.trim().split("\n").filter(l => /^[MADRC]/.test(l)).length
         return JSON.stringify({ staged_files: staged, message: files === "." ? "All changes staged" : `Staged: ${params.files?.join(", ")}` }, null, 2)
       }
 
       case "commit": {
         if (!params.message) return JSON.stringify({ error: "commit requires 'message' parameter" }, null, 2)
-        const raw = execSync(`git -C "${gitDir}" commit -m "${params.message.replace(/"/g, '\\"')}"`, { encoding: "utf-8", timeout: 15000 })
-        const sha = execSync(`git -C "${gitDir}" rev-parse --short HEAD`, { encoding: "utf-8", timeout: 5000 }).trim()
+        const raw = execSync(`git -C "${gitDir}" commit -m "${params.message.replace(/"/g, '\\"')}"`, { encoding: "utf-8", timeout: 15000, ...HIDE })
+        const sha = execSync(`git -C "${gitDir}" rev-parse --short HEAD`, { encoding: "utf-8", timeout: 5000, ...HIDE }).trim()
         const lines = raw.trim().split("\n")
         return JSON.stringify({ commit: sha, summary: lines[0] || raw.trim(), output: raw.trim() }, null, 2)
       }
 
       case "push": {
         const remote = params.remote || "origin"
-        const branch = params.branch || execSync(`git -C "${gitDir}" branch --show-current`, { encoding: "utf-8", timeout: 5000 }).trim()
-        const raw = execSync(`git -C "${gitDir}" push ${remote} ${branch}`, { encoding: "utf-8", timeout: 30000 })
+        const branch = params.branch || execSync(`git -C "${gitDir}" branch --show-current`, { encoding: "utf-8", timeout: 5000, ...HIDE }).trim()
+        const raw = execSync(`git -C "${gitDir}" push ${remote} ${branch}`, { encoding: "utf-8", timeout: 30000, ...HIDE })
         return JSON.stringify({ remote, branch, result: raw.trim() || "Push completed" }, null, 2)
       }
 
       case "log": {
         const limit = Math.min(params.limit || 10, 50)
         const format = params.format || "%h %s (%an, %ar)"
-        const raw = execSync(`git -C "${gitDir}" log --oneline -${limit}`, { encoding: "utf-8", timeout: 10000 })
+        const raw = execSync(`git -C "${gitDir}" log --oneline -${limit}`, { encoding: "utf-8", timeout: 10000, ...HIDE })
         const commits = raw.trim().split("\n").filter(Boolean).map(line => {
           const [sha, ...rest] = line.split(" ")
           return { sha, message: rest.join(" ") }
@@ -1246,6 +1251,7 @@ function runGitLocal(op: string, params: Record<string, any>): string {
 
 function runUvTool(op: string, params: Record<string, any>): string {
   const safeOps = ["sync", "run"]
+  const HIDE = { windowsHide: true } as const
 
   if (!safeOps.includes(op)) {
     return JSON.stringify({ error: `Unsupported uv operation "${op}". Valid: ${safeOps.join(", ")}` }, null, 2)
@@ -1255,14 +1261,14 @@ function runUvTool(op: string, params: Record<string, any>): string {
   try {
     switch (op) {
       case "sync": {
-        const raw = execSync(`uv sync`, { cwd: targetDir, encoding: "utf-8", timeout: 60000 })
+        const raw = execSync(`uv sync`, { cwd: targetDir, encoding: "utf-8", timeout: 60000, ...HIDE })
         return JSON.stringify({ result: raw.trim() || "uv sync completed" }, null, 2)
       }
 
       case "run": {
         if (!params.script) return JSON.stringify({ error: "uv run requires 'script' parameter" }, null, 2)
         const args = Array.isArray(params.args) ? ` ${params.args.join(" ")}` : ""
-        const raw = execSync(`uv run python ${params.script}${args}`, { cwd: targetDir, encoding: "utf-8", timeout: 120000 })
+        const raw = execSync(`uv run python ${params.script}${args}`, { cwd: targetDir, encoding: "utf-8", timeout: 120000, ...HIDE })
         return JSON.stringify({ stdout: raw.trim(), exit_code: 0 }, null, 2)
       }
 
@@ -1669,11 +1675,12 @@ export const Infra = async ({ project, client, $, directory, worktree }: {
           "from .opencode/opencode.jsonc. Supports optional cwd override. " +
           "Replaces manual terminal usage for venv syncs and other " +
           "cross-directory operations. Returns structured JSON with " +
-          "stdout, stderr, and exit code. Blocked commands: rm -rf.",
+          "stdout, stderr, and exit code. Blocked commands: rm -rf. " +
+          "All execSync calls use windowsHide:true (CREATE_NO_WINDOW) no Windows.",
         args: {
           command: {
             type: "string" as const,
-            description: "Shell command to execute. Allowed prefixes: git *, uv *, npx *",
+            description: "Shell command to execute. Allowed: .venv/Scripts/pythonw.exe *, git *, uv *, npx *",
           },
           cwd: {
             type: "string" as const,
@@ -1690,7 +1697,7 @@ export const Infra = async ({ project, client, $, directory, worktree }: {
               status: "denied",
               command: args.command,
               reason: check.reason,
-              hint: "Allowed: git *, uv *, npx *",
+              hint: "Allowed: .venv/Scripts/pythonw.exe *, git *, uv *, npx *. Use .venv/Scripts/pythonw.exe scripts/run-hidden.py <cmd> for console binaries.",
             }, null, 2)
           }
 
