@@ -292,36 +292,26 @@ export const WdlGate = async ({ project, directory }: { project: string; directo
         )
       }
 
-      // ─── BLOCK / REWRITE: Obviously bad actions ─────────────────
+      // ─── BLOCK: bash tool (console windows on Windows) ─────────
+      // OpenCode's built-in bash tool uses cmd.exe internally on Windows,
+      // which ALWAYS allocates a visible console window — even if the
+      // command itself is pythonw.exe (GUI subsystem). The cmd.exe wrapper
+      // creates a brief flash for EVERY bash call.
+      //
+      // USE run_command INSTEAD: the laos-infra.ts run_command tool uses
+      // Node.js execSync() with windowsHide:true, which calls CreateProcess
+      // with CREATE_NO_WINDOW (0x08000000) — zero console flash.
+      //
+      // For git operations: use git_local tool.
+      // For uv operations: use uv_tool tool.
       if (input.tool === "bash") {
-        const command = output.args?.command || ""
-
-        // ALLOW: commands already wrapped with pythonw.exe (GUI subsystem).
-        // The opencode.jsonc permission.bash allowlist already validates these.
-        // pythonw.exe NEVER allocates a console, even for console-subsystem child processes.
-        if (command.startsWith(".venv/Scripts/pythonw.exe ")) {
-          trackShellCommand(command)
-          return // Already wrapped — pass through
-        }
-
-        // REWRITE git, uv, npx, python commands through pythonw.exe wrapper
-        // (CREATE_NO_WINDOW flag) to avoid flashing console windows on Windows.
-        // This respects the opencode.jsonc permission.bash allowlist which
-        // ONLY allows .venv/Scripts/pythonw.exe entries.
-        if (command.startsWith("git ") || command.startsWith("uv ") ||
-            command.startsWith("npx ") || command.startsWith("python ")) {
-          // Track original command for 80/20 tool promotion
-          trackShellCommand(command)
-          // Rewrite: prepend the hidden wrapper (pythonw.exe + run-hidden.py)
-          output.args.command = `.venv/Scripts/pythonw.exe scripts/run-hidden.py ${command}`
-          return // Toolchain operations allowed via hidden wrapper
-        }
-
-        // Block shell — must route through specialist or MCP
+        const command = output.args?.command?.substring(0, 80) || ""
         throw new Error(
-          `[LAOS WDL Gate] BLOCKED: Direct shell call "${command.substring(0, 50)}..." bypasses agent system. ` +
-          `Use MCP tools (ladesign.*, latade.*, lan8n.*) or dispatch specialists via ` +
-          `the task tool. Non-agent actions are exceptions, not the rule.`
+          `[LAOS WDL Gate] BLOCKED: bash tool creates console windows on Windows. ` +
+          `Command: "${command}..."\n` +
+          `Use run_command tool instead (execSync w/ windowsHide:true):\n` +
+          `  run_command: { command: "${command.replace(/"/g, '\\"')}" }\n` +
+          `For git: use git_local tool. For uv: use uv_tool tool.`
         )
       }
 
