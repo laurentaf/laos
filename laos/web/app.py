@@ -188,6 +188,13 @@ def console_send(request: Request, project_id: str, message: str = Form(...)) ->
     )
 
 
+@app.post("/projects/{project_id}/delete", response_class=HTMLResponse)
+def delete_project_route(project_id: str) -> HTMLResponse:
+    """Delete a project: DB state + archive folder (recoverable)."""
+    result = portfolio.delete_project(project_id, archive_dir="projects_archived")
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
 def project_detail(request: Request, project_id: str) -> HTMLResponse:
     detail = portfolio.project_detail(project_id)

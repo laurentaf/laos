@@ -94,6 +94,17 @@ def cmd_projects(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_project_delete(args: argparse.Namespace) -> int:
+    """Delete/archive a project: DB state + move folder to projects_archived/."""
+    from laos.web import portfolio
+
+    result = portfolio.delete_project(args.project, archive_dir="projects_archived")
+    print(f"PROJECT_DELETED: {result['project_id']}")
+    print(f"  db tables limpas: {', '.join(result['db_tables'])}")
+    print(f"  files: {', '.join(result['files'])}")
+    return 0
+
+
 def _load_yaml(path: Path) -> dict:
     import yaml
 
@@ -459,6 +470,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("doctor", help="system + schema health")
     sub.add_parser("projects", help="list portfolio projects")
 
+    p_proj_del = sub.add_parser("project-delete",
+                                help="delete/archive um projeto (DB + pasta p/ projects_archived/)")
+    p_proj_del.add_argument("project")
+
     p_run = sub.add_parser("run", help="run project stages with auto-resume")
     p_run.add_argument("project", help="project name (projects/<name>)")
     p_run.add_argument("--force-new", action="store_true",
@@ -505,6 +520,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {
         "doctor": cmd_doctor,
         "projects": cmd_projects,
+        "project-delete": cmd_project_delete,
         "run": cmd_run,
         "resume": cmd_resume,
         "status": cmd_status,

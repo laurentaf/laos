@@ -65,6 +65,8 @@ def llm_artifact_runner(stage: dict[str, Any], ctx: Any) -> dict[str, Any]:
             {"role": "user", "content": prompt},
         ],
         "max_tokens": 12000,
+        # metadata so Langfuse traces can be attributed per project
+        "metadata": {"laos_project": project_id, "laos_phase": stage_num},
     }
     req = urllib.request.Request(
         LITELLM_URL,

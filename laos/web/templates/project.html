@@ -40,6 +40,12 @@
       {% if p.ready_to_ship %}
       <span class="px-3 py-1 rounded bg-emerald-500 text-slate-900 font-semibold">✓ ship-ready</span>
       {% endif %}
+      <form method="post" action="/projects/{{ p.name }}/delete" class="inline"
+            onsubmit="return confirm('Deletar/arquivar o projeto {{ p.display }}? A pasta vai para projects_archived/ e o estado (runs, fases, custo) é removido. Irrecuperável no DuckDB.')">
+        <button type="submit" class="px-3 py-1 rounded bg-red-600 hover:bg-red-500 text-white text-xs">
+          deletar/arquivar
+        </button>
+      </form>
     </div>
   </header>
 

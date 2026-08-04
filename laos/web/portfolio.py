@@ -6,6 +6,9 @@ view: status, cost by phase, checklist, decisions, gaps, recent runs.
 
 from __future__ import annotations
 
+import base64
+import json
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -209,13 +212,54 @@ def probe_capability_health() -> dict[str, str]:
     return out
 
 
-def _langfuse_stats(project_id: str) -> dict[str, Any]:
-    """LLM cost + trace count for a project, from Langfuse (degradable)."""
-    try:
-        import base64
-        import json
-        import urllib.request
+def delete_project(project_id: str, archive_dir: str | None = None) -> dict[str, Any]:
+    """Delete a project: remove DB state and (optionally) archive files.
 
+    Returns summary of what was removed. If archive_dir is given, the
+    project folder is MOVED there instead of deleted (recoverable).
+    """
+    root = _find_laos_root()
+    con = schema.connect()
+    removed = {"db_tables": [], "files": []}
+
+    # steps reference runs, not project_id
+    run_ids = [r[0] for r in con.execute(
+        "SELECT run_id FROM runs WHERE project_id=?", [project_id]).fetchall()]
+    for rid in run_ids:
+        con.execute("DELETE FROM steps WHERE run_id=?", [rid])
+    removed["db_tables"].append("steps")
+    for t in ["runs", "phases", "deliverables", "decisions", "todos",
+              "checklist_items", "capability_gaps", "chat_messages"]:
+        con.execute(f"DELETE FROM {t} WHERE project_id=?", [project_id])
+        removed["db_tables"].append(t)
+    con.execute("DELETE FROM projects WHERE project_id=?", [project_id])
+
+    # files: move project folder to archive (recoverable) or delete
+    proj = root / "projects" / project_id
+    if proj.exists():
+        if archive_dir:
+            import shutil
+
+            dest = root / archive_dir
+            dest.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(proj), str(dest / project_id))
+            removed["files"].append(f"moved to {archive_dir}/{project_id}")
+        else:
+            import shutil
+
+            shutil.rmtree(proj)
+            removed["files"].append("deleted folder")
+    return {"project_id": project_id, **removed}
+
+
+def _langfuse_stats(project_id: str) -> dict[str, Any]:
+    """LLM cost + trace count for a project, from Langfuse (degradable).
+
+    Only traces carrying metadata.laos_project == project_id count toward
+    this project's cost. Traces without the tag (old runs) are ignored —
+    otherwise a new project would inherit the global accumulated cost.
+    """
+    try:
         token = base64.b64encode(
             b"lf_pk_laos_9b8a7c6d5e4f:lf_sk_laos_0f1e2d3c4b5a").decode()
         req = urllib.request.Request(
@@ -224,12 +268,15 @@ def _langfuse_stats(project_id: str) -> dict[str, Any]:
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
             traces = json.loads(resp.read()).get("data", [])
-        # traces from litellm carry no project tag; verify:* traces carry
-        # metadata.project_id. We sum costs of litellm traces and count
-        # verify traces tagged to this project.
-        llm_cost = sum(t.get("totalCost") or 0 for t in traces
+        # only traces tagged with this project's id count
+        mine = [
+            t for t in traces
+            if (t.get("metadata") or {}).get("laos_project") == project_id
+        ]
+        llm_cost = sum(t.get("totalCost") or 0 for t in mine
                        if "verify:" not in (t.get("name") or ""))
-        llm_count = sum(1 for t in traces if "verify:" not in (t.get("name") or ""))
+        llm_count = sum(1 for t in mine
+                        if "verify:" not in (t.get("name") or ""))
         verify_count = sum(1 for t in traces
                            if (t.get("metadata") or {}).get("project_id") == project_id)
         return {
