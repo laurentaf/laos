@@ -1,0 +1,261 @@
+# Capability registry
+#
+# Catalog of every capability LAOS can compose. Each capability is
+# exposed through an MCP server (or for platform ones, a hosted MCP).
+#
+# This file is consumed by:
+#   - scripts/list_capabilities.py   (read)
+#   - scripts/bootstrap_project.py   (read)
+#   - .opencode/agent/orchestrator.md  (read)
+#   - .opencode/command/list-capabilities.md (read)
+#
+# Schema (per item):
+#   id:           stable identifier; used in needs-to-capabilities.yaml routing
+#   mcp_server:   key under mcp.* in .opencode/opencode.jsonc (may differ from id)
+#   repo:         relative or absolute path; null for hosted services
+#   owns:         list of concrete sub-capabilities (free text, used for routing)
+#   status:       stable | stub | external
+#   promote_to:   (optional) file path of the real server, for stubs
+#   notes:        free text
+
+capabilities:
+
+  # ─── Domain capabilities ────────────────────────────────────
+
+  - id: latade
+    kind: domain
+    mcp_server: latade
+    repo: ../latade
+    status: stable
+    owns:
+      - sql.duckdb
+      - data.engineering
+      - data.modeling
+      - data.quality
+      - docs.technical
+    notes: |
+      LATADE MCP server is live at ../latade/mcp/server.py.
+      Exposes 7 tools: execute_sql (DuckDB), load_csv_to_bronze,
+      run_silver_dedup, run_gold_aggregation, validate_data_safety,
+      generate_schema_preview, inspect_table.
+      DuckDB-backed with medallion pipeline (bronze → silver → gold).
+      NOTA: sql.postgres, sql.databricks e bi.power-bi são aspirações
+      futuras — não implementados ainda. O server atual suporta apenas DuckDB.
+
+  - id: lan8n
+    kind: domain
+    mcp_server: lan8n
+    repo: ../lan8n
+    status: stable
+    owns:
+      - automation.n8n
+      - automation.workflows
+      - integration.apis
+      - integration.webhooks
+    notes: |
+      Display name: LAN8N. MCP server at ../lan8n/src/lan8n/mcp/server.py.
+      Exposes 6 tools: health, list_supported_operations,
+      list_workflow_templates, compose_workflow, validate_workflow,
+      export_workflow_json.
+      Repository: github.com/laurentaf/lan8n.
+      n8n-community é o raw N8N HTTP API surface (disabled por default).
+
+  - id: n8n-community
+    kind: domain
+    mcp_server: n8n-community
+    repo: null
+    status: external
+    owns:
+      - n8n.api.workflows
+      - n8n.api.executions
+      - n8n.api.credentials
+    notes: |
+      npm n8n-mcp (czlonkowski). Talks to the n8n REST API. Default
+      URL: http://localhost:5678/api/v1. Requires N8N_API_KEY in .env.
+
+  - id: laengine
+    kind: domain
+    mcp_server: laengine
+    repo: ../laengine
+    status: basic
+    owns:
+      - game.simulation
+      - game.sports-data
+      - game.match-engine
+      - game.squad-management
+      - game.league-standings
+    notes: |
+      Game development capability for LAOS. Exposes MCP tools for
+      sports simulation, team/player generation, match engine,
+      and league management. Repository: github.com/laurentaf/laengine.
+      STATUS: BASIC — Constitution incompleta, SDD parcial, KB mínimo.
+      30-day evolution mandatory. Tracking: projects/_meta/capability-evolution/laengine.md
+
+  - id: laecon
+    kind: domain
+    mcp_server: laecon
+    repo: ../laecon
+    status: stable
+    owns:
+      - econometrics.regression
+      - econometrics.glm
+      - econometrics.ordered
+      - econometrics.grouped
+      - econometrics.assumptions
+      - econometrics.interpretation
+      - econometrics.prediction
+      - econometrics.diagnostic-report
+      - ml.interpretable
+      - data.causal-inference
+      - ml.timeseries
+    notes: |
+      Display name: LAECON. Capability LAOS para econometria + ML
+      interpretável. Posicionamento: econometria é a espinha, ML é o
+      músculo. Likelihood explícita, não black box. Inspirado em
+      Gujarati & Porter (Basic Econometrics 5th ed, 2009) e Larson
+      & Goungetas (Quirk's 2013, NPS driver analysis).
+      STATUS: STABLE — promovido 2026-06-14. 9 MCP tools implementados
+      (health, list_supported_operations, train_regression,
+      train_classifier, validate_assumptions, interpret_model, evaluate_model,
+      predict, export_diagnostic_report).
+      MCP server em ../laecon/src/laecon/mcp/server.py.
+      Repository: github.com/laurentaf/laecon.
+      Tracking: projects/_meta/capability-evolution/laecon.md
+      Meta-projeto: projects/_meta/laecon-capability/project.yaml
+      ADR: projects/_meta/adr/ADR-002-laecon-creation.md
+      Proposta LACOUNCIL: cbe2d8ef-f65c-4d0e-8960-ea99527ab39f
+      (aprovada 4/4 SIM, supermaioria).
+      Convenção _commomdata (E:/projects/_commomdata/) usada como fonte
+      de dados cross-project — ver knowledge/data-conventions.md.
+
+  - id: lacouncil
+    kind: domain
+    mcp_server: lacouncil
+    repo: ./lacouncil
+    status: stable
+    owns:
+      - improvement.proposals
+      - improvement.voting
+      - improvement.investigation
+      - improvement.patterns
+      - memory.council
+    notes: |
+      Failure investigation + improvement engine for LAOS.
+      MCP server at ../lacouncil/mcp/server.py.
+      Tools: health, investigate (5 Whys + Fishbone), create_proposal,
+      get_proposal, list_proposals, register_vote, tally_votes,
+      implement_proposal, record_project, detect_patterns.
+      Backed by DuckDB in memoria/lacouncil.duckdb (tabelas: propostas,
+      projetos_registrados, verbetes_conhecimento, trust_scores).
+
+  - id: ladesign
+    kind: domain
+    mcp_server: ladesign
+    repo: ../ladesign
+    status: stable
+    owns:
+      - design.dashboard
+      - design.ux-ui
+      - design.wireframes
+      - design.systems
+      - design.decks
+      - design.presentations
+      - design.hyperframes-video
+      - design.images
+      - design.storytelling
+    notes: |
+      Display name: LADESIGN. MCP server at
+      ../ladesign/src/ladesign/mcp/server.py. Exposes 5 tools:
+      health, list_supported_operations, generate_dashboard,
+      generate_deck, generate_wireframe.
+      Repository: github.com/laurentaf/ladesign.
+
+  # ─── LAOS infra / tooling capabilities ─────────────────────
+
+  - id: laos.infra
+    kind: domain
+    mcp_server: laos.infra
+    repo: .
+    status: stable
+    owns:
+      - infra.health-check
+      - infra.tool-registration
+      - infra.mcp-scaffolding
+      - infra.file-download
+      - infra.agent-validation
+    notes: |
+      LAOS infrastructure tools (laos.infra). Plugin-based (TypeScript),
+      auto-loaded via .opencode/plugins/laos-infra.ts.
+      Exposes 6 tools: laos-doctor, health_check, add_tool,
+      scaffold_mcp, download_file, validate_agent.
+      Created via LACOUNCIL proposal 6481da60-67d8-4c7b-a94b-b2da34479f9f
+      (supermaioria 4/4 SIM, 2026-06-14). Status: STABLE.
+
+  - id: opera-browser
+    kind: domain
+    mcp_server: opera-browser
+    repo: ../opera-browser-mcp
+    status: stable
+    owns:
+      - browser.navigate
+      - browser.screenshot
+      - browser.evaluate
+      - browser.interact
+      - browser.content
+      - browser.tabs
+      - browser.console
+      - browser.wait
+    notes: |
+      Browser Bridge MCP (opera-browser-mcp). Port auto-discovery,
+      hello handshake, multi-agent stability. Works in Chrome, Opera,
+      Edge, Brave, Arc, Vivaldi via a companion browser extension.
+      Node.js server at ../opera-browser-mcp/server/index.js.
+      Exposes 11 tools: browser_status, browser_navigate, browser_screenshot,
+      browser_evaluate, browser_click, browser_fill, browser_get_content,
+      browser_get_tabs, browser_get_console, browser_wait_for,
+      browser_send_message.
+      Repository: github.com/laurentaf/opera-browser-mcp (private).
+
+  # ─── Platform capabilities ──────────────────────────────────
+
+  - id: context7
+    kind: platform
+    mcp_server: context7
+    repo: null
+    status: external
+    owns:
+      - docs.library-lookup
+      - docs.api-reference
+      - docs.code-examples
+    notes: |
+      Use whenever you need current library docs. Free tier works
+      without a key. CONTEXT7_API_KEY in .env for higher rate limits.
+
+  - id: exa
+    kind: platform
+    mcp_server: exa
+    repo: null
+    status: external
+    owns:
+      - web.search
+      - web.crawl
+      - web.research
+    notes: |
+      Remote MCP at https://mcp.exa.ai/mcp. OAuth on first connection;
+      no API key. Account at https://dashboard.exa.ai.
+
+  - id: github
+    kind: platform
+    mcp_server: github
+    repo: null
+    status: external
+    owns:
+      - github.repos
+      - github.issues
+      - github.pull-requests
+      - github.actions
+      - github.code-search
+      - github.releases
+    notes: |
+      Official remote GitHub MCP server. PAT-authenticated.
+      GITHUB_TOKEN is read from OS environment (not .env).

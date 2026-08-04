@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ p.display }} — LAOS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body class="bg-slate-100 min-h-screen">
+  <header class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+    <div>
+      <a href="/" class="text-slate-400 text-sm hover:text-white">← board</a>
+      <h1 class="text-xl font-bold mt-1">{{ p.display }}</h1>
+      <p class="text-slate-400 text-sm">{{ p.name }}</p>
+    </div>
+    <div class="text-right text-sm flex items-center gap-2">
+      <a href="/projects/{{ p.name }}/handoff"
+         class="px-3 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white text-xs">handoff</a>
+      <a href="/projects/{{ p.name }}/console"
+         class="px-3 py-1 rounded bg-violet-600 hover:bg-violet-500 text-white text-xs">console</a>
+      <form hx-post="/projects/{{ p.name }}/actions" hx-target="#action-result" class="flex gap-1">
+        <button name="action" value="verify" type="submit"
+                class="px-3 py-1 rounded bg-slate-600 hover:bg-slate-500 text-white text-xs">verify</button>
+        <button name="action" value="gaps" type="submit"
+                class="px-3 py-1 rounded bg-slate-600 hover:bg-slate-500 text-white text-xs">gaps</button>
+        <button name="action" value="run" type="submit"
+                class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs">run</button>
+      </form>
+      <form method="post" action="/projects/{{ p.name }}/status" class="flex items-center gap-2">
+        <select name="status" class="px-3 py-1 rounded bg-slate-700 text-white text-sm">
+          {% for val, label in [("not_started","Não iniciado"),("planning","Planejando"),
+                                ("running","Rodando"),("awaiting_decision","Aguardando decisão"),
+                                ("completed","Pronto para shipar"),("failed","Falhou")] %}
+          <option value="{{ val }}" {% if p.status == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="px-3 py-1 rounded bg-blue-500 hover:bg-blue-400 text-white text-sm">mudar</button>
+      </form>
+      {% if p.ready_to_ship %}
+      <span class="px-3 py-1 rounded bg-emerald-500 text-slate-900 font-semibold">✓ ship-ready</span>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="p-6">
+
+    <!-- ─── Resultado de ações (verify/gaps/run) ───────────────── -->
+    <div id="action-result" class="mb-6"></div>
+
+    <!-- ─── Totais consolidados (o "tudo" num relance) ─────────── -->
+    <section class="bg-white rounded-lg shadow p-5 mb-6">
+      <h2 class="font-bold text-slate-800 mb-3">Totais do projeto</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div class="bg-slate-50 rounded p-3">
+          <div class="text-2xl font-bold text-slate-800">${{ "%.4f"|format(p.totals.phase_cost + p.totals.cost_runs) }}</div>
+          <div class="text-xs text-slate-500">custo fases (DuckDB)</div>
+        </div>
+        <div class="bg-slate-50 rounded p-3">
+          <div class="text-2xl font-bold text-slate-800">${{ "%.4f"|format(p.langfuse.llm_cost_usd) }}</div>
+          <div class="text-xs text-slate-500">custo LLM (Langfuse)</div>
+        </div>
+        <div class="bg-slate-50 rounded p-3">
+          <div class="text-2xl font-bold text-slate-800">{{ p.totals.tokens_runs + p.totals.phase_tokens }}</div>
+          <div class="text-xs text-slate-500">tokens usados</div>
+        </div>
+        <div class="bg-slate-50 rounded p-3">
+          <div class="text-2xl font-bold text-slate-800 {% if p.totals.errors_runs > 0 %}text-red-500{% endif %}">{{ p.totals.errors_runs }}</div>
+          <div class="text-xs text-slate-500">erros</div>
+        </div>
+      </div>
+      {% if not p.langfuse.up %}
+      <p class="text-xs text-amber-500 mt-2">Langfuse offline — custo LLM não atualizado.</p>
+      {% endif %}
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Brief + meta -->
+    <section class="lg:col-span-2 bg-white rounded-lg shadow p-5">
+      <h2 class="font-bold text-slate-800 mb-2">Brief</h2>
+      <p class="text-slate-600 text-sm">{{ p.brief }}</p>
+      {% if p.repo %}
+      <p class="text-xs text-slate-500 mt-3">repo: {{ p.repo }}</p>
+      {% endif %}
+      <div class="flex gap-1 mt-3 flex-wrap">
+        {% for n in p.needs %}
+        <span class="text-xs bg-slate-100 border border-slate-200 rounded px-2 py-1 text-slate-600">{{ n }}</span>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Decisions pending -->
+    <section class="bg-white rounded-lg shadow p-5">
+      <h2 class="font-bold text-slate-800 mb-2">Decisões pendentes ({{ p.decisions|length }})</h2>
+      {% for d in p.decisions %}
+      <div class="border-l-4 border-amber-400 bg-amber-50 p-3 mb-2 rounded text-sm">
+        <div class="text-slate-700">{{ d.question }}</div>
+        <div class="text-[10px] text-slate-400 mt-1">{{ d.cluster_id }} · {{ d.asked_at }}</div>
+        <form method="post" action="/projects/{{ p.name }}/decisions/{{ d.decision_id }}/decide"
+              class="mt-2 flex gap-2">
+          <input name="decided_value" required placeholder="decisão (y/n/valor)"
+                 class="flex-1 px-2 py-1 rounded border border-slate-300 text-sm">
+          <button type="submit" class="px-3 py-1 rounded bg-amber-500 hover:bg-amber-400 text-white text-sm">
+            decidir
+          </button>
+        </form>
+      </div>
+      {% else %}
+      <div class="text-sm text-slate-400">Nenhuma decisão pendente ✓</div>
+      {% endfor %}
+    </section>
+
+    <!-- Cost by phase -->
+    <section class="bg-white rounded-lg shadow p-5">
+      <h2 class="font-bold text-slate-800 mb-2">Custo por fase</h2>
+      {% if p.phases %}
+      <table class="w-full text-sm">
+        <thead><tr class="text-left text-slate-500 text-xs">
+          <th class="py-1">fase</th><th>status</th><th class="text-right">custo</th>
+        </tr></thead>
+        <tbody>
+        {% for ph in p.phases %}
+        <tr class="border-t">
+          <td class="py-1.5">{{ ph.phase }} · {{ ph.name }}</td>
+          <td>{{ ph.status }}</td>
+          <td class="text-right">${{ "%.4f"|format(ph.cost_usd) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-sm text-slate-400">Sem fases registradas ainda.</div>
+      {% endif %}
+    </section>
+
+    <!-- Runs -->
+    <section class="lg:col-span-2 bg-white rounded-lg shadow p-5">
+      <h2 class="font-bold text-slate-800 mb-2">Runs recentes</h2>
+      {% if p.runs %}
+      <table class="w-full text-sm">
+        <thead><tr class="text-left text-slate-500 text-xs">
+          <th class="py-1">run</th><th>status</th><th class="text-right">custo</th>
+          <th class="text-right">tokens</th><th class="text-right">erros</th>
+        </tr></thead>
+        <tbody>
+        {% for r in p.runs %}
+        <tr class="border-t">
+          <td class="py-1.5 font-mono text-xs">{{ r.run_id }}</td>
+          <td>{{ r.status }}</td>
+          <td class="text-right">${{ "%.4f"|format(r.cost_usd or 0) }}</td>
+          <td class="text-right">{{ r.tokens or 0 }}</td>
+          <td class="text-right">{{ r.errors or 0 }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-sm text-slate-400">Sem runs ainda. Rode: <code class="bg-slate-100 px-1">laos run {{ p.name }}</code></div>
+      {% endif %}
+    </section>
+
+    <!-- Deliverables -->
+    <section class="bg-white rounded-lg shadow p-5">
+      <h2 class="font-bold text-slate-800 mb-2">Deliverables</h2>
+      {% if p.deliverables %}
+      <ul class="text-sm space-y-1">
+      {% for d in p.deliverables %}
+        <li class="flex items-center gap-2">
+          {% if d.exists %}
+          <span class="text-emerald-500">✓</span>
+          {% else %}
+          <span class="text-red-400">✗</span>
+          {% endif %}
+          <span class="text-slate-700">{{ d.name }}</span>
+          {% if d.passes_test == false and d.exists %}
+          <span class="text-[10px] text-red-500">falha no check</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+      </ul>
+      {% else %}
+      <div class="text-sm text-slate-400">Sem deliverables verificados. Rode: <code class="bg-slate-100 px-1">laos verify {{ p.name }}</code></div>
+      {% endif %}
+    </section>
+
+    <!-- ToDos -->
+    <section class="bg-white rounded-lg shadow p-5">
+      <h2 class="font-bold text-slate-800 mb-2">ToDos</h2>
+      {% if p.todos %}
+      <ul class="text-sm space-y-1">
+      {% for t in p.todos %}
+        <li class="flex items-center gap-2">
+          <form method="post" action="/projects/{{ p.name }}/todos/{{ t.todo_id }}/toggle">
+            <button type="submit" class="text-base">
+              {% if t.done %}<span class="text-emerald-500">☑</span>{% else %}<span class="text-slate-300">☐</span>{% endif %}
+            </button>
+          </form>
+          <span class="{% if t.done %}line-through text-slate-400{% else %}text-slate-700{% endif %}">{{ t.text }}</span>
+        </li>
+      {% endfor %}
+      </ul>
+      {% else %}
+      <div class="text-sm text-slate-400">Sem todos. Use o CLI para adicionar.</div>
+      {% endif %}
+    </section>
+
+    <!-- Gaps -->
+    <section class="bg-white rounded-lg shadow p-5">
+      <h2 class="font-bold text-slate-800 mb-2">Capability gaps</h2>
+      {% if p.gaps %}
+      <ul class="text-sm space-y-1">
+      {% for g in p.gaps %}
+        <li class="text-red-600">⚠ {{ g.need }} → falta {{ g.missing_capability }}</li>
+      {% endfor %}
+      </ul>
+      {% else %}
+      <div class="text-sm text-slate-400">Sem gaps detectados.</div>
+      {% endif %}
+    </section>
+
+    </div><!-- /grid -->
+
+  </main>
+</body>
+</html>

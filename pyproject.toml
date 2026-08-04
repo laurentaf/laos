@@ -1,0 +1,33 @@
+[project]
+name = "laos"
+version = "0.2.0"
+description = "Laurent Agent Operating System - orchestration layer + control plane"
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb>=1.5.4",
+    "mcp[cli]>=1.0.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "jinja2>=3.1.0",
+]
+
+[project.scripts]
+laos = "laos.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["laos"]
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+]

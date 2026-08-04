@@ -1,0 +1,126 @@
+# Needs → capabilities routing (DETERMINISTIC)
+#
+# Projects declare abstract `needs` in their project.yaml. The orchestrator
+# resolves each need to one or more concrete capability IDs (defined in
+# capabilities.yaml).
+#
+# Rules:
+#   - The LLM does NOT invent capability selection. It walks this map.
+#   - If a need is not in this map, fail loudly and ask the user to
+#     either add a routing rule or rename the need.
+#   - A need can map to multiple capabilities; the orchestrator picks
+#     based on workflow stage or asks the user.
+
+# ─── Game development needs ──────────────────────────────────
+
+game-simulation:
+  primary: [laengine]
+  optional: [latade]
+
+game-ui:
+  primary: [ladesign, laengine]
+  optional: [context7]
+
+# ─── Domain needs ────────────────────────────────────────────
+
+data:
+  primary: [latade]
+  optional: [context7]
+
+etl:
+  primary: [latade]
+  optional: [lan8n, context7]
+
+modeling:
+  primary: [latade, laecon]
+  optional: [context7]
+
+data-quality:
+  primary: [latade]
+
+dashboard:
+  primary: [ladesign]
+  optional: [latade, context7]
+
+design:
+  primary: [ladesign]
+  optional: [context7]
+
+presentation:
+  primary: [ladesign]
+
+video:
+  primary: [ladesign]
+
+image:
+  primary: [ladesign]
+
+automation:
+  primary: [lan8n]
+  optional: [n8n-community, context7]
+
+integration:
+  primary: [lan8n]
+  optional: [n8n-community]
+
+alerts:
+  primary: [lan8n]
+
+# ─── Modeling & ML needs (NEW: laecon) ───────────────────────
+
+ml:
+  primary: [laecon]
+  optional: [latade, context7]
+
+data-science:
+  primary: [laecon]
+  optional: [latade, context7]
+
+econometrics:
+  primary: [laecon]
+  optional: [latade, context7]
+
+nps-driver-analysis:
+  primary: [laecon]
+  optional: [latade, ladesign]
+
+causal-inference:
+  primary: [laecon]
+  optional: [latade, context7]
+
+predictive-modeling:
+  primary: [laecon]
+  optional: [latade, context7]
+
+# ─── Improvement needs ──────────────────────────────────────
+
+improvement:
+  primary: [lacouncil]
+  optional: [context7]
+
+investigation:
+  primary: [lacouncil]
+
+council:
+  primary: [lacouncil]
+
+# ─── Browser automation needs ────────────────────────────────
+
+browser-automation:
+  primary: [opera-browser]
+  optional: [lan8n]
+
+browser-testing:
+  primary: [opera-browser]
+
+# ─── Platform needs (rarely declared directly) ───────────────
+
+documentation-lookup:
+  primary: [context7]
+
+research:
+  primary: [exa]
+  optional: [context7]
+
+repo-operations:
+  primary: [github]

@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# pre-commit — LAOS delivery validation hook (Unix/Git Bash on Windows)
+#
+# 100% HIDDEN no Windows: usa pythonw.exe (GUI subsystem) via .NET Process.
+# No Unix/Linux, usa python3 normal (não há console flashing em Unix).
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+RUNNER="$REPO_ROOT/scripts/run-hidden.py"
+SCRIPT="$REPO_ROOT/scripts/delivery-hook.py"
+PYTHONW="$REPO_ROOT/.venv/Scripts/pythonw.exe"
+
+# Find project.yaml
+find_project() {
+    local dir="$PWD"
+    for i in {1..10}; do
+        if [ -f "$dir/project.yaml" ]; then
+            echo "$dir/project.yaml"
+            return 0
+        fi
+        dir="$(dirname "$dir")"
+    done
+    return 1
+}
+PROJECT_YAML=$(find_project)
+[ -z "$PROJECT_YAML" ] && exit 0
+
+# Windows: pythonw.exe (GUI subsystem, sem console) + run_hidden.py (CREATE_NO_WINDOW)
+if [ -f "$PYTHONW" ]; then
+    # Wraps via PowerShell .NET Process (CreateNoWindow=$true) para execução
+    # 100% silenciosa. O comando real roda via:
+    #   pythonw.exe (sem console) → run_hidden.run() (CREATE_NO_WINDOW) → delivery-hook.py
+    pwsh -NoProfile -Command "
+        `$psi = New-Object System.Diagnostics.ProcessStartInfo
+        `$psi.FileName = '$PYTHONW'
+        `$psi.Arguments = '\"$RUNNER\" \"$SCRIPT\" --check \"$PROJECT_YAML\"'
+        `$psi.UseShellExecute = `$false
+        `$psi.CreateNoWindow = `$true
+        `$psi.RedirectStandardOutput = `$true
+        `$psi.RedirectStandardError = `$true
+        try {
+            `$p = [System.Diagnostics.Process]::Start(`$psi)
+            `$output = `$p.StandardOutput.ReadToEnd()
+            `$err = `$p.StandardError.ReadToEnd()
+            `$p.WaitForExit()
+            if (`$output) { Write-Host `$output }
+            if (`$err) { Write-Host `$err }
+            exit `$p.ExitCode
+        } catch { exit 1 }
+    "
+    exit $?
+fi
+
+# Unix fallback (no console flashing issue)
+if command -v python3 &>/dev/null; then
+    PYTHON=python3
+else
+    PYTHON=python
+fi
+
+"$PYTHON" "$SCRIPT" --check "$PROJECT_YAML"
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "PASS: Validation successful"
+    exit 0
+elif [ $EXIT_CODE -eq 2 ]; then
+    echo "SKIP: No project to validate"
+    exit 0
+else
+    echo "FAIL: Validation failed - commit blocked"
+    echo "Fix the issues above and try again"
+    exit 1
+fi

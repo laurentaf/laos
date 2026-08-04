@@ -1,0 +1,73 @@
+.env
+.env.local
+.env.shared
+
+# Local Python venv (managed by uv)
+.venv/
+__pycache__/
+*.pyc
+
+# opencode runtime
+.opencode/cache/
+.opencode/logs/
+.opencode/state/
+.opencode/temp/
+
+# LAOS state persistence (laos-recovery plugin)
+.laos/
+
+# WDL build artifacts
+artifacts/wdl/
+
+# Raw data (CSVs, extracts)
+data/
+
+# Memory database (DuckDB audit)
+memoria/
+
+# Archived scratch scripts
+scripts/_archive/
+
+# Per-project artifacts
+projects/*/artifacts/
+projects/*/.cache/
+projects/*/_child_clone/
+
+# Database files (DuckDB)
+*.duckdb
+*.duckdb.wal
+
+# lacouncil (inside repo) — venv já coberto por .venv/ acima
+lacouncil/.venv/
+
+# LAOS runtime state
+.laos/
+
+# LACOUNCIL memory (DuckDB) — lives in lacouncil/memoria/
+memoria/
+
+# User-provided data (CVs, personal files)
+user_input_data/
+
+# Root-level generated artifacts (WDL plans, debug output)
+artifacts/
+
+# Temp/scratch scripts
+_temp_cleanup.py
+scripts/temp_rename_*.ps1
+scripts/temp_rename_*.py
+scripts/git_commit_*.py
+scripts/git_diagnose.py
+scripts/git_debug.py
+
+# Tailscale machine credentials
+.tailscale-creds.json
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

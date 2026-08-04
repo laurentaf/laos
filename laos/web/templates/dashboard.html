@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard — LAOS Control Plane</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen">
+  <header class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+    <div>
+      <a href="/" class="text-slate-400 text-sm hover:text-white">← board</a>
+      <h1 class="text-xl font-bold mt-1">Dashboard executivo</h1>
+      <p class="text-slate-400 text-sm">portfolio inteiro num relance</p>
+    </div>
+  </header>
+
+  <main class="p-6">
+
+    <!-- KPIs -->
+    <section class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <div class="text-2xl font-bold text-slate-800">${{ "%.4f"|format(total_cost) }}</div>
+        <div class="text-xs text-slate-500">custo acumulado</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <div class="text-2xl font-bold text-slate-800">{{ total_tokens }}</div>
+        <div class="text-xs text-slate-500">tokens</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <div class="text-2xl font-bold {% if total_errors > 0 %}text-red-500{% else %}text-slate-800{% endif %}">{{ total_errors }}</div>
+        <div class="text-xs text-slate-500">erros</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <div class="text-2xl font-bold text-slate-800">{{ total_runs }}</div>
+        <div class="text-xs text-slate-500">runs</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <div class="text-2xl font-bold text-emerald-600">{{ ship_ready }}/{{ projects|length }}</div>
+        <div class="text-xs text-slate-500">ship-ready</div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- O que está travado / atenção -->
+      <section class="bg-white rounded-lg shadow p-5">
+        <h2 class="font-bold text-slate-800 mb-3">⚠ Precisa de atenção</h2>
+        {% if awaiting %}
+        <h3 class="text-xs font-semibold text-amber-600 mt-2 mb-1">Aguardando decisão</h3>
+        <ul class="text-sm space-y-1">
+          {% for p in awaiting %}
+          <li><a href="/projects/{{ p.name }}" class="text-amber-700 hover:underline">{{ p.display }}</a></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if running %}
+        <h3 class="text-xs font-semibold text-blue-600 mt-2 mb-1">Rodando agora</h3>
+        <ul class="text-sm space-y-1">
+          {% for p in running %}
+          <li><a href="/projects/{{ p.name }}" class="text-blue-700 hover:underline">{{ p.display }}</a></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if not awaiting and not running %}
+        <p class="text-sm text-slate-400">Nada travado. Nenhum projeto aguardando decisão ou rodando.</p>
+        {% endif %}
+        <h3 class="text-xs font-semibold text-slate-500 mt-3 mb-1">Não iniciados ({{ not_started_count }})</h3>
+      </section>
+
+      <!-- Health das capabilities -->
+      <section class="bg-white rounded-lg shadow p-5">
+        <h2 class="font-bold text-slate-800 mb-3">Health das capabilities</h2>
+        <ul class="text-sm space-y-1">
+          {% for cap, status in cap_health.items() %}
+          <li class="flex items-center justify-between">
+            <span class="font-mono text-xs">{{ cap }}</span>
+            {% if status == "ok" %}
+            <span class="text-emerald-600 text-xs">OK</span>
+            {% elif status == "disabled" %}
+            <span class="text-red-500 text-xs">DESABILITADO</span>
+            {% else %}
+            <span class="text-slate-400 text-xs">?</span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="text-xs text-slate-400 mt-3">Fonte: .opencode/opencode.jsonc (enabled)</p>
+      </section>
+
+      <!-- Top custo -->
+      <section class="bg-white rounded-lg shadow p-5">
+        <h2 class="font-bold text-slate-800 mb-3">Top custo</h2>
+        <table class="w-full text-sm">
+          <thead><tr class="text-left text-slate-500 text-xs">
+            <th class="py-1">projeto</th><th class="text-right">custo</th><th class="text-right">tokens</th>
+          </tr></thead>
+          <tbody>
+          {% for p in by_cost %}
+          <tr class="border-t">
+            <td class="py-1.5"><a href="/projects/{{ p.name }}" class="text-blue-700 hover:underline">{{ p.display }}</a></td>
+            <td class="text-right">${{ "%.4f"|format(p.cost_usd) }}</td>
+            <td class="text-right">{{ p.tokens }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="py-2 text-slate-400">Sem dados</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Top erros -->
+      <section class="bg-white rounded-lg shadow p-5">
+        <h2 class="font-bold text-slate-800 mb-3">Top erros</h2>
+        <table class="w-full text-sm">
+          <thead><tr class="text-left text-slate-500 text-xs">
+            <th class="py-1">projeto</th><th class="text-right">erros</th><th class="text-right">runs</th>
+          </tr></thead>
+          <tbody>
+          {% for p in by_errors %}
+          <tr class="border-t">
+            <td class="py-1.5"><a href="/projects/{{ p.name }}" class="text-blue-700 hover:underline">{{ p.display }}</a></td>
+            <td class="text-right {% if p.errors > 0 %}text-red-500{% endif %}">{{ p.errors }}</td>
+            <td class="text-right">{{ p.run_count }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="py-2 text-slate-400">Sem dados</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

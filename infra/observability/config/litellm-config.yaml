@@ -1,0 +1,108 @@
+# LiteLLM proxy config — LAOS observability (P2)
+#
+# Routes LLM calls through the proxy so EVERY call is logged with
+# tokens/cost/latency and forwarded to Langfuse.
+#
+# Backend: OpenCode Go (https://opencode.ai/docs/go/) — low-cost
+# subscription for open coding models. The API key lives in
+# ~/.local/share/opencode/auth.json under "opencode-go".
+# NOTE: never commit the key here; inject via env OPENCODE_GO_KEY.
+#
+# IMPORTANT: opencode.ai sits behind Cloudflare (error 1010 blocks
+# requests without a browser User-Agent). LiteLLM sends a browser
+# UA via extra_headers below.
+#
+# Wire opencode's provider block to this proxy:
+#   "provider": { "opencode-go": { "base_url": "http://localhost:4000", ... } }
+# Model names in LiteLLM format: "opencode-go/<model-id>"
+#   e.g. opencode-go/deepseek-v4-flash (default workhorse)
+
+model_list:
+  # ─── OpenCode Go — chat/completions models ───────────────────────
+  # model_name = alias the caller uses (short Go model ID, so callers can
+  #   use "deepseek-v4-flash").
+  # litellm_params.model = "openai/<go-model-id>" — LiteLLM sends the part
+  #   after "openai/" as the upstream "model" field against api_base.
+  - model_name: deepseek-v4-flash
+    litellm_params:
+      model: openai/deepseek-v4-flash
+      api_base: https://opencode.ai/zen/go/v1
+      api_key: os.environ/OPENCODE_GO_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+        Accept: "application/json"
+        Origin: "https://opencode.ai"
+        Referer: "https://opencode.ai/"
+    model_info:
+      # OpenCode Go pricing (per 1M tokens) — docs/opencode.ai/docs/go/
+      input_cost_per_token: 0.00000014
+      output_cost_per_token: 0.00000028
+      cache_read_input_token_cost: 0.0000000028
+      cache_creation_input_token_cost: 0.0
+
+  - model_name: glm-5.2
+    litellm_params:
+      model: openai/glm-5.2
+      api_base: https://opencode.ai/zen/go/v1
+      api_key: os.environ/OPENCODE_GO_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+        Accept: "application/json"
+        Origin: "https://opencode.ai"
+        Referer: "https://opencode.ai/"
+    model_info:
+      # OpenCode Go pricing — GLM-5.2 $1.40/M in, $4.40/M out
+      input_cost_per_token: 0.00000140
+      output_cost_per_token: 0.00000440
+      cache_read_input_token_cost: 0.00000026
+      cache_creation_input_token_cost: 0.0
+
+  - model_name: deepseek-v4-pro
+    litellm_params:
+      model: openai/deepseek-v4-pro
+      api_base: https://opencode.ai/zen/go/v1
+      api_key: os.environ/OPENCODE_GO_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+        Accept: "application/json"
+        Origin: "https://opencode.ai"
+        Referer: "https://opencode.ai/"
+
+  # ─── OpenCode Go — Anthropic-format models (minimax, qwen) ──────
+  # These use POST /v1/messages (Anthropic wire format). LiteLLM maps
+  # "anthropic/..." to the Messages API.
+  - model_name: minimax-m3
+    litellm_params:
+      model: anthropic/minimax-m3
+      api_base: https://opencode.ai/zen/go/v1
+      api_key: os.environ/OPENCODE_GO_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+        Accept: "application/json"
+        Origin: "https://opencode.ai"
+        Referer: "https://opencode.ai/"
+
+  - model_name: qwen3.7-plus
+    litellm_params:
+      model: anthropic/qwen3.7-plus
+      api_base: https://opencode.ai/zen/go/v1
+      api_key: os.environ/OPENCODE_GO_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+        Accept: "application/json"
+        Origin: "https://opencode.ai"
+        Referer: "https://opencode.ai/"
+
+# LiteLLM → Langfuse: the "langfuse" callback posts SDK-style traces
+# using LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY / LANGFUSE_HOST
+# (all set in docker-compose). The "langfuse_otel" variant targets the
+# OTLP endpoint and is kept as fallback in comments for reference.
+
+litellm_settings:
+  callbacks: ["langfuse"]
+  drop_params: true
+
+general_settings:
+  master_key: sk-laos-master
+  database_url: postgresql://litellm:litellm@langfuse-db:5432/litellm
+  store_model_in_db: true

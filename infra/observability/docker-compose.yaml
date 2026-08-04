@@ -1,0 +1,119 @@
+# LAOS observability stack (P2)
+#
+# Langfuse self-host (traces, cost, prompts) + LiteLLM proxy (LLM routing
+# + per-call token/cost logging → OTel → Langfuse).
+#
+# Usage:
+#   docker compose -f infra/observability/docker-compose.yaml up -d
+#
+# After boot:
+#   Langfuse UI:  http://localhost:3000  (default creds: admin / admin)
+#   LiteLLM:      http://localhost:4000  (health: /health/liveliness)
+#
+# Wire opencode's provider to the LiteLLM proxy:
+#   base_url: http://localhost:4000  (model names like "openai/gpt-4o")
+
+name: laos-observability
+
+services:
+  # ─── Langfuse ────────────────────────────────────────────────────
+  langfuse-db:
+    image: postgres:16-alpine
+    container_name: laos-langfuse-db
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse-db-data:/var/lib/postgresql/data
+      - ./config/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [laos-obs]
+    restart: unless-stopped
+
+  langfuse-redis:
+    image: redis:7-alpine
+    container_name: laos-langfuse-redis
+    networks: [laos-obs]
+    restart: unless-stopped
+
+  langfuse:
+    image: langfuse/langfuse:2
+    container_name: laos-langfuse
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: 6379
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: laos-dev-secret-change-me-0123456789abcdef
+      SALT: laos-dev-salt-change-me-0123456789abcdef
+      ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      # Seed: create org/project + API keys on first boot.
+      # Key format MUST be lf_pk_... / lf_sk_... (Langfuse validates prefix).
+      # The public key below is what the LiteLLM container must use as
+      # LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY.
+      LANGFUSE_INIT_ORG_NAME: laos
+      LANGFUSE_INIT_ORG_ID: laos-org
+      LANGFUSE_INIT_PROJECT_NAME: laos
+      LANGFUSE_INIT_PROJECT_ID: laos-proj
+      LANGFUSE_INIT_USER_EMAIL: admin@laos.local
+      LANGFUSE_INIT_USER_NAME: LAOS Admin
+      LANGFUSE_INIT_USER_PASSWORD: laos-admin-pw
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: lf_pk_laos_9b8a7c6d5e4f
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: lf_sk_laos_0f1e2d3c4b5a
+      # OTEL ingest for traces (LiteLLM → OTel → Langfuse)
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://langfuse:3000/api/public/otel
+      OTEL_EXPORTER_OTLP_HEADERS: "Authorization=Bearer lf_pk_laos_9b8a7c6d5e4f:lf_sk_laos_0f1e2d3c4b5a"
+    ports:
+      - "3000:3000"
+    networks: [laos-obs]
+    restart: unless-stopped
+
+  # ─── LiteLLM proxy ───────────────────────────────────────────────
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: laos-litellm
+    depends_on:
+      langfuse:
+        condition: service_started
+    environment:
+      LITELLM_MASTER_KEY: sk-laos-master
+      # OpenCode Go key — inject from host env (see scripts/infra_helper.py
+      # `env` command; never commit the key).
+      OPENCODE_GO_KEY: ${OPENCODE_GO_KEY}
+      # LiteLLM native Langfuse integration (simpler than raw OTel)
+      LANGFUSE_PUBLIC_KEY: lf_pk_laos_9b8a7c6d5e4f
+      LANGFUSE_SECRET_KEY: lf_sk_laos_0f1e2d3c4b5a
+      LANGFUSE_HOST: http://langfuse:3000
+      # Self-hosted OTEL ingest endpoint (langfuse_otel callback builds
+      # {LANGFUSE_OTEL_HOST}/api/public/otel automatically)
+      LANGFUSE_OTEL_HOST: http://langfuse:3000
+      # Explicit OTEL exporter vars for the langfuse_otel callback
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://langfuse:3000/api/public/otel
+      OTEL_EXPORTER_OTLP_HEADERS: "Authorization=Basic bGZfcGtfbGFvc185YjhhN2M2ZDVlNGY6bGZfc2tfbGFvc18wZjFlMmQzYzRiNWE="
+      DATABASE_URL: postgresql://litellm:litellm@langfuse-db:5432/litellm
+      STORE_MODEL_IN_DB: "True"
+    volumes:
+      - ./config/litellm-config.yaml:/app/config.yaml:ro
+    ports:
+      - "4000:4000"
+    command:
+      - "--config=/app/config.yaml"
+    networks: [laos-obs]
+    restart: unless-stopped
+
+volumes:
+  langfuse-db-data:
+
+networks:
+  laos-obs:
+    driver: bridge

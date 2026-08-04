@@ -1,0 +1,97 @@
+# ─────────────────────────────────────────────────────────────
+# Gestão de Produtos de Limpeza de Casa — POC de teste real
+# ─────────────────────────────────────────────────────────────
+project_name: limpeza-casa
+display_name: "Gestão de Produtos de Limpeza"
+brief: >
+  App HTML autossuficiente (1 arquivo, 3 abas, localStorage) para
+  gestão doméstica de produtos de limpeza. Aba 1: necessidades de
+  limpeza (vidro, pia, piso — usuário adiciona à vontade). Aba 2:
+  produtos comprados/estoque (nome, capacidade litro/5L/500ml,
+  checkboxes de necessidades que o produto cobre, quanto pagou,
+  nível de estoque 100/80/60/40/20/0%). Aba 3: dashboard — estoque
+  atual, necessidades sem produto, gasto médio do mês, quanto
+  comprar mês que vem.
+
+author:
+  name: Laurent
+  github: laurentaf
+
+created_at: 2026-08-03
+updated_at: 2026-08-03
+
+# ─── Necessidades ──────────────────────────────────────────
+needs:
+  - design
+
+# ─── Capabilities usadas ───────────────────────────────────
+capabilities_used:
+  primary:
+    - ladesign    # HTML autossuficiente via LLM
+  platform:
+    - context7
+
+# ─── Entregas (4 fases) ────────────────────────────────────
+deliverables:
+  - name: aba-necessidades
+    label: "Aba 1 — Necessidades de limpeza (CRUD)"
+    stage: 1
+    spec: >
+      Um arquivo HTML autossuficiente com uma aba (ou seção) "Necessidades".
+      O usuário adiciona necessidades de limpeza à vontade (ex: vidro, pia,
+      piso, vaso sanitário) com um campo de texto e botão "Adicionar".
+      Lista as necessidades com botão de remover cada uma. Persistir em
+      localStorage. CSS limpo embutido, português.
+    artifacts:
+      - "artifacts/limpeza/fase1-necessidades.html"
+
+  - name: aba-produtos
+    label: "Aba 2 — Produtos e estoque (CRUD)"
+    stage: 2
+    spec: >
+      Um arquivo HTML autossuficiente com uma aba (ou seção) "Produtos".
+      O usuário cadastra produtos de limpeza: nome, capacidade (com opções
+      predefinidas: 500ml, 1L, 5L ou livre), checkboxes das necessidades
+      que o produto cobre (lista as necessidades cadastradas), quanto pagou
+      (campo numérico), e nível de estoque atual (select: 100%, 80%, 60%,
+      40%, 20%, 0%). Lista os produtos com edição/remoção. Persistir em
+      localStorage. CSS limpo embutido, português.
+    artifacts:
+      - "artifacts/limpeza/fase2-produtos.html"
+
+  - name: aba-dashboard
+    label: "Aba 3 — Dashboard de estoque e compras"
+    stage: 3
+    spec: >
+      Um arquivo HTML autossuficiente com uma aba (ou seção) "Dashboard".
+      Exibe: (1) estoque atual de cada produto (percentual), (2) alerta de
+      quais necessidades NÃO têm nenhum produto associado, (3) gasto médio
+      do mês (soma dos preços dos produtos cadastrados, com campo de dias
+      no mês para média), (4) sugestão de quanto comprar no próximo mês
+      (produtos com estoque <= 40% destacados como "comprar"). Ler os dados
+      de localStorage (necessidades + produtos). CSS limpo embutido,
+      português.
+    artifacts:
+      - "artifacts/limpeza/fase3-dashboard.html"
+
+  - name: app-completo
+    label: "App completo — 3 abas num arquivo único"
+    stage: 4
+    spec: >
+      Um ÚNICO arquivo HTML que integra as 3 abas do projeto de gestão de
+      produtos de limpeza em abas (tabs) navegáveis: Aba 1 Necessidades
+      (adicionar/remover), Aba 2 Produtos (nome, capacidade, checkboxes de
+      necessidades cobertas, preço pago, nível de estoque 100-0%), Aba 3
+      Dashboard (estoque atual por produto, necessidades sem produto,
+      gasto médio do mês, sugestão de compra do próximo mês). Tudo em
+      localStorage, CSS limpo embutido, português, um arquivo só.
+    artifacts:
+      - "artifacts/limpeza/index.html"
+
+# ─── Política de dados ─────────────────────────────────────
+data_policy:
+  allow_synthetic: true
+  notes: "POC de teste — dados locais (localStorage), sem dados externos"
+
+repo: ""
+status: active

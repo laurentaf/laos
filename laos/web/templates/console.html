@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Console — {{ p.display }} — LAOS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body class="bg-slate-100 h-screen flex flex-col">
+  <header class="bg-slate-900 text-white px-6 py-3 flex items-center justify-between shrink-0">
+    <div>
+      <a href="/projects/{{ p.name }}" class="text-slate-400 text-sm hover:text-white">← projeto</a>
+      <h1 class="text-lg font-bold">Console — {{ p.display }}</h1>
+    </div>
+    <span class="text-xs text-slate-400">texto livre = LLM com contexto · /help para comandos</span>
+  </header>
+
+  <div class="flex flex-1 min-h-0">
+    <!-- Thread -->
+    <main class="flex-1 flex flex-col min-w-0 bg-white">
+      <div id="thread" class="flex-1 overflow-y-auto p-4 space-y-3">
+        {% for m in history %}
+        <div class="flex {% if m.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
+          <div class="max-w-[80%] rounded-lg p-3 text-sm whitespace-pre-wrap
+                      {% if m.role == 'user' %}bg-slate-800 text-white{% else %}bg-slate-100 text-slate-800{% endif %}">
+            {{ m.content }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <form hx-post="/projects/{{ p.name }}/console/send"
+            hx-target="#thread" hx-swap="beforeend"
+            class="border-t p-3 flex gap-2 shrink-0">
+        <input name="message" required autofocus placeholder="ex: o que vem na próxima fase? / /todo revisar relatório"
+               class="flex-1 px-3 py-2 rounded border border-slate-300 text-sm">
+        <button type="submit" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold">
+          enviar
+        </button>
+      </form>
+    </main>
+
+    <!-- Context (what the LLM sees) -->
+    <aside class="w-80 shrink-0 bg-slate-50 border-l overflow-y-auto p-4">
+      <h2 class="text-xs font-bold text-slate-500 uppercase mb-2">Contexto do projeto (o que a LLM vê)</h2>
+      <pre class="text-[11px] text-slate-600 whitespace-pre-wrap">{{ ctx }}</pre>
+    </aside>
+  </div>
+</body>
+</html>

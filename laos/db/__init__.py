@@ -1,0 +1,1 @@
+"""LAOS durable state (DuckDB)."""

@@ -1,0 +1,37 @@
+#!/bin/bash
+# LAOS pre-push hook
+# Auto-fetches and rebases on divergent remote before push
+# Source: knowledge/child-repo-hooks.md
+
+remote="$1"
+url="$2"
+
+# Only run for GitHub
+if [[ "$url" != *"github.com"* ]]; then
+  exit 0
+fi
+
+# Check if remote has commits we don't have
+behind=$(git rev-list --count HEAD..origin/main 2>/dev/null)
+
+if [ -z "$behind" ] || [ "$behind" = "0" ]; then
+  # Already up to date, proceed
+  exit 0
+fi
+
+echo "Remote has $behind new commit(s). Attempting auto-rebase..."
+
+if git pull --rebase origin main; then
+  echo "Rebase successful. Proceeding with push."
+  exit 0
+else
+  echo ""
+  echo "CONFLICT during rebase. Resolve manually:"
+  echo "  git status   # see conflicting files"
+  echo "  git add .    # resolve each conflict"
+  echo "  git rebase --continue"
+  echo "  git push"
+  echo ""
+  echo "Aborting push to avoid force-push."
+  exit 1
+fi

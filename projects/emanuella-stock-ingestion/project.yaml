@@ -1,0 +1,58 @@
+name: emanuella-stock-ingestion
+description: |
+  Rotina de ingestão para forecasts de estoque semanal — Lojas Emanuella.
+  Pipeline ETL em 3 estágios: ingestão via API, transformação dos dados,
+  e preparação de artefatos para dbt. Projeto público para avaliação
+  automatizada por IA.
+workflow: null
+external_delivery: true
+
+repo: laurentaf/emanuella-stock-ingestion
+
+needs:
+  - data
+  - etl
+
+deliverables:
+  - scripts/ingestion.py
+  - requirements.txt
+  - data/inventory_staging.csv
+  - data/inventory_metadata.json
+  - sql/staging_inventory.sql
+  - README.md
+
+inputs:
+  - brief
+  - api_endpoint
+  - project_id
+  - api_token
+
+input_values:
+  brief: |
+    Pipeline de ingestão de dados de inventário para previsão de estoque semanal.
+    API: https://api.datamission.com.br/projects/{project_id}/dataset?format=json
+    Project ID: 1751329c-152c-42dd-822d-ad62f1328c01
+    3 estágios: (1) estruturação da ingestão, (2) transformação,
+    (3) preparação de artefatos dbt.
+  api_endpoint: "https://api.datamission.com.br/projects/{project_id}/dataset?format=json"
+  project_id: "1751329c-152c-42dd-822d-ad62f1328c01"
+  api_token: "{{API_TOKEN}}"  # Definir via env var. Token de curta duração fornecido pela DataMission.
+
+stages:
+  - id: 1
+    name: "Estruturar ingestão inicial"
+    description: |
+      Criar scripts/ingestion.py com fetch_inventory_data(), requirements.txt,
+      gerar data/inventory_staging.csv, sql/staging_inventory.sql comentado,
+      data/inventory_metadata.json com schema.
+  - id: 2
+    name: "Transformar e salvar dados"
+    description: |
+      Criar transform_inventory() que carrega JSON e seleciona colunas chave
+      em DataFrame, salva em data/inventory_staging.csv, prints de linhas.
+  - id: 3
+    name: "Preparar artefatos para dbt"
+    description: |
+      sql/staging_inventory.sql com definição comentada para dbt,
+      data/inventory_metadata.json (coluna/nome/tipo),
+      ingestion.py atualizado para gravar metadata após CSV.

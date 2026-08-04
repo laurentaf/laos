@@ -1,0 +1,63 @@
+# Projetos pré-LAOS
+#
+# Projetos existentes em F:/projects/ que foram criados antes da adoção
+# do LAOS como orquestrador. Não têm project.yaml em LAOS/projects/ nem
+# passaram pelo workflow LAOS. Mantidos como estão — documentados aqui
+# para referência do orchestrator.
+#
+# Cada entrada: nome, path local, repo GitHub (se houver), descrição.
+
+pre_laos_projects:
+
+  - name: lopes-melo-telecom
+    display_name: "Data Mission — Lopes Melo Telecom"
+    path: F:/projects/data-mission-lopes-melo-telecom
+    repo: https://github.com/laurentaf/lopes-melo-telecom.git
+    description: >
+      Pipeline de dados para Lopes Melo Telecom via DataMission API.
+      OpenCode-based project com CLI, src/, spec/, tests/, Docker.
+      Framework: Python + OpenCode.
+
+  - name: hospital-viana-claims
+    display_name: "Hospital Viana — Claims Processing"
+    path: F:/projects/hospital-viana-claims
+    repo: https://github.com/laurentaf/hospital-viana-claims.git
+    description: >
+      Processamento de sinistros para Hospital Viana.
+      Airflow pipeline + OpenCode project. Python, Docker, Airflow.
+
+  - name: logistica-me
+    display_name: "Logística ME"
+    path: F:/projects/Logistica-ME
+    repo: https://github.com/laurentaf/logistica-me.git
+    description: >
+      Pipeline de dados logísticos com dbt, Docker, Power BI.
+      Inclui dashboard, modelos dbt, pipeline de processamento.
+      Python + dbt + PostgreSQL + Power BI.
+
+  - name: pizzarias-sp-2026
+    display_name: "Pizzarias SP 2026"
+    path: F:/projects/pizzarias-sp-2026
+    repo: https://github.com/laurentaf/pizzarias-sp-2026.git
+    description: >
+      Dashboard Power BI das melhores pizzarias de São Paulo.
+      Inclui scraper, n8n workflows, logos, dataset CSV.
+      Power BI + n8n + Node.js.
+
+  - name: global-harness
+    display_name: "Global Harness"
+    path: F:/projects/global-harness
+    repo: null
+    description: >
+      Harness de teste multi-agente. Framework interno para
+      coordenação de agentes LAOS. Sem repositório GitHub.
+      Python + MCP.
+
+  - name: email-classifier
+    display_name: "Email Classifier"
+    path: F:/projects/email_classifier
+    repo: null
+    description: >
+      Classificador de e-mails com Outlook API (Microsoft Graph).
+      Pipeline de classificação, regras, testes.
+      Python + Microsoft Graph API.

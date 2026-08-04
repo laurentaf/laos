@@ -1,0 +1,111 @@
+name: abandono-academico-casa-grande
+description: |
+  Pipeline de Previsao de Abandono Academico — Dataset OULAD.
+  Open University Learning Analytics Dataset (32.593 alunos, 7 modulos, 2013-2014).
+  Target: final_result (Pass/Fail/Withdrawn/Distinction) → binarizado como dropout.
+  Features: demografia, registros, interacoes VLE (temporal), avaliacoes.
+  Dataset real, publicado em Sci. Data (Nature), CC-BY 4.0.
+
+workflow: null # ad-hoc
+
+external_delivery: true
+
+repo: laurentaf/abandono-academico-casa-grande
+repo_url: https://github.com/laurentaf/abandono-academico-casa-grande
+
+needs:
+  - data          # ingestao CSV, profiling, SQL → latade
+  - etl           # pipeline bronze→silver→gold → latade
+  - ml            # modelo preditivo scikit-learn → laecon
+  - predictive-modeling # classificacao de abandono → laecon
+  - data-quality  # validacao de dados, guards → latade
+  - dashboard     # UI com conclusoes + simulacao → ladesign
+
+deliverables:
+  - src/main.py
+  - src/model.pkl
+  - requirements.txt
+  - .gitignore
+  - data/oulad/ (7 CSVs OULAD)
+  - artifacts/data/model.md
+  - artifacts/data/etl_oulad.sql
+  - artifacts/data/oulad.duckdb
+  - artifacts/dq/checks.md
+  - README.md
+  - artifacts/dashboard/index.html
+
+inputs:
+  - brief
+  - dataset_path
+
+input_values:
+  brief: |
+    Pipeline de Previsao de Abandono Academico — Dataset OULAD.
+    Fonte: https://analyse.kmi.open.ac.uk/open-dataset (CC-BY 4.0)
+    32.593 alunos, 7 modulos, 22 apresentacoes, 2013-2014.
+    Tabelas: studentInfo, studentRegistration, studentAssessment,
+    studentVle, assessments, courses, vle.
+    Target: final_result → binarizado (Withdrawn=1, outros=0).
+    Features temporais: interacoes VLE diarias (sum_click por dia).
+    Referencia: Kuzilek et al. Sci. Data 4:170171 (2017).
+  dataset_path: "data/oulad/"
+
+stages:
+  - id: 1
+    name: "Preparar ambiente e dependencias"
+    description: |
+      Criar estrutura inicial com pastas src, data e reports.
+      Adicionar requirements.txt incluindo pandas, scikit-learn, requests e dbt.
+      Criar src/main.py com funcao main() vazia.
+      Implementar fetch_dataset() que usa requests.get com URL da API.
+      Implementar train_model() que treina e salva modelo via scikit-learn.
+    acceptance_criteria:
+      - Existe src/main.py com funcao main definida
+      - requirements.txt lista pandas, scikit-learn, requests e dbt
+      - Existe funcao fetch_dataset que usa requests.get com URL da API
+      - Existe funcao train_model que treina e salva modelo via scikit-learn
+  - id: 2
+    name: "Capturar dados via API — formato parametrizado + HTTP handling"
+    description: |
+      Implementar fetch_dataset(project_id, format) com parametro format,
+      tratamento de status HTTP, salvar dados crus em data/raw.csv,
+      e registrar tamanho do arquivo baixado no print.
+    acceptance_criteria:
+      - Existe src/main.py com funcao main definida
+      - requirements.txt lista pandas, scikit-learn, requests e dbt
+      - Existe funcao fetch_dataset que usa requests.get com URL da API
+      - Existe funcao train_model que treina e salva modelo via scikit-learn
+      - fetch_dataset aceita parametro format (parquet/json/csv)
+      - fetch_dataset trata erros HTTP (4xx/5xx) com mensagem amigavel
+      - fetch_dataset salva dados crus em data/raw.csv alem do parquet
+      - Print registra tamanho do arquivo baixado
+  - id: 3
+    name: "Fase 3: Preprocessamento + DQ baseline checks + pipeline reestruturada"
+    description: |
+      Extrair preprocess_data(df) de train_model(), implementar 6 DQ baseline checks
+      (null profiling, column existence, type validation, duplicate detection,
+      target balance, range/bounds), limpar nulls, encode categoricals via pandas
+      (nao sklearn LabelEncoder), reestruturar pipeline como
+      fetch_dataset -> preprocess_data -> train_model, e adicionar console metrics.
+    acceptance_criteria:
+      - Existe funcao preprocess_data(df) separada de train_model()
+      - preprocess_data limpa nulls (drop ou fill) e faz logging
+      - preprocess_data encode categorical variables usando pandas (pd.get_dummies ou .cat.codes), nao sklearn LabelEncoder
+      - Pipeline encadeia fetch_dataset -> preprocess_data -> train_model
+      - 6 DQ baseline checks implementados (ou justificados N/A) em src/main.py
+      - DQ checks executam ANTES de preprocess_data (entre fetch e preprocess)
+      - artifacts/dq/checks.md atualizado com implementacao dos 6 checks (DQ-01 a DQ-06)
+      - Modelo salvo em src/model.pkl (ADR-002 documenta decisao)
+      - main() executa pipeline completa end-to-end com console metrics
+      - DataFrame vazio guard continua funcionando (P0)
+  - id: 4
+    name: "Dashboard + Conclusoes + Simulacao"
+    description: |
+      Dashboard interativo com conclusoes e simulacao, verificando variaveis
+      importantes e avaliando o quanto mexer em cada uma melhora ou piora
+      o abandono. Publicar no GitHub.
+    acceptance_criteria:
+      - Dashboard existe em artifacts/dashboard/index.html
+      - Dashboard mostra conclusoes do modelo (feature importance, metrics)
+      - Dashboard tem simulacao interativa (sliders para variaveis)
+      - Dashboard e visualmente profissional e responsivo
