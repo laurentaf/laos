@@ -79,3 +79,46 @@ def test_handle_routes_slash_vs_llm(con, monkeypatch):
     monkeypatch.setattr(console, "chat", lambda pid, msg: "LLM_FAKE")
     out2 = console.handle("p1", "o que vem depois?")
     assert out2 == "LLM_FAKE"
+
+
+def test_chat_cache_returns_same_answer_twice(con):
+    """Consistency: same prompt -> same answer, no second LLM call."""
+    import json
+    import urllib.request
+
+    calls = {"n": 0}
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            calls["n"] += 1
+            body = json.dumps({
+                "choices": [{"message": {"content": "RESPOSTA_ESTAVEL"}}]
+            })
+            return body.encode()
+
+    def _fake_open(req, timeout=120):
+        return _Resp()
+
+    orig = urllib.request.urlopen
+    urllib.request.urlopen = _fake_open
+    try:
+        # first call: user saved by route, then handle() -> LLM
+        console.save_message("p1", "user", "mesma pergunta")
+        r1 = console.handle("p1", "mesma pergunta")
+        console.save_message("p1", "assistant", r1)
+        # second identical prompt: should hit cache, NOT call LLM again
+        console.save_message("p1", "user", "mesma pergunta")
+        r2 = console.handle("p1", "mesma pergunta")
+        console.save_message("p1", "assistant", r2)
+        assert r1 == "RESPOSTA_ESTAVEL"
+        assert r2 == "RESPOSTA_ESTAVEL"
+        assert r1 == r2
+        assert calls["n"] == 1  # LLM called only once
+    finally:
+        urllib.request.urlopen = orig

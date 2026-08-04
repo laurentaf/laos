@@ -224,8 +224,52 @@ def run_command(project_id: str, line: str) -> str:
 # ─── LLM chat ────────────────────────────────────────────────────────
 
 
+def _cached_reply(project_id: str, message: str) -> str | None:
+    """Return the cached assistant reply for this exact prompt, if any.
+
+    Consistency: the same user message in the same project always yields
+    the same answer (no token cost, no variance). We look for a PAIR
+    (user=message, assistant) that already exists — the assistant reply
+    that came after a previous identical user message.
+    """
+    try:
+        con = schema.connect()
+        # find a previous user message equal to this one
+        rows = con.execute(
+            "SELECT msg_id FROM chat_messages WHERE project_id=? AND role='user' "
+            "AND content=? ORDER BY ts DESC",
+            [project_id, message],
+        ).fetchall()
+        # the most recent one is the current in-flight message (reply not
+        # written yet); use the SECOND most recent, which has a reply
+        prev_ids = [r[0] for r in rows]
+        if len(prev_ids) < 2:
+            return None
+        prev_id = prev_ids[1]
+        # assistant reply that came AFTER the previous user message
+        # (compare by ts — msg_id is a uuid, not chronological)
+        arow = con.execute(
+            "SELECT content FROM chat_messages WHERE project_id=? AND role='assistant' "
+            "AND ts > (SELECT ts FROM chat_messages WHERE msg_id=?) "
+            "ORDER BY ts ASC LIMIT 1",
+            [project_id, prev_id],
+        ).fetchone()
+        if not arow:
+            return None
+        return arow[0]
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def chat(project_id: str, message: str) -> str:
-    """Send a message to the LLM with the project context baked in."""
+    """Send a message to the LLM with the project context baked in.
+
+    Deterministic: temperature 0 + exact-prompt cache. The same message
+    in the same project always returns the same answer.
+    """
+    cached = _cached_reply(project_id, message)
+    if cached is not None:
+        return cached
     ctx = project_context(project_id)
     system = (
         "Você é o console de planejamento do LAOS. O usuário está "
@@ -243,6 +287,7 @@ def chat(project_id: str, message: str) -> str:
             {"role": "user", "content": message},
         ],
         "max_tokens": 1024,
+        "temperature": 0,
     }
     req = urllib.request.Request(
         LITELLM_URL,

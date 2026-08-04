@@ -179,12 +179,7 @@ def console_send(request: Request, project_id: str, message: str = Form(...)) ->
     return templates.TemplateResponse(
         request=request,
         name="console_thread.html",
-        context={
-            "history": [
-                {"role": "user", "content": message, "ts": None},
-                {"role": "assistant", "content": reply, "ts": None},
-            ],
-        },
+        context={"reply": reply},
     )
 
 

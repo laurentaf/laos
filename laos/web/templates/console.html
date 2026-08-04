@@ -29,12 +29,22 @@
         </div>
         {% endfor %}
       </div>
-      <form hx-post="/projects/{{ p.name }}/console/send"
+
+      <form id="console-form"
+            hx-post="/projects/{{ p.name }}/console/send"
             hx-target="#thread" hx-swap="beforeend"
+            hx-indicator="#thinking"
             class="border-t p-3 flex gap-2 shrink-0">
-        <input name="message" required autofocus placeholder="ex: o que vem na próxima fase? / /todo revisar relatório"
-               class="flex-1 px-3 py-2 rounded border border-slate-300 text-sm">
-        <button type="submit" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold">
+        <textarea id="console-input" name="message" required autofocus rows="2"
+                  placeholder="ex: o que vem na próxima fase? / /todo revisar relatório  (Enter envia · Shift+Enter quebra linha)"
+                  class="flex-1 px-3 py-2 rounded border border-slate-300 text-sm resize-y"></textarea>
+        <span id="thinking" class="htmx-indicator flex items-center text-xs text-slate-400 px-2">
+          <span class="animate-spin inline-block w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full mr-2"></span>
+          pensando...
+        </span>
+        <button id="send-btn" type="submit"
+                class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold
+                       disabled:opacity-50 disabled:cursor-not-allowed">
           enviar
         </button>
       </form>
@@ -46,5 +56,54 @@
       <pre class="text-[11px] text-slate-600 whitespace-pre-wrap">{{ ctx }}</pre>
     </aside>
   </div>
+
+  <script>
+    const thread = document.getElementById('thread');
+    const form = document.getElementById('console-form');
+    const input = document.getElementById('console-input');
+    const sendBtn = document.getElementById('send-btn');
+    const thinking = document.getElementById('thinking');
+
+    // HTMX indicator: hidden by default (htmx-indicator sets opacity:0 via
+    // the framework stylesheet; we ensure it's hidden before first request).
+    thinking.style.display = 'none';
+
+    function scrollToBottom() {
+      thread.scrollTop = thread.scrollHeight;
+    }
+    scrollToBottom();
+
+    form.addEventListener('htmx:beforeRequest', () => {
+      // optimistic: render the user's message immediately, clear input,
+      // gray the button, show "pensando..."
+      const text = input.value.trim();
+      if (!text) return;
+      const div = document.createElement('div');
+      div.className = 'flex justify-end';
+      div.innerHTML = '<div class="max-w-[80%] rounded-lg p-3 text-sm whitespace-pre-wrap bg-slate-800 text-white"></div>';
+      div.firstChild.textContent = text;
+      thread.appendChild(div);
+      input.value = '';
+      sendBtn.disabled = true;
+      thinking.style.display = 'flex';
+      scrollToBottom();
+    });
+
+    form.addEventListener('htmx:afterRequest', () => {
+      sendBtn.disabled = false;
+      thinking.style.display = 'none';
+      input.focus();
+      scrollToBottom();
+    });
+
+    // pressing enter in a multiline-friendly way: single-line input,
+    // so Enter submits naturally (required). Shift+Enter not needed.
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (input.value.trim()) form.requestSubmit();
+      }
+    });
+  </script>
 </body>
 </html>

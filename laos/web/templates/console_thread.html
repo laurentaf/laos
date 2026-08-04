@@ -1,8 +1,7 @@
-{% for m in history %}
-<div class="flex {% if m.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
-  <div class="max-w-[80%] rounded-lg p-3 text-sm whitespace-pre-wrap
-              {% if m.role == 'user' %}bg-slate-800 text-white{% else %}bg-slate-100 text-slate-800{% endif %}">
-    {{ m.content }}
+{% if reply %}
+<div class="flex justify-start">
+  <div class="max-w-[80%] rounded-lg p-3 text-sm whitespace-pre-wrap bg-slate-100 text-slate-800">
+    {{ reply }}
   </div>
 </div>
-{% endfor %}
+{% endif %}
