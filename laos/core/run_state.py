@@ -18,6 +18,21 @@ def utcnow() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _duration_since(ts) -> float:
+    """Seconds from a DuckDB timestamp to now. Handles str/datetime."""
+    if ts is None:
+        return 0.0
+    try:
+        if isinstance(ts, str):
+            ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        return max(0.0, (now - ts).total_seconds())
+    except Exception:  # noqa: BLE001
+        return 0.0
+
+
 class RunState:
     """Durable run/step tracking over DuckDB."""
 
@@ -44,15 +59,18 @@ class RunState:
     def complete_run(self, status: str = "completed") -> None:
         assert self.run_id
         row = self.con.execute(
-            "SELECT cost_usd, tokens, errors, retries FROM runs WHERE run_id=?",
+            "SELECT cost_usd, tokens, errors, retries, started_at "
+            "FROM runs WHERE run_id=?",
             [self.run_id],
         ).fetchone()
-        cost, tokens, errors, retries = row if row else (0.0, 0, 0, 0)
+        cost, tokens, errors, retries = row[0], row[1], row[2], row[3]
+        started = row[4]
+        duration = _duration_since(started)
         self.con.execute(
             "UPDATE runs SET status=?, ended_at=current_timestamp, "
             "duration_s=?, cost_usd=?, tokens=?, errors=?, retries=? "
             "WHERE run_id=?",
-            [status, 0.0, cost, tokens, errors, retries, self.run_id],
+            [status, duration, cost, tokens, errors, retries, self.run_id],
         )
         self.con.execute(
             "UPDATE projects SET status=? WHERE project_id=?",
@@ -79,10 +97,15 @@ class RunState:
         cost: float = 0.0,
         tokens: int = 0,
     ) -> None:
+        # compute real duration from the step's ts
+        ts_row = self.con.execute(
+            "SELECT ts FROM steps WHERE step_id=?", [step_id],
+        ).fetchone()
+        duration = _duration_since(ts_row[0]) if ts_row else 0.0
         self.con.execute(
             "UPDATE steps SET status=?, error_class=?, "
             "duration_s=? WHERE step_id=?",
-            [status, error_class, 0.0, step_id],
+            [status, error_class, duration, step_id],
         )
         if status == "failed":
             self.con.execute(

@@ -30,7 +30,7 @@ def _find_laos_root() -> Path:
 def list_projects() -> list[dict[str, Any]]:
     """All projects from projects/*/project.yaml merged with DB state."""
     root = _find_laos_root()
-    con = schema.connect()
+    con = schema.connect_readonly()
     out: list[dict[str, Any]] = []
     for pdir in sorted((root / "projects").iterdir()):
         py = pdir / "project.yaml"
@@ -74,7 +74,7 @@ def project_detail(project_id: str) -> dict[str, Any] | None:
     if not py.exists():
         return None
     data = _load_yaml(py)
-    con = schema.connect()
+    con = schema.connect_readonly()
     name = data.get("project_name", project_id)
 
     # status + runs
@@ -83,8 +83,8 @@ def project_detail(project_id: str) -> dict[str, Any] | None:
         [name],
     ).fetchone()
     runs = con.execute(
-        "SELECT run_id, status, cost_usd, tokens, errors, started_at, ended_at "
-        "FROM runs WHERE project_id=? ORDER BY started_at DESC LIMIT 10",
+        "SELECT run_id, status, cost_usd, tokens, errors, started_at, ended_at, "
+        "duration_s FROM runs WHERE project_id=? ORDER BY started_at DESC LIMIT 10",
         [name],
     ).fetchall()
 
@@ -133,6 +133,16 @@ def project_detail(project_id: str) -> dict[str, Any] | None:
     phase_tokens = sum((p[4] or 0) for p in phases)
     total_done = sum(1 for t in todos if t[2])
     total_todos = len(todos)
+    # custo total consolidado: fases (DuckDB) + LLM (Langfuse)
+    total_cost = phase_cost + lf.get("llm_cost_usd", 0.0)
+    # duração total: soma das runs + soma dos steps
+    total_duration = sum((r[7] or 0) for r in runs)
+    step_duration = con.execute(
+        "SELECT COALESCE(SUM(duration_s),0) FROM steps WHERE run_id IN "
+        "(SELECT run_id FROM runs WHERE project_id=?)", [name],
+    ).fetchone()
+    if step_duration and step_duration[0]:
+        total_duration = max(total_duration, step_duration[0])
 
     return {
         "name": name,
@@ -145,7 +155,7 @@ def project_detail(project_id: str) -> dict[str, Any] | None:
         "repo": data.get("repo", ""),
         "runs": [dict(zip(
             ["run_id", "status", "cost_usd", "tokens", "errors",
-             "started_at", "ended_at"], r)) for r in runs],
+             "started_at", "ended_at", "duration_s"], r)) for r in runs],
         "phases": [dict(zip(
             ["phase", "name", "status", "cost_usd", "tokens", "errors",
              "started_at"], p)) for p in phases],
@@ -164,6 +174,8 @@ def project_detail(project_id: str) -> dict[str, Any] | None:
             "errors_runs": total_errors_runs,
             "phase_cost": phase_cost,
             "phase_tokens": phase_tokens,
+            "total_cost": total_cost,
+            "duration_s": total_duration,
             "todos_done": total_done,
             "todos_total": total_todos,
         },

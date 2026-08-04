@@ -53,12 +53,12 @@
       <h2 class="font-bold text-slate-800 mb-3">Totais do projeto</h2>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
         <div class="bg-slate-50 rounded p-3">
-          <div class="text-2xl font-bold text-slate-800">${{ "%.4f"|format(p.totals.phase_cost + p.totals.cost_runs) }}</div>
-          <div class="text-xs text-slate-500">custo fases (DuckDB)</div>
+          <div class="text-2xl font-bold text-slate-800">${{ "%.4f"|format(p.totals.total_cost) }}</div>
+          <div class="text-xs text-slate-500">custo total</div>
         </div>
         <div class="bg-slate-50 rounded p-3">
-          <div class="text-2xl font-bold text-slate-800">${{ "%.4f"|format(p.langfuse.llm_cost_usd) }}</div>
-          <div class="text-xs text-slate-500">custo LLM (Langfuse)</div>
+          <div class="text-2xl font-bold text-slate-800">{{ "%.0f"|format(p.totals.duration_s) }}s</div>
+          <div class="text-xs text-slate-500">duração total</div>
         </div>
         <div class="bg-slate-50 rounded p-3">
           <div class="text-2xl font-bold text-slate-800">{{ p.totals.tokens_runs + p.totals.phase_tokens }}</div>

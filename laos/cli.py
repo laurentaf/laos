@@ -385,6 +385,44 @@ def cmd_handoff(args: argparse.Namespace) -> int:
     return 0 if report["ready_for_client"] else 1
 
 
+def cmd_plan(args: argparse.Namespace) -> int:
+    """Planning phase: preenche lacunas do contrato, propoe fases, salva.
+
+    `laos plan <proj>` — analisa o project.yaml, detecta gaps, usa a LLM
+    para propor o workflow esperado (fases ordenadas com specs), salva o
+    contrato completo. `--run` dispara o pipeline ao final.
+    """
+    from laos.plan import planner
+
+    try:
+        result = planner.plan_project(args.project, brief=args.brief)
+    except FileNotFoundError as e:
+        print(f"PLAN_ERR: {e}")
+        return 1
+    except Exception as e:  # noqa: BLE001
+        print(f"PLAN_ERR: {type(e).__name__}: {e}")
+        return 1
+
+    print(f"PLAN_DONE: {result['project_id']} | status={result['status']}")
+    print(f"  gaps encontrados: {len(result['gaps_found'])}")
+    for g in result["gaps_found"]:
+        print(f"    - {g}")
+    print(f"  fases propostas: {result['phases_proposed']}")
+    for d in result["contract"].get("deliverables", []) or []:
+        print(f"    fase {d.get('stage')} {d.get('name')}: {d.get('label','')}")
+
+    if args.run and result["status"] in ("planned", "ready"):
+        print("\n[laos plan] disparando run...")
+        from laos.core import pipeline, runners
+
+        root = needs_mod._find_laos_root()
+        py = root / "projects" / args.project / "project.yaml"
+        pipe = pipeline.RunPipeline(args.project, py, runner=runners.llm_artifact_runner)
+        run_id = pipe.run(force_new=True)
+        print(f"RUN_DONE: {run_id}")
+    return 0
+
+
 def cmd_server(_args: argparse.Namespace) -> int:
     """Start the portfolio board server (background, windowless)."""
     import subprocess
@@ -438,6 +476,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_handoff = sub.add_parser("handoff", help="relatorio de entrega (20 itens p/ ship)")
     p_handoff.add_argument("project")
 
+    p_plan = sub.add_parser("plan", help="fase de planejamento: preenche lacunas e propoe fases")
+    p_plan.add_argument("project")
+    p_plan.add_argument("--brief", default=None,
+                        help="brief para projeto novo (se project.yaml nao existe)")
+    p_plan.add_argument("--run", action="store_true",
+                        help="dispara o pipeline apos planejar")
+
     return p
 
 
@@ -457,6 +502,7 @@ def main(argv: list[str] | None = None) -> int:
         "server": cmd_server,
         "backup": cmd_backup,
         "handoff": cmd_handoff,
+        "plan": cmd_plan,
     }
     handler = handlers.get(args.command)
     if not handler:

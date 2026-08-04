@@ -131,6 +131,51 @@
       </section>
 
     </div>
+
+    <!-- Entrega por projeto: os 8 itens que o dev cobra -->
+    <section class="bg-white rounded-lg shadow p-5 mt-6">
+      <h2 class="font-bold text-slate-800 mb-3">Entrega por projeto (8 itens)</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-2 pr-3">projeto</th>
+              <th class="py-2 pr-3">pasta</th>
+              <th class="py-2 pr-3">workflow</th>
+              <th class="py-2 pr-3">banco</th>
+              <th class="py-2 pr-3">site</th>
+              <th class="py-2 pr-3">teste</th>
+              <th class="py-2 pr-3">ferramentas</th>
+              <th class="py-2">status</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for p in projects %}
+          {% set d = delivery.get(p.name, {}) %}
+          <tr class="border-b align-top">
+            <td class="py-2 pr-3 font-semibold">
+              <a href="/projects/{{ p.name }}" class="text-blue-700 hover:underline">{{ p.display }}</a>
+            </td>
+            <td class="py-2 pr-3 text-slate-600">{{ d.pasta if d.pasta else '—' }}</td>
+            <td class="py-2 pr-3 text-slate-600">{{ d.workflow if d.workflow else '—' }}</td>
+            <td class="py-2 pr-3 text-slate-600">{{ d.banco if d.banco else '—' }}</td>
+            <td class="py-2 pr-3 text-slate-600">{{ d.site if d.site else '—' }}</td>
+            <td class="py-2 pr-3 text-slate-600">{{ d.teste if d.teste else '—' }}</td>
+            <td class="py-2 pr-3 text-slate-600">{{ d.ferramentas if d.ferramentas else '—' }}</td>
+            <td class="py-2">
+              {% if d.ready %}
+              <span class="text-emerald-600 font-semibold">✓ pronto</span>
+              {% else %}
+              <span class="text-amber-600">⚠ {{ d.missing|length }} faltando</span>
+              {% endif %}
+              <a href="/projects/{{ p.name }}/handoff" class="block text-blue-500 hover:underline mt-1">handoff →</a>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
   </main>
 </body>
 </html>

@@ -20,7 +20,7 @@
   </header>
 
   <main class="p-6">
-    {% for key, item in report.items.items() %}
+    {% for key, item in report["items"].items() %}
     <section class="bg-white rounded-lg shadow p-4 mb-3">
       <div class="flex items-center justify-between">
         <h2 class="font-bold text-slate-800 text-sm">{{ key.split('_',1)[1] if '_' in key else key }}</h2>

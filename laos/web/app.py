@@ -66,7 +66,7 @@ def board(request: Request) -> HTMLResponse:
 def dashboard(request: Request) -> HTMLResponse:
     """Executive overview: whole portfolio at a glance (opção 3)."""
     projects = portfolio.list_projects()
-    con = portfolio.schema.connect()
+    con = portfolio.schema.connect_readonly()
 
     # aggregates across all projects
     total_cost = sum(p["cost_usd"] for p in projects)
@@ -85,6 +85,29 @@ def dashboard(request: Request) -> HTMLResponse:
     # capability health (probe from opencode.jsonc like laos gaps)
     cap_health = portfolio.probe_capability_health()
 
+    # 8 itens de entrega por projeto (do handoff, para a dashboard)
+    from laos.check import handoff as handoff_mod
+
+    delivery = {}
+    for p in projects:
+        try:
+            report = handoff_mod.handoff_report(p["name"])
+            items = report["items"]
+            delivery[p["name"]] = {
+                "pasta": items.get("P1_onde_esta", {}).get("resposta"),
+                "organizacao": items.get("P2_organizacao", {}).get("resposta"),
+                "workflow": items.get("P3_workflow", {}).get("resposta"),
+                "utilizar": items.get("P4_como_utilizar", {}).get("resposta"),
+                "banco": items.get("P5_banco", {}).get("resposta"),
+                "site": items.get("P6_site", {}).get("resposta"),
+                "teste": items.get("P7_garantir_rodando", {}).get("resposta"),
+                "ferramentas": items.get("P8_ferramentas", {}).get("resposta"),
+                "ready": report.get("ready_for_client", False),
+                "missing": report.get("missing_items", []),
+            }
+        except Exception:  # noqa: BLE001
+            delivery[p["name"]] = {"ready": False, "missing": ["handoff erro"]}
+
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
@@ -101,6 +124,7 @@ def dashboard(request: Request) -> HTMLResponse:
             "by_cost": by_cost,
             "by_errors": by_errors,
             "cap_health": cap_health,
+            "delivery": delivery,
         },
     )
 
@@ -146,13 +170,14 @@ def project_console(request: Request, project_id: str) -> HTMLResponse:
 
 
 @app.post("/projects/{project_id}/console/send", response_class=HTMLResponse)
-def console_send(project_id: str, message: str = Form(...)) -> HTMLResponse:
+def console_send(request: Request, project_id: str, message: str = Form(...)) -> HTMLResponse:
     from laos.chat import console as chat_console
 
     chat_console.save_message(project_id, "user", message)
     reply = chat_console.handle(project_id, message)
     chat_console.save_message(project_id, "assistant", reply)
     return templates.TemplateResponse(
+        request=request,
         name="console_thread.html",
         context={
             "history": [

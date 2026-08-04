@@ -174,6 +174,23 @@ def connect() -> duckdb.DuckDBPyConnection:
     return con
 
 
+def connect_readonly() -> duckdb.DuckDBPyConnection:
+    """Open a read-only DuckDB connection (no writer lock).
+
+    The panel and other readers use this so they don't collide with the
+    writer (pipeline). Reads never need the write lock.
+    """
+    path = db_path()
+    if str(path) == ":memory:":
+        return connect()
+    if not path.exists():
+        return connect()  # first run: create it
+    try:
+        return duckdb.connect(str(path), read_only=True)
+    except Exception:  # noqa: BLE001
+        return connect()
+
+
 def apply_schema(con: duckdb.DuckDBPyConnection) -> list[str]:
     """Apply all tables idempotently. Returns names of applied tables."""
     applied: list[str] = []
