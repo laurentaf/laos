@@ -81,6 +81,83 @@ def test_handle_routes_slash_vs_llm(con, monkeypatch):
     assert out2 == "LLM_FAKE"
 
 
+def test_chat_uses_moderate_temperature(con, monkeypatch):
+    """Temperature back to moderate (0.6) so planning keeps creativity."""
+    import json
+    import urllib.request
+
+    captured = {}
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return json.dumps({"choices": [{"message": {"content": "ok"}}]}).encode()
+
+    def _fake_open(req, timeout=120):
+        captured["payload"] = json.loads(req.data.decode())
+        return _Resp()
+
+    monkeypatch.setattr(urllib.request, "urlopen", _fake_open)
+    console.chat("p1", "pergunta criativa")
+    assert captured["payload"]["temperature"] == 0.6
+
+
+def test_planejar_creates_todos(tmp_path, monkeypatch, con):
+    """/planejar gera fases e registra cada uma como ToDo (source=plano)."""
+    from laos.plan import planner
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "plan-proj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: plan-proj\nbrief: app simples\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(console, "_laos_root", lambda: root)
+    monkeypatch.setattr(planner.needs_mod, "_find_laos_root", lambda: root)
+    # stub LLM: deep_think + build_plan
+    fake_analysis = {"modelo_dados": "x", "perguntas_abertas": [],
+                     "regras_negocio": [], "riscos": [], "criterios_aceite": []}
+    monkeypatch.setattr(planner, "deep_think", lambda d: fake_analysis)
+    monkeypatch.setattr(planner, "build_plan", lambda d, a: [
+        {"name": "Fase A", "spec": "spec a", "stage": 1},
+        {"name": "Fase B", "spec": "spec b", "stage": 2},
+    ])
+    out = console.run_command("plan-proj", "/planejar")
+    assert "PLANO GERADO" in out
+    assert "2" in out
+    rows = con.execute(
+        "SELECT text, source FROM todos WHERE project_id='plan-proj'"
+    ).fetchall()
+    assert len(rows) == 2
+    assert rows[0][1] == "plano"
+    assert "Fase A" in rows[0][0]
+
+
+def test_todo_del_removes_individual(con):
+    console.run_command("p1", "/todo primeiro")
+    console.run_command("p1", "/todo segundo")
+    out = console.run_command("p1", "/todo-del segundo")
+    assert "removido" in out
+    rows = con.execute(
+        "SELECT text FROM todos WHERE project_id='p1'").fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == "primeiro"
+
+
+def test_todos_lists(con):
+    console.run_command("p1", "/todo um")
+    console.run_command("p1", "/todo dois")
+    out = console.run_command("p1", "/todos")
+    assert "um" in out
+    assert "dois" in out
+
+
 def test_chat_cache_returns_same_answer_twice(con):
     """Consistency: same prompt -> same answer, no second LLM call."""
     import json

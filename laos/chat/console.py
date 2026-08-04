@@ -127,6 +127,56 @@ def project_context(project_id: str) -> str:
 # ─── slash commands (deterministic, no LLM) ─────────────────────────
 
 
+def _cmd_planejar(project_id: str, extra: str) -> str:
+    """Gera o plano do projeto (LLM) e registra cada fase como ToDo.
+
+    O usuário confere a lista de ToDos faseados, remove/adiciona com
+    /todo-del e /todo, e só então decide rodar (/run).
+    """
+    from laos.plan import planner
+
+    root = _laos_root()
+    py = root / "projects" / project_id / "project.yaml"
+    if not py.exists():
+        return f"project.yaml não encontrado para {project_id}"
+    try:
+        data = planner.load_contract(project_id)
+    except Exception as e:  # noqa: BLE001
+        return f"erro lendo contrato: {e}"
+    try:
+        analysis = planner.deep_think(data)
+        phases = planner.build_plan(data, analysis)
+    except Exception as e:  # noqa: BLE001
+        return f"erro gerando plano: {type(e).__name__}: {e}"
+
+    con = schema.connect()
+    # limpa todos do plano anterior para não duplicar
+    con.execute("DELETE FROM todos WHERE project_id=? AND source='plano'",
+                [project_id])
+    added = []
+    for p in phases:
+        tid = f"todo_{uuid.uuid4().hex[:8]}"
+        stage = p.get("stage", 0)
+        name = p.get("name", "?")
+        spec = (p.get("spec") or "")[:160]
+        text = f"[Fase {stage}] {name}: {spec}"
+        con.execute(
+            "INSERT INTO todos (project_id, todo_id, text, source) "
+            "VALUES (?,?,?,'plano')", [project_id, tid, text],
+        )
+        added.append(tid)
+
+    out = [
+        f"PLANO GERADO: {len(added)} fases registradas como ToDos.",
+        "",
+        "Confira abaixo — remova com /todo-del <id>, adicione com /todo <texto>.",
+        "Quando estiver bom, rode /run para executar em ordem.",
+        "",
+        "/todos para ver a lista completa.",
+    ]
+    return "\n".join(out)
+
+
 def run_command(project_id: str, line: str) -> str:
     """Handle /slash commands. Returns response text."""
     parts = line.strip().split(" ", 1)
@@ -143,6 +193,40 @@ def run_command(project_id: str, line: str) -> str:
             "VALUES (?,?,?,'console')", [project_id, tid, rest],
         )
         return f"todo adicionado: {rest}"
+    if cmd == "/todo-del":
+        if not rest:
+            return "uso: /todo-del <id ou parte do texto>"
+        # remove by id or by text substring
+        row = con.execute(
+            "SELECT todo_id FROM todos WHERE project_id=? AND "
+            "(todo_id=? OR text LIKE ?) LIMIT 1",
+            [project_id, rest, f"%{rest}%"],
+        ).fetchone()
+        if not row:
+            return f"todo não encontrado: {rest}  (use /todos para ver os ids)"
+        con.execute("DELETE FROM todos WHERE project_id=? AND todo_id=?",
+                    [project_id, row[0]])
+        return f"todo removido: {rest}"
+    if cmd == "/todos":
+        rows = con.execute(
+            "SELECT todo_id, text, done, source FROM todos WHERE project_id=?",
+            [project_id],
+        ).fetchall()
+        if not rows:
+            return "sem todos. use /planejar para gerar as fases como todos, ou /todo <texto>"
+        lines = []
+        for r in rows:
+            mark = "[x]" if r[2] else "[ ]"
+            lines.append(f"  {mark} {r[0]} {r[1]}  ({r[3]})")
+        return "\n".join(lines)
+    if cmd == "/planejar":
+        return _cmd_planejar(project_id, rest)
+    if cmd == "/todos-limpar":
+        n = con.execute(
+            "DELETE FROM todos WHERE project_id=? AND source='plano'",
+            [project_id],
+        ).fetchone()
+        return f"todos do plano removidos ({n[0] if n else 0})"
     if cmd == "/fases":
         rows = con.execute(
             "SELECT phase, name, status, cost_usd, tokens, errors "
@@ -214,9 +298,11 @@ def run_command(project_id: str, line: str) -> str:
         threading.Thread(target=_bg, daemon=True).start()
         return "run iniciado em background — /fases em ~15s"
     if cmd == "/help":
-        return ("comandos: /todo <texto> · /fases · /erros · /gaps · "
-                "/status <novo> · /decidir <pergunta> · /verify · /run · "
-                "/help\n\n"
+        return ("comandos: /planejar · /todos · /todo <texto> · /todo-del <id> · "
+                "/todos-limpar · /fases · /erros · /gaps · /status <novo> · "
+                "/decidir <pergunta> · /verify · /run · /help\n\n"
+                "/planejar: gera as fases do projeto como ToDos (confira, "
+                "edite com /todo-del e /todo, depois /run)\n"
                 "texto livre (sem /) vai para a LLM com o contexto do projeto")
     return f"comando desconhecido: {cmd} (/help para a lista)"
 
@@ -287,7 +373,7 @@ def chat(project_id: str, message: str) -> str:
             {"role": "user", "content": message},
         ],
         "max_tokens": 1024,
-        "temperature": 0,
+        "temperature": 0.6,
     }
     req = urllib.request.Request(
         LITELLM_URL,
