@@ -188,6 +188,55 @@ def test_todos_sidebar_add_and_delete(tmp_path, monkeypatch):
     assert count == 0
 
 
+def test_planejar_route_updates_todos_panel(tmp_path, monkeypatch):
+    """POST /planejar generates ToDos and returns OOB fragments."""
+    from fastapi.testclient import TestClient
+    from laos.web.app import app
+    from laos.db import schema as schema_mod
+    import duckdb
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+    monkeypatch.setattr(schema_mod, "db_path", lambda: pathlib.Path(":memory:"))
+
+    from laos.web import portfolio
+    from laos.chat import console as chat_mod
+    from laos.plan import planner
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: x\nneeds: []\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(portfolio.needs_mod, "_find_laos_root", lambda: root)
+    monkeypatch.setattr(chat_mod, "_laos_root", lambda: root)
+    monkeypatch.setattr(planner.needs_mod, "_find_laos_root", lambda: root)
+
+    # stub planner LLM
+    fake_analysis = {"modelo_dados": "x", "perguntas_abertas": [],
+                     "regras_negocio": [], "riscos": [], "criterios_aceite": []}
+    monkeypatch.setattr(planner, "deep_think", lambda d: fake_analysis)
+    monkeypatch.setattr(planner, "build_plan", lambda d, a: [
+        {"name": "Fase A", "spec": "spec a", "stage": 1},
+        {"name": "Fase B", "spec": "spec b", "stage": 2},
+    ])
+
+    client = TestClient(app)
+    r = client.post("/projects/cproj/planejar")
+    assert r.status_code == 200
+    # OOB fragments for both thread and todos panel
+    assert "hx-swap-oob" in r.text
+    assert "plano gerado" in r.text or "PLANO GERADO" in r.text
+    # todos persisted
+    rows = con.execute(
+        "SELECT text, source FROM todos WHERE project_id='cproj'").fetchall()
+    assert len(rows) == 2
+    assert all(r[1] == "plano" for r in rows)
+
+
 def test_extract_json_block_plain():
     from laos.plan.planner import _extract_json_block
 

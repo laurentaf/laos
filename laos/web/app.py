@@ -289,6 +289,42 @@ def toggle_todo(request: Request, project_id: str, todo_id: str) -> HTMLResponse
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 
+@app.post("/projects/{project_id}/planejar", response_class=HTMLResponse)
+def planejar_route(request: Request, project_id: str) -> HTMLResponse:
+    """Generate the plan (LLM) and refresh the ToDos panel.
+
+    The button in the console sidebar posts here; the response replaces
+    the #todos-panel fragment so the generated ToDos appear immediately.
+    """
+    from laos.chat import console as chat_console
+    from laos.db import schema
+
+    con = schema.connect()
+    # run the planner (same logic as /planejar command), no chat message
+    try:
+        reply = chat_console._cmd_planejar(project_id, "")
+    except Exception as e:  # noqa: BLE001
+        reply = f"erro ao planejar: {type(e).__name__}: {e}"
+    # show the reply in the thread AND the todos in the sidebar
+    thread_html = templates.TemplateResponse(
+        request=request,
+        name="console_thread.html",
+        context={"reply": reply, "display": "🗂️ planejar fases"},
+    ).body.decode()
+    panel_html = templates.TemplateResponse(
+        request=request,
+        name="todos_panel.html",
+        context={"todos": _list_todos(con, project_id),
+                 "p": {"name": project_id}},
+    ).body.decode()
+    return HTMLResponse(
+        f"<div hx-swap-oob='true' id='thread'>{thread_html}</div>"
+        f"<div hx-swap-oob='true' id='todos-panel'>{panel_html}</div>"
+        "<div hx-swap-oob='true' id='planejar-status' "
+        "class='text-xs text-emerald-600 mt-1'>plano gerado — confira os ToDos acima</div>"
+    )
+
+
 @app.post("/projects/{project_id}/todos/add", response_class=HTMLResponse)
 def add_todo(request: Request, project_id: str, text: str = Form(...)) -> HTMLResponse:
     """Add a todo from the console sidebar (HTMX)."""
@@ -298,8 +334,7 @@ def add_todo(request: Request, project_id: str, text: str = Form(...)) -> HTMLRe
     con = schema.connect()
     if text.strip():
         tid = f"todo_{uuid.uuid4().hex[:8]}"
-        con.execute(
-            "INSERT INTO todos (project_id, todo_id, text, source) "
+        con.execute(            "INSERT INTO todos (project_id, todo_id, text, source) "
             "VALUES (?,?,?,'console')", [project_id, tid, text.strip()],
         )
     return templates.TemplateResponse(
