@@ -6,7 +6,7 @@ projetos de ponta a ponta, audita custo real, verifica entregáveis e
 expõe um painel para operar tudo.
 
 > Este é o **LAOS canônico** (2.0). O antecessor — o LAOS de governança
-> com Conselho/LACOUNCIL/WDL — foi congelado como legado.
+> com Conselho/LACOUNCIL/WDL — foi congelado como **`laos-legacy`**.
 
 ## O que faz
 

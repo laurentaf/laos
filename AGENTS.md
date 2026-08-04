@@ -6,7 +6,7 @@ custo real por fase, verificação mecânica de entregáveis, observabilidade
 (Langfuse/LiteLLM), painel portfolio e console LLM-aware.
 
 **Este é o LAOS canônico.** O antecessor (governança + Conselho +
-LACOUNCIL + WDL) foi congelado como legado em `laurentaf/laos` (repo
+LACOUNCIL + WDL) foi congelado como **`laurentaf/laos-legacy`** (repo
 antigo) — não faz parte deste produto.
 
 ## Princípios
@@ -53,6 +53,6 @@ laos handoff <name>      → relatório de 20 itens (pronto para cliente?)
 
 ## Repos
 
-- **Este** (`laurentaf/laos-v2`): o produto LAOS canônico.
-- **Legado** (`laurentaf/laos`): o LAOS antigo (governança) — congelado,
-  referência histórica.
+- **Este** (`laurentaf/laos`): o produto LAOS canônico.
+- **Legado** (`laurentaf/laos-legacy`): o LAOS antigo (governança) —
+  congelado, referência histórica.
