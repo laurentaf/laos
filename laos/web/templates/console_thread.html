@@ -1,3 +1,10 @@
+{% if display %}
+<div class="flex justify-end">
+  <div class="max-w-[80%] rounded-lg p-3 text-sm whitespace-pre-wrap bg-slate-800 text-white">
+    {{ display }}
+  </div>
+</div>
+{% endif %}
 {% if reply %}
 <div class="flex justify-start">
   <div class="max-w-[80%] rounded-lg p-3 text-sm whitespace-pre-wrap bg-slate-100 text-slate-800">

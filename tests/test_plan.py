@@ -106,6 +106,88 @@ def test_console_send_returns_html(tmp_path, monkeypatch):
     assert "RESP" in r.text
 
 
+def test_console_send_with_action_dropdown(tmp_path, monkeypatch):
+    """Dropdown action (/todo) routes to run_command, not the LLM."""
+    from fastapi.testclient import TestClient
+    from laos.web.app import app
+    from laos.db import schema as schema_mod
+    import duckdb
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+    monkeypatch.setattr(schema_mod, "db_path", lambda: pathlib.Path(":memory:"))
+
+    from laos.web import portfolio
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: x\nneeds: []\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(portfolio.needs_mod, "_find_laos_root", lambda: root)
+    monkeypatch.setattr(portfolio.schema, "connect", lambda: con)
+
+    # if LLM were called, this would fail the test
+    from laos.chat import console as chat_mod
+
+    def _should_not_call(pid, msg):
+        raise AssertionError("LLM should not be called for dropdown action")
+
+    monkeypatch.setattr(chat_mod, "chat", _should_not_call)
+
+    client = TestClient(app)
+    r = client.post("/projects/cproj/console/send",
+                    data={"message": "revisar relatorio", "action": "/todo"})
+    assert r.status_code == 200
+    assert "adicionado" in r.text
+    row = con.execute(
+        "SELECT text FROM todos WHERE project_id='cproj'").fetchone()
+    assert row[0] == "revisar relatorio"
+
+
+def test_todos_sidebar_add_and_delete(tmp_path, monkeypatch):
+    """Sidebar: add via POST /todos/add, delete via POST /todos/<id>/delete."""
+    from fastapi.testclient import TestClient
+    from laos.web.app import app
+    from laos.db import schema as schema_mod
+    import duckdb
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+    monkeypatch.setattr(schema_mod, "db_path", lambda: pathlib.Path(":memory:"))
+
+    from laos.web import portfolio
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: x\nneeds: []\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(portfolio.needs_mod, "_find_laos_root", lambda: root)
+    monkeypatch.setattr(portfolio.schema, "connect", lambda: con)
+
+    client = TestClient(app)
+    # add
+    r = client.post("/projects/cproj/todos/add", data={"text": "fazer x"})
+    assert r.status_code == 200
+    assert "fazer x" in r.text
+    row = con.execute(
+        "SELECT todo_id FROM todos WHERE project_id='cproj'").fetchone()
+    tid = row[0]
+    # delete
+    r2 = client.post(f"/projects/cproj/todos/{tid}/delete")
+    assert r2.status_code == 200
+    count = con.execute(
+        "SELECT COUNT(*) FROM todos WHERE project_id='cproj'").fetchone()[0]
+    assert count == 0
+
+
 def test_extract_json_block_plain():
     from laos.plan.planner import _extract_json_block
 

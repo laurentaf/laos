@@ -34,26 +34,69 @@
             hx-post="/projects/{{ p.name }}/console/send"
             hx-target="#thread" hx-swap="beforeend"
             hx-indicator="#thinking"
-            class="border-t p-3 flex gap-2 shrink-0">
-        <textarea id="console-input" name="message" required autofocus rows="2"
-                  placeholder="ex: o que vem na próxima fase? / /todo revisar relatório  (Enter envia · Shift+Enter quebra linha)"
-                  class="flex-1 px-3 py-2 rounded border border-slate-300 text-sm resize-y"></textarea>
+            class="border-t p-3 flex flex-col gap-2 shrink-0">
+        <div class="flex gap-2">
+          <select id="action-select" class="px-3 py-2 rounded border border-slate-300 text-sm bg-white shrink-0">
+            <option value="__chat__" selected>💬 conversar (texto livre)</option>
+            <option value="/planejar">🗂️ planejar fases (gera ToDos)</option>
+            <option value="/todos">☑️ ver ToDos</option>
+            <option value="/todo">➕ adicionar ToDo</option>
+            <option value="/todo-del">➖ remover ToDo</option>
+            <option value="/todos-limpar">🧹 limpar plano</option>
+            <option value="/fases">📊 ver fases</option>
+            <option value="/erros">⚠️ ver erros</option>
+            <option value="/gaps">🧩 ver gaps</option>
+            <option value="/verify">✅ verificar deliverables</option>
+            <option value="/run">▶️ rodar pipeline</option>
+            <option value="/status">🔀 mudar status</option>
+            <option value="/decidir">❓ adicionar decisão</option>
+          </select>
+          <textarea id="console-input" name="message" autofocus rows="2"
+                    placeholder="Digite sua pergunta para a LLM (com contexto do projeto)...  · Enter envia · Shift+Enter quebra linha"
+                    class="flex-1 px-3 py-2 rounded border border-slate-300 text-sm resize-y"></textarea>
+          <button id="send-btn" type="submit"
+                  class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold
+                         disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
+            enviar
+          </button>
+        </div>
         <span id="thinking" class="htmx-indicator flex items-center text-xs text-slate-400 px-2">
           <span class="animate-spin inline-block w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full mr-2"></span>
           pensando...
         </span>
-        <button id="send-btn" type="submit"
-                class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold
-                       disabled:opacity-50 disabled:cursor-not-allowed">
-          enviar
-        </button>
       </form>
     </main>
 
-    <!-- Context (what the LLM sees) -->
-    <aside class="w-80 shrink-0 bg-slate-50 border-l overflow-y-auto p-4">
-      <h2 class="text-xs font-bold text-slate-500 uppercase mb-2">Contexto do projeto (o que a LLM vê)</h2>
-      <pre class="text-[11px] text-slate-600 whitespace-pre-wrap">{{ ctx }}</pre>
+    <!-- Context (what the LLM sees) + ToDos -->
+    <aside class="w-80 shrink-0 bg-slate-50 border-l overflow-y-auto p-4 space-y-4">
+      <div>
+        <h2 class="text-xs font-bold text-slate-500 uppercase mb-2">ToDos do projeto</h2>
+        <div id="todos-panel">
+          <form hx-post="/projects/{{ p.name }}/todos/add"
+                hx-target="#todos-panel" hx-swap="innerHTML"
+                class="flex gap-1 mb-2">
+            <input name="text" required placeholder="novo todo..."
+                   class="flex-1 px-2 py-1.5 rounded border border-slate-300 text-xs">
+            <button type="submit" class="px-2 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-white text-xs">
+              + adicionar
+            </button>
+          </form>
+          {% include "todos_panel.html" %}
+          <form hx-post="/projects/{{ p.name }}/console/send"
+                hx-target="#thread" hx-swap="beforeend"
+                class="mt-2">
+            <input type="hidden" name="action" value="/planejar">
+            <input type="hidden" name="message" value="">
+            <button type="submit" class="w-full px-2 py-1.5 rounded bg-violet-600 hover:bg-violet-500 text-white text-xs">
+              🗂️ planejar fases
+            </button>
+          </form>
+        </div>
+      </div>
+      <div>
+        <h2 class="text-xs font-bold text-slate-500 uppercase mb-2">Contexto do projeto (o que a LLM vê)</h2>
+        <pre class="text-[11px] text-slate-600 whitespace-pre-wrap">{{ ctx }}</pre>
+      </div>
     </aside>
   </div>
 
@@ -63,10 +106,36 @@
     const input = document.getElementById('console-input');
     const sendBtn = document.getElementById('send-btn');
     const thinking = document.getElementById('thinking');
+    const actionSelect = document.getElementById('action-select');
 
     // HTMX indicator: hidden by default (htmx-indicator sets opacity:0 via
     // the framework stylesheet; we ensure it's hidden before first request).
     thinking.style.display = 'none';
+
+    // Per-action placeholder + required hint
+    const PLACEHOLDERS = {
+      '__chat__': 'Digite sua pergunta para a LLM (com contexto do projeto)... · Enter envia · Shift+Enter quebra linha',
+      '/planejar': 'Gera as fases do projeto como ToDos. (argumento opcional: ajuste no brief)',
+      '/todos': 'Lista os ToDos do projeto. (sem argumento)',
+      '/todo': 'Texto do novo ToDo (ex: revisar relatório)',
+      '/todo-del': 'ID ou parte do texto do ToDo a remover (veja em /todos)',
+      '/todos-limpar': 'Remove todos os ToDos do plano. (sem argumento)',
+      '/fases': 'Mostra as fases com custo/tokens/erros. (sem argumento)',
+      '/erros': 'Mostra os últimos erros das runs. (sem argumento)',
+      '/gaps': 'Mostra capability gaps. (sem argumento)',
+      '/verify': 'Roda a verificação de deliverables. (sem argumento)',
+      '/run': 'Executa o pipeline das fases. (sem argumento)',
+      '/status': 'Novo status (not_started|planning|running|awaiting_decision|completed|failed)',
+      '/decidir': 'Pergunta pendente (ex: subir agora?)',
+    };
+    const NO_ARG = new Set(['/todos', '/todos-limpar', '/fases', '/erros',
+                            '/gaps', '/verify', '/run']);
+
+    actionSelect.addEventListener('change', () => {
+      input.placeholder = PLACEHOLDERS[actionSelect.value] || '';
+      if (NO_ARG.has(actionSelect.value)) input.value = '';
+      input.focus();
+    });
 
     function scrollToBottom() {
       thread.scrollTop = thread.scrollHeight;
@@ -76,12 +145,14 @@
     form.addEventListener('htmx:beforeRequest', () => {
       // optimistic: render the user's message immediately, clear input,
       // gray the button, show "pensando..."
+      const action = actionSelect.value;
       const text = input.value.trim();
-      if (!text) return;
+      const label = action === '__chat__' ? text
+        : `${action} ${text}`.trim();
       const div = document.createElement('div');
       div.className = 'flex justify-end';
       div.innerHTML = '<div class="max-w-[80%] rounded-lg p-3 text-sm whitespace-pre-wrap bg-slate-800 text-white"></div>';
-      div.firstChild.textContent = text;
+      div.firstChild.textContent = label || '(ação)';
       thread.appendChild(div);
       input.value = '';
       sendBtn.disabled = true;
@@ -96,12 +167,12 @@
       scrollToBottom();
     });
 
-    // pressing enter in a multiline-friendly way: single-line input,
-    // so Enter submits naturally (required). Shift+Enter not needed.
+    // Enter sends (unless Shift for newline); actions without arg send directly
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        if (input.value.trim()) form.requestSubmit();
+        const action = actionSelect.value;
+        if (NO_ARG.has(action) || input.value.trim()) form.requestSubmit();
       }
     });
   </script>

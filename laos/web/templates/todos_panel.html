@@ -1,0 +1,21 @@
+<ul id="todos-list" class="space-y-1 text-xs">
+  {% for t in todos %}
+  <li class="flex items-center gap-2 {% if t.done %}opacity-50{% endif %}">
+    <form hx-post="/projects/{{ p.name }}/todos/{{ t.todo_id }}/toggle"
+          hx-target="#todos-panel" hx-swap="innerHTML" class="inline">
+      <button type="submit" class="text-base leading-none">
+        {% if t.done %}<span class="text-emerald-500">☑</span>{% else %}<span class="text-slate-300">☐</span>{% endif %}
+      </button>
+    </form>
+    <span class="flex-1 {% if t.done %}line-through text-slate-400{% else %}text-slate-700{% endif %}">
+      {{ t.text }}
+    </span>
+    <form hx-post="/projects/{{ p.name }}/todos/{{ t.todo_id }}/delete"
+          hx-target="#todos-panel" hx-swap="innerHTML" class="inline">
+      <button type="submit" title="remover" class="text-red-400 hover:text-red-600">✕</button>
+    </form>
+  </li>
+  {% else %}
+  <li class="text-slate-400">Nenhum todo. Use o campo acima ou /planejar.</li>
+  {% endfor %}
+</ul>

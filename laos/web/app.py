@@ -170,16 +170,31 @@ def project_console(request: Request, project_id: str) -> HTMLResponse:
 
 
 @app.post("/projects/{project_id}/console/send", response_class=HTMLResponse)
-def console_send(request: Request, project_id: str, message: str = Form(...)) -> HTMLResponse:
+def console_send(request: Request, project_id: str,
+                 message: str = Form(""),
+                 action: str = Form("__chat__")) -> HTMLResponse:
     from laos.chat import console as chat_console
 
-    chat_console.save_message(project_id, "user", message)
-    reply = chat_console.handle(project_id, message)
-    chat_console.save_message(project_id, "assistant", reply)
+    # If the user picked an action from the dropdown, build the command.
+    # __chat__ (default) -> free text to the LLM.
+    if action != "__chat__" and action.startswith("/"):
+        line = action if action in ("/todos", "/todos-limpar", "/fases",
+                                    "/erros", "/gaps", "/verify", "/run", "/planejar") \
+            else f"{action} {message}".strip()
+        display = action if not message else f"{action} {message}".strip()
+        chat_console.save_message(project_id, "user", display)
+        reply = chat_console.run_command(project_id, line)
+        chat_console.save_message(project_id, "assistant", reply)
+    else:
+        display = message
+        chat_console.save_message(project_id, "user", message)
+        reply = chat_console.handle(project_id, message)
+        chat_console.save_message(project_id, "assistant", reply)
+
     return templates.TemplateResponse(
         request=request,
         name="console_thread.html",
-        context={"reply": reply},
+        context={"reply": reply, "display": display},
     )
 
 
@@ -255,7 +270,7 @@ def decide(project_id: str, decision_id: str,
 
 @app.post("/projects/{project_id}/todos/{todo_id}/toggle",
           response_class=HTMLResponse)
-def toggle_todo(project_id: str, todo_id: str) -> HTMLResponse:
+def toggle_todo(request: Request, project_id: str, todo_id: str) -> HTMLResponse:
     from laos.db import schema
 
     con = schema.connect()
@@ -263,7 +278,61 @@ def toggle_todo(project_id: str, todo_id: str) -> HTMLResponse:
         "UPDATE todos SET done = NOT done WHERE project_id=? AND todo_id=?",
         [project_id, todo_id],
     )
+    # HTMX: refresh the todos panel (sidebar); fall back to redirect
+    if "HX-Request" in request.headers:
+        return templates.TemplateResponse(
+            request=request,
+            name="todos_panel.html",
+            context={"todos": _list_todos(con, project_id),
+                     "p": {"name": project_id}},
+        )
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+
+
+@app.post("/projects/{project_id}/todos/add", response_class=HTMLResponse)
+def add_todo(request: Request, project_id: str, text: str = Form(...)) -> HTMLResponse:
+    """Add a todo from the console sidebar (HTMX)."""
+    import uuid
+    from laos.db import schema
+
+    con = schema.connect()
+    if text.strip():
+        tid = f"todo_{uuid.uuid4().hex[:8]}"
+        con.execute(
+            "INSERT INTO todos (project_id, todo_id, text, source) "
+            "VALUES (?,?,?,'console')", [project_id, tid, text.strip()],
+        )
+    return templates.TemplateResponse(
+        request=request,
+        name="todos_panel.html",
+        context={"todos": _list_todos(con, project_id),
+                 "p": {"name": project_id}},
+    )
+
+
+@app.post("/projects/{project_id}/todos/{todo_id}/delete",
+          response_class=HTMLResponse)
+def delete_todo(request: Request, project_id: str, todo_id: str) -> HTMLResponse:
+    """Delete a todo from the console sidebar (HTMX)."""
+    from laos.db import schema
+
+    con = schema.connect()
+    con.execute("DELETE FROM todos WHERE project_id=? AND todo_id=?",
+                [project_id, todo_id])
+    return templates.TemplateResponse(
+        request=request,
+        name="todos_panel.html",
+        context={"todos": _list_todos(con, project_id),
+                 "p": {"name": project_id}},
+    )
+
+
+def _list_todos(con, project_id: str) -> list[dict]:
+    rows = con.execute(
+        "SELECT todo_id, text, done, source FROM todos WHERE project_id=?",
+        [project_id],
+    ).fetchall()
+    return [dict(zip(["todo_id", "text", "done", "source"], r)) for r in rows]
 
 
 # ─── actions (run/verify from the board) ─────────────────────────────
