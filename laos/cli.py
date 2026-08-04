@@ -407,7 +407,20 @@ def cmd_plan(args: argparse.Namespace) -> int:
     print(f"  gaps encontrados: {len(result['gaps_found'])}")
     for g in result["gaps_found"]:
         print(f"    - {g}")
-    print(f"  fases propostas: {result['phases_proposed']}")
+
+    # análise profunda (passada 1) — prova que a LLM pensou antes
+    analysis = result.get("analysis") or {}
+    if analysis:
+        print(f"\n  ANÁLISE PROFUNDA:")
+        print(f"    modelo de dados: {str(analysis.get('modelo_dados',''))[:200]}")
+        for q in (analysis.get("perguntas_abertas") or []):
+            print(f"    ? {q[:120]}")
+        for r in (analysis.get("regras_negocio") or [])[:3]:
+            print(f"    • regra: {r[:120]}")
+        for r in (analysis.get("riscos") or [])[:3]:
+            print(f"    ⚠ risco: {r[:120]}")
+
+    print(f"\n  fases propostas: {result['phases_proposed']}")
     for d in result["contract"].get("deliverables", []) or []:
         print(f"    fase {d.get('stage')} {d.get('name')}: {d.get('label','')}")
 

@@ -104,3 +104,48 @@ def test_console_send_returns_html(tmp_path, monkeypatch):
     r = client.post("/projects/cproj/console/send", data={"message": "ola"})
     assert r.status_code == 200
     assert "RESP" in r.text
+
+
+def test_extract_json_block_plain():
+    from laos.plan.planner import _extract_json_block
+
+    out = _extract_json_block('{"a": 1, "b": ["x"]}')
+    assert out == {"a": 1, "b": ["x"]}
+
+
+def test_extract_json_block_fenced():
+    from laos.plan.planner import _extract_json_block
+
+    out = _extract_json_block('```json\n{"a": 1}\n```')
+    assert out == {"a": 1}
+
+
+def test_extract_json_block_with_preamble():
+    from laos.plan.planner import _extract_json_block
+
+    out = _extract_json_block('Aqui está a análise:\n{"modelo_dados": "x", "riscos": []}')
+    assert out["modelo_dados"] == "x"
+
+
+def test_extract_json_list():
+    from laos.plan.planner import _extract_json_block
+
+    out = _extract_json_block('[{"name": "a", "stage": 1}]', want_list=True)
+    assert out == [{"name": "a", "stage": 1}]
+
+
+def test_deep_think_uses_analysis_structure(monkeypatch):
+    """deep_think returns the 5 required keys when LLM responds."""
+    from laos.plan import planner
+
+    fake = (
+        '{"modelo_dados": "entidades", "perguntas_abertas": ["q1"], '
+        '"regras_negocio": ["r1"], "riscos": ["risk1"], '
+        '"criterios_aceite": ["c1"]}'
+    )
+    monkeypatch.setattr(planner, "_llm_json", lambda s, p, m: fake)
+    data = {"project_name": "x", "brief": "brief", "needs": ["design"],
+            "deliverables": []}
+    out = planner.deep_think(data)
+    assert set(out.keys()) == {"modelo_dados", "perguntas_abertas",
+                               "regras_negocio", "riscos", "criterios_aceite"}

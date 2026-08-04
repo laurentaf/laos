@@ -100,11 +100,104 @@ def gap_analysis(data: dict[str, Any]) -> list[str]:
     return gaps
 
 
-# ─── 3. build phase plan (LLM-assisted) ──────────────────────────────
+# ─── 3. deep thinking (passada 1) ────────────────────────────────────
 
 
-def build_plan(data: dict[str, Any]) -> list[dict[str, Any]]:
-    """Propose the phase breakdown (LLM) given brief + capabilities."""
+def _llm_json(system: str, prompt: str, max_tokens: int) -> str:
+    """Call the LLM and return raw content, with retry on empty response."""
+    import time
+
+    last_err: Exception | None = None
+    for attempt in range(3):
+        payload = {
+            "model": MODEL,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            "max_tokens": max_tokens,
+        }
+        req = urllib.request.Request(
+            LITELLM_URL,
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json",
+                     "Authorization": f"Bearer {LITELLM_KEY}"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                data_resp = json.loads(resp.read())
+                msg = data_resp["choices"][0]["message"]
+                content = (msg.get("content") or "").strip()
+                if not content:
+                    # deepseek reasoning models may put the JSON in
+                    # reasoning_content when content budget is exhausted
+                    content = (msg.get("reasoning_content") or "").strip()
+            if content:
+                return content
+            last_err = ValueError("LLM retornou conteúdo vazio")
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+        time.sleep(2 * (attempt + 1))
+    raise RuntimeError(f"LLM falhou após 3 tentativas: {last_err}")
+
+
+def _extract_json_block(content: str, want_list: bool = False):
+    """Extract a JSON object or array from an LLM response robustly."""
+    import re
+
+    raw = content.strip()
+    # try direct parse first (clean JSON)
+    try:
+        return json.loads(raw)
+    except Exception:  # noqa: BLE001
+        pass
+    # fenced ```json ... ```
+    m = re.search(r"```(?:json)?\s*(\{.*?\}|\{.*\}|\[.*?\])\s*```", raw, re.S)
+    if m:
+        try:
+            return json.loads(m.group(1))
+        except Exception:  # noqa: BLE001
+            pass
+    # first balanced { ... } or [ ... ]
+    opener = "[" if want_list else "{"
+    closer = "]" if want_list else "}"
+    start = raw.find(opener)
+    if start == -1:
+        raise ValueError("LLM não retornou JSON")
+    depth = 0
+    in_str = False
+    esc = False
+    end = None
+    for i in range(start, len(raw)):
+        c = raw[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+            continue
+        if c == '"':
+            in_str = True
+        elif c == opener:
+            depth += 1
+        elif c == closer:
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end is None:
+        raise ValueError("JSON não balanceado")
+    return json.loads(raw[start:end])
+
+
+def deep_think(data: dict[str, Any]) -> dict[str, Any]:
+    """Passada 1: razão sobre o projeto ANTES de propor fases.
+
+    Responde as decisões que o brief não cobre: modelo de dados,
+    perguntas abertas, regras de negócio, riscos, critérios de aceite.
+    """
     brief = data.get("brief", "")
     needs = data.get("needs", []) or []
     try:
@@ -112,10 +205,61 @@ def build_plan(data: dict[str, Any]) -> list[dict[str, Any]]:
     except KeyError:
         caps = []
     system = (
-        "Você é um planejador de engenharia. Dado o brief de um projeto "
-        "e as capabilities disponíveis, proponha a decomposição em FASES "
-        "ordenadas (3 a 6 fases). Para cada fase: name curto, spec clara "
-        "(o que construir e qual o artefato), e artifact path. "
+        "Você é um arquiteto de software senior. Responda com JSON EXATO. "
+        "NÃO raciocine em voz alta: vá direto ao JSON, conciso e específico. "
+        "Forma obrigatória: "
+        '{"modelo_dados": "...", "perguntas_abertas": ["..."], '
+        '"regras_negocio": ["..."], "riscos": ["..."], '
+        '"criterios_aceite": ["..."]}. '
+        "modelo_dados: entidades/relações/campos em texto curto. "
+        "perguntas_abertas: 3-6 itens que o brief não responde e afetam "
+        "implementação. regras_negocio: 3-6 heurísticas/cálculos explícitos. "
+        "riscos: 3-5 concretos. criterios_aceite: 3-6 testáveis."
+    )
+    prompt = (
+        f"Brief: {brief}\n"
+        f"Needs: {needs}\n"
+        f"Capabilities: {caps}\n\n"
+        "Analise profundamente e responda o JSON."
+    )
+    content = _llm_json(system, prompt, 8000)
+    try:
+        analysis = _extract_json_block(content)
+        if isinstance(analysis, dict):
+            return analysis
+    except Exception:  # noqa: BLE001
+        pass
+    # fallback: reasoning contains the full analysis as prose — structure it
+    return {
+        "modelo_dados": content[:1500],
+        "perguntas_abertas": ["(ver reasoning completo no log — JSON cortado)"],
+        "regras_negocio": [content[1500:3500]],
+        "riscos": [content[3500:5500]],
+        "criterios_aceite": ["(JSON final truncado pelo limite de tokens — "
+                             "aumentar max_tokens ou simplificar o prompt)"],
+        "_raw": content,
+    }
+
+
+# ─── 3b. build phase plan (passada 2, fundamentada) ──────────────────
+
+
+def build_plan(data: dict[str, Any], analysis: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Propose the phase breakdown (LLM) given brief + deep analysis."""
+    brief = data.get("brief", "")
+    needs = data.get("needs", []) or []
+    try:
+        caps = needs_mod.primary_capabilities_for(needs)
+    except KeyError:
+        caps = []
+    system = (
+        "Você é um planejador de engenharia. Dado o brief, a análise "
+        "profunda (modelo de dados, perguntas abertas, regras, riscos, "
+        "critérios) e as capabilities, proponha a decomposição em FASES "
+        "ordenadas (3 a 6 fases). CADA fase deve: endereçar uma parte "
+        "concreta do modelo de dados OU resolver uma pergunta aberta OU "
+        "implementar uma regra de negócio — não repetir o brief. "
+        "Inclua nas specs as decisões da análise que fundamentam a fase. "
         "Responda SOMENTE com JSON válido: "
         '[{"name": "...", "spec": "...", "artifacts": ["..."], "stage": N}, ...]'
     )
@@ -123,38 +267,16 @@ def build_plan(data: dict[str, Any]) -> list[dict[str, Any]]:
         f"Brief: {brief}\n"
         f"Needs: {needs}\n"
         f"Capabilities primárias: {caps}\n\n"
-        "Proponha as fases. Cada fase deve ter stage numerado (1..N), "
-        "name, spec detalhada em português, e artifacts com path sob "
+        f"--- ANÁLISE PROFUNDA ---\n{json.dumps(analysis, ensure_ascii=False, indent=2)}\n\n"
+        "Proponha as fases. Cada fase: stage numerado (1..N), name, spec "
+        "detalhada em português FUNDAMENTADA na análise (mencione a "
+        "entidade/regra/risco que resolve), artifacts com path sob "
         "artifacts/<subdir>/."
     )
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
-        ],
-        "max_tokens": 4000,
-    }
-    req = urllib.request.Request(
-        LITELLM_URL,
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json",
-                 "Authorization": f"Bearer {LITELLM_KEY}"},
-    )
-    with urllib.request.urlopen(req, timeout=180) as resp:
-        data_resp = json.loads(resp.read())
-        content = data_resp["choices"][0]["message"]["content"]
-
-    # extract JSON from the response
-    import re
-
-    m = re.search(r"\[.*\]", content, re.S)
-    if not m:
-        raise ValueError("LLM não retornou JSON de fases válido")
-    phases = json.loads(m.group(0))
+    content = _llm_json(system, prompt, 12000)
+    phases = _extract_json_block(content, want_list=True)
     if not isinstance(phases, list):
         raise ValueError("LLM retornou fases não-lista")
-    # ensure stage ordering
     for i, p in enumerate(phases):
         p["stage"] = i + 1
         p["status"] = "pending"
@@ -164,12 +286,15 @@ def build_plan(data: dict[str, Any]) -> list[dict[str, Any]]:
 # ─── 4. write back ──────────────────────────────────────────────────
 
 
-def apply_plan(data: dict[str, Any], phases: list[dict[str, Any]]) -> dict[str, Any]:
-    """Merge the proposed phases into the contract and save."""
+def apply_plan(data: dict[str, Any], phases: list[dict[str, Any]],
+               analysis: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Merge the proposed phases + analysis into the contract and save."""
     root = _laos_root()
     project_id = data.get("project_name")
     py = root / "projects" / project_id / "project.yaml"
     data["deliverables"] = phases
+    if analysis:
+        data["planning"] = analysis
     data["status"] = "planned"
     py.write_text(
         "# Gerado por laos plan\n" + yaml.safe_dump(data, allow_unicode=True,
@@ -183,7 +308,8 @@ def apply_plan(data: dict[str, Any], phases: list[dict[str, Any]]) -> dict[str, 
 
 
 def plan_project(project_id: str, brief: str | None = None) -> dict[str, Any]:
-    """Run the planning phase. Returns the final contract + gaps found."""
+    """Run the planning phase (deep think + decompose). Returns the
+    final contract + gaps found."""
     try:
         data = load_contract(project_id)
     except FileNotFoundError:
@@ -199,12 +325,13 @@ def plan_project(project_id: str, brief: str | None = None) -> dict[str, Any]:
 
     gaps = gap_analysis(data)
     if gaps:
-        # if the contract is incomplete, build the plan from brief
-        phases = build_plan(data)
-        data = apply_plan(data, phases)
+        # passada 1: pensar; passada 2: decompor fundamentado
+        analysis = deep_think(data)
+        phases = build_plan(data, analysis)
+        data = apply_plan(data, phases, analysis)
         return {"project_id": project_id, "gaps_found": gaps,
                 "phases_proposed": len(phases), "contract": data,
-                "status": "planned"}
+                "analysis": analysis, "status": "planned"}
     return {"project_id": project_id, "gaps_found": [],
             "phases_proposed": len(data.get("deliverables", []) or []),
             "contract": data, "status": "ready"}
