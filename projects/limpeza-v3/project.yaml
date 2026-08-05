@@ -1,0 +1,133 @@
+# ─────────────────────────────────────────────────────────────
+# Gestão de Produtos de Limpeza v3 — 100% gerado pelo LAOS
+# ─────────────────────────────────────────────────────────────
+project_name: limpeza-v3
+display_name: "Gestão de Produtos de Limpeza v3"
+brief: >
+  App HTML autossuficiente (1 arquivo final, 3 abas, localStorage) para
+  gestão doméstica de produtos de limpeza. Aba 1: necessidades de limpeza
+  (CRUD — vidro, pia, piso, adiciona à vontade). Aba 2: produtos/estoque
+  (CRUD — nome, capacidade com unidade L/ml, checkboxes de necessidades
+  que cobre, preço pago, nível de estoque 100/80/60/40/20/0%). Aba 3:
+  dashboard — estoque atual, necessidades SEM produto, gasto médio do
+  mês, sugestão de compra do próximo mês. Gerado inteiramente pelo LAOS
+  (pipeline → LLM → artefato HTML → verifier).
+
+author:
+  name: Laurent
+  github: laurentaf
+
+created_at: 2026-08-04
+updated_at: 2026-08-04
+
+# ─── Necessidades ──────────────────────────────────────────
+needs:
+  - design
+
+capabilities_used:
+  primary:
+    - ladesign    # HTML via LLM (runner real)
+  platform:
+    - context7
+
+# ─── Entregas (4 fases) ────────────────────────────────────
+# Cada fase gera um HTML standalone; a fase 4 é o app completo.
+# Specs melhoradas vs v1: UI explícita (layout, cores), regras de
+# negócio concretas, e instrução de integração na fase final.
+deliverables:
+  - name: aba-necessidades
+    label: "Aba 1 — Necessidades (CRUD)"
+    stage: 1
+    spec: >
+      Gere UM arquivo HTML autossuficiente para a Aba 1 de um app de
+      gestão de produtos de limpeza. Layout: header com título "Produtos
+      de Limpeza" e 3 abas (Necessidades | Produtos | Dashboard), mas
+      esta fase implementa só a aba Necessidades (as outras aparecem
+      como botões desabilitados). Funcionalidades: campo de texto +
+      botão "Adicionar" para criar necessidades de limpeza (ex: Vidro,
+      Pia, Piso, Vaso Sanitário); lista das necessidades com botão de
+      remover cada uma; persistir em localStorage (chave
+      limpeza_necessidades). CSS: fundo claro (#f5f5f4), cards brancos,
+      botão verde (#16a34a), fonte system-ui. Português. Sem dependência
+      externa (sem CDN, sem frameworks) — CSS e JS inline. O arquivo
+      DEVE abrir offline e funcionar sem console errors.
+    artifacts:
+      - "artifacts/limpeza-v3/fase1-necessidades.html"
+
+  - name: aba-produtos
+    label: "Aba 2 — Produtos e estoque (CRUD)"
+    stage: 2
+    spec: >
+      Gere UM arquivo HTML autossuficiente para a Aba 2 (Produtos) do
+      app de gestão de produtos de limpeza. Formulário de cadastro com
+      os campos: nome (texto), capacidade (número + select de unidade:
+      ml | L), preço pago (número, R$), checkboxes das necessidades que
+      o produto cobre (as necessidades vêm do localStorage
+      limpeza_necessidades — se vazio, mostrar aviso "cadastre
+      necessidades primeiro"), nível de estoque (select: 100%, 80%,
+      60%, 40%, 20%, 0%). Botão "Adicionar produto". Lista dos produtos
+      cadastrados com: nome, capacidade formatada (ex: "5 L" ou
+      "500 ml"), necessidades cobertas, preço, estoque em % (barra
+      visual colorida: verde >50%, amarelo 20-50%, vermelho <20%), e
+      botão remover. Persistir em localStorage (limpeza_produtos).
+      CSS consistente com a fase 1 (fundo #f5f5f4, cards brancos, botão
+      verde #16a34a). Português, sem dependência externa, abre offline.
+    artifacts:
+      - "artifacts/limpeza-v3/fase2-produtos.html"
+
+  - name: aba-dashboard
+    label: "Aba 3 — Dashboard (estoque, gastos, sugestão)"
+    stage: 3
+    spec: >
+      Gere UM arquivo HTML autossuficiente para a Aba 3 (Dashboard) do
+      app de gestão de produtos de limpeza. Lê do localStorage as
+      necessidades (limpeza_necessidades) e produtos (limpeza_produtos).
+      Exibe 4 blocos: (1) ESTOQUE ATUAL — lista de produtos com nome,
+      capacidade e % de estoque (barra colorida); (2) NECESSIDADES SEM
+      PRODUTO — lista as necessidades que NÃO têm nenhum produto com
+      estoque > 0% cobrindo-as (regra: necessidade sem produto = nenhum
+      produto marcado para ela com estoque > 0); (3) GASTO MÉDIO DO MÊS
+      — soma dos preços dos produtos comprados no mês corrente (use a
+      data de hoje como data de compra ao cadastrar; se o produto tiver
+      campo dataCompra, filtre pelo mês atual), formatado R$;
+      (4) SUGESTÃO DE COMPRA — lista produtos com estoque <= 40% e/ou
+      necessidades sem produto, com mensagem "repor X" onde X é a
+      capacidade. Se não houver dados, mostrar mensagens amigáveis
+      ("nenhum produto cadastrado"). CSS consistente (fundo #f5f5f4,
+      cards brancos). Português, sem dependência externa, abre offline.
+    artifacts:
+      - "artifacts/limpeza-v3/fase3-dashboard.html"
+
+  - name: app-completo
+    label: "App completo — 3 abas integradas num único arquivo"
+    stage: 4
+    spec: >
+      Gere UM ÚNICO arquivo HTML que INTEGRA as 3 abas do app de gestão
+      de produtos de limpeza num só documento, navegável por abas
+      clicáveis (sem reload). Aba 1 Necessidades: campo + botão
+      Adicionar, lista com remover, localStorage limpeza_necessidades.
+      Aba 2 Produtos: formulário (nome, capacidade + unidade ml/L,
+      preço, checkboxes de necessidades do localStorage, nível de
+      estoque 100-0%), lista com barra de estoque colorida e remover,
+      localStorage limpeza_produtos. Aba 3 Dashboard: estoque atual por
+      produto, necessidades sem produto (nenhum produto com estoque>0
+      cobrindo), gasto médio do mês (R$, soma dos preços de produtos
+      com dataCompra no mês atual), sugestão de compra (estoque<=40% e
+      necessidades descobertas, "repor X"). REQUISITOS: 3 abas
+      funcionais no topo; dados compartilhados entre abas (cadastrar
+      necessidade na aba 1 => aparece nos checkboxes da aba 2); recálculo
+      do dashboard ao trocar de aba; CSS embutido consistente (fundo
+      #f5f5f4, cards brancos, botão verde #16a34a, fonte system-ui);
+      PORTUGUÊS; NENHUMA dependência externa (sem CDN, sem framework —
+      só HTML+CSS+JS inline); abre offline; funcional e sem console
+      errors. Este é o arquivo de entrega final.
+    artifacts:
+      - "artifacts/limpeza-v3/index.html"
+
+# ─── Política de dados ─────────────────────────────────────
+data_policy:
+  allow_synthetic: true
+  notes: "POC v3 — dados locais (localStorage), sem dados externos"
+
+repo: ""
+status: active

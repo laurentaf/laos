@@ -1,0 +1,120 @@
+# ─────────────────────────────────────────────────────────────
+# Gestão de Material de Limpeza v4 — prova de fogo LAOS
+# ─────────────────────────────────────────────────────────────
+project_name: limpeza-v4
+display_name: "Gestão de Material de Limpeza v4"
+brief: >
+  Aplicativo em HTML único (1 arquivo final, 3 separadores, dados
+  locais) para controlar material de limpeza residencial. Separador 1:
+  tarefas de limpeza (CRUD — janela, bancada, chão, acrescenta sem
+  limite). Separador 2: itens/estoque (CRUD — descrição, volume com
+  unidade L/ml, caixas de seleção das tarefas que cobre, valor pago,
+  grau de estoque 100/80/60/40/20/0%). Separador 3: quadro — estoque
+  atual, tarefas SEM item, despesa média do mês, sugestão de reposição
+  do próximo mês. Produzido integralmente pelo LAOS (pipeline → LLM →
+  artefato HTML → verifier), com custo real auditado por fase.
+
+author:
+  name: Laurent
+  github: laurentaf
+
+created_at: 2026-08-05
+updated_at: 2026-08-05
+
+# ─── Necessidades ──────────────────────────────────────────
+needs:
+  - design
+
+capabilities_used:
+  primary:
+    - ladesign    # HTML via LLM (runner real)
+  platform:
+    - context7
+
+# ─── Entregas (4 fases) ────────────────────────────────────
+deliverables:
+  - name: separador-tarefas
+    label: "Separador 1 — Tarefas de limpeza (CRUD)"
+    stage: 1
+    spec: >
+      Gere UM arquivo HTML autossuficiente para o Separador 1 de um app
+      de controle de material de limpeza. Layout: topo com título
+      "Material de Limpeza" e 3 separadores clicáveis (Tarefas | Itens |
+      Quadro); esta fase implementa só o separador Tarefas (os outros
+      aparecem desabilitados). Campo de texto + botão "Adicionar" para
+      criar tarefas (janela, bancada, chão, vaso); lista com botão de
+      remover cada uma; persistir em localStorage (chave
+      limpeza_tarefas). CSS: fundo claro (#f5f5f4), cards brancos,
+      botão verde (#16a34a), fonte system-ui. Português, sem CDN, abre
+      offline, sem console errors.
+    artifacts:
+      - "artifacts/limpeza-v4/fase1-tarefas.html"
+
+  - name: separador-itens
+    label: "Separador 2 — Itens e estoque (CRUD)"
+    stage: 2
+    spec: >
+      Gere UM arquivo HTML autossuficiente para o Separador 2 (Itens)
+      do app de material de limpeza. Formulário: descrição (texto),
+      volume (número + select unidade ml|L), valor pago (R$), caixas de
+      seleção das tarefas que o item cobre (tarefas vindas do
+      localStorage limpeza_tarefas; se vazio, avisar "cadastre tarefas
+      primeiro"), grau de estoque (select 100/80/60/40/20/0%). Botão
+      "Adicionar item". Lista dos itens com: descrição, volume formatado
+      ("5 L" ou "500 ml"), tarefas cobertas, valor, estoque em % (barra
+      colorida: verde >50%, amarelo 20-50%, vermelho <20%), botão
+      remover. Persistir em localStorage (limpeza_itens). CSS consistente
+      (fundo #f5f5f4, cards brancos, botão verde). Português, sem CDN,
+      abre offline.
+    artifacts:
+      - "artifacts/limpeza-v4/fase2-itens.html"
+
+  - name: separador-quadro
+    label: "Separador 3 — Quadro (estoque, despesa, sugestão)"
+    stage: 3
+    spec: >
+      Gere UM arquivo HTML autossuficiente para o Separador 3 (Quadro)
+      do app de material de limpeza. Lê localStorage limpeza_tarefas e
+      limpeza_itens. Exibe 4 blocos: (1) ESTOQUE ATUAL — lista de itens
+      com descrição, volume e % de estoque (barra colorida);
+      (2) TAREFAS SEM ITEM — tarefas que NÃO têm nenhum item com estoque
+      > 0% cobrindo-as; (3) DESPESA MÉDIA DO MÊS — soma dos valores dos
+      itens com dataCompra no mês atual, formatado R$; (4) SUGESTÃO DE
+      REPOSIÇÃO — itens com estoque <= 40% e tarefas descobertas, com
+      "repor X" onde X é o volume. Se sem dados, mensagens amigáveis.
+      CSS consistente (fundo #f5f5f4, cards brancos). Português, sem
+      CDN, abre offline.
+    artifacts:
+      - "artifacts/limpeza-v4/fase3-quadro.html"
+
+  - name: app-integrado
+    label: "App integrado — 3 separadores num único arquivo"
+    stage: 4
+    spec: >
+      Gere UM ÚNICO arquivo HTML que INTEGRA os 3 separadores do app de
+      controle de material de limpeza num só documento, navegável por
+      separadores clicáveis (sem reload). Separador 1 Tarefas: campo +
+      botão Adicionar, lista com remover, localStorage limpeza_tarefas.
+      Separador 2 Itens: formulário (descrição, volume + unidade ml/L,
+      valor, caixas de tarefas do localStorage, grau de estoque 100-0%),
+      lista com barra colorida e remover, localStorage limpeza_itens.
+      Separador 3 Quadro: estoque atual por item, tarefas sem item
+      (nenhum item com estoque>0 cobrindo), despesa média do mês (R$,
+      soma dos valores com dataCompra no mês), sugestão de reposição
+      (estoque<=40% e tarefas descobertas, "repor X"). REQUISITOS: 3
+      separadores funcionais no topo; dados compartilhados (cadastrar
+      tarefa no separador 1 => aparece nas caixas do separador 2);
+      recálculo do quadro ao trocar de separador; CSS embutido
+      consistente (fundo #f5f5f4, cards brancos, botão verde #16a34a,
+      font system-ui); PORTUGUÊS; NENHUMA dependência externa; abre
+      offline; funcional sem console errors. Arquivo de entrega final.
+    artifacts:
+      - "artifacts/limpeza-v4/index.html"
+
+# ─── Política de dados ─────────────────────────────────────
+data_policy:
+  allow_synthetic: true
+  notes: "POC v4 — dados locais (localStorage), sem dados externos"
+
+repo: ""
+status: active
