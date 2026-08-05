@@ -403,25 +403,52 @@ def project_action(project_id: str, action: str = Form(...)) -> HTMLResponse:
             f"{buf.getvalue()}</div>"
         )
     if action == "run":
-        # run in background; return a note (user refreshes to see runs)
-        import threading
-        from laos.core import pipeline
+        # Run in a SEPARATE process (subprocess), NOT a thread.
+        # DuckDB is single-writer: a thread inside uvicorn can't open the
+        # write connection the server already holds. A subprocess gets a
+        # clean connection and closes it when done.
+        import subprocess
+        import sys as _sys
+        import json as _json
 
         py = portfolio._find_laos_root() / "projects" / project_id / "project.yaml"
-
-        def _run_bg():
-            pipe = pipeline.RunPipeline(project_id, py,
-                                        runner=pipeline.costed_runner)
-            try:
-                pipe.run(force_new=True)
-            except Exception:  # noqa: BLE001
-                pass
-
-        t = threading.Thread(target=_run_bg, daemon=True)
-        t.start()
+        code = (
+            "import sys\n"
+            f"sys.path.insert(0, {str(portfolio._find_laos_root())!r})\n"
+            "from laos.core import pipeline, runners\n"
+            "import pathlib\n"
+            "LOG = pathlib.Path(r'F:\\projects\\laos-v2\\.laos\\server-run.log')\n"
+            "logf = open(LOG, 'a', encoding='utf-8')\n"
+            "sys.stdout = logf\n"
+            "sys.stderr = logf\n"
+            "print('=== run via UI ===', flush=True)\n"
+            "py = pathlib.Path(%r)\n" % str(py) +
+            "def router(stage, ctx):\n"
+            "    if stage.get('name') in ('app-completo','app-completo-v2','index','integracao'):\n"
+            "        return runners.llm_app_runner(stage, ctx)\n"
+            "    return runners.llm_artifact_runner(stage, ctx)\n"
+            "pipe = pipeline.RunPipeline(%r, py, runner=router)\n" % project_id +
+            "try:\n"
+            "    run_id = pipe.run(force_new=True)\n"
+            "    print('RUN_DONE ' + str(run_id), flush=True)\n"
+            "    pipe.rs.con.close()\n"
+            "except Exception as e:\n"
+            "    import traceback\n"
+            "    print('RUN_ERR ' + type(e).__name__ + ': ' + str(e), flush=True)\n"
+            "    print(traceback.format_exc(), flush=True)\n"
+        )
+        CREATE_NO_WINDOW = 0x08000000
+        subprocess.Popen(
+            [_sys.executable, "-c", code],
+            cwd=str(portfolio._find_laos_root()),
+            creationflags=CREATE_NO_WINDOW | 0x00000008,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
         return HTMLResponse(
             "<div class='bg-emerald-50 p-3 rounded text-xs'>"
-            "run iniciado em background — aguarde ~15s e recarregue para ver as fases.</div>"
+            "run REAL iniciado em PROCESSO SEPARADO — cada fase gera o "
+            "artefato via LLM. Recarregue para ver as fases e custo real "
+            "(pode levar minutos; o log fica em .laos/server-run.log).</div>"
         )
     return HTMLResponse("unknown action", status_code=400)
 

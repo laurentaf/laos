@@ -55,6 +55,10 @@ class RunPipeline:
         self.project_yaml = project_yaml
         self.runner = runner or noop_runner
         self.rs = run_state.RunState(con)
+        # expose root for runners (artifact path resolution).
+        # project_yaml = <root>/projects/<name>/project.yaml, so root is
+        # three levels up: project.yaml -> <name>/ -> projects/ -> <root>/
+        self._root = project_yaml.parent.parent.parent
 
     # ─── public API ───────────────────────────────────────────────
 
@@ -192,7 +196,7 @@ class RunPipeline:
     # ─── helpers ──────────────────────────────────────────────────
 
     def _log(self, msg: str) -> None:
-        print(f"[laos] {msg}")
+        print(f"[laos] {msg}", flush=True)
 
     def con(self):
         return self.rs.con
