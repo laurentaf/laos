@@ -364,6 +364,16 @@ def chat(project_id: str, message: str) -> str:
         "real do projeto abaixo (NUNCA invente dados). Responda em "
         "português, direto, com próximos passos concretos quando "
         "aplicável.\n\n"
+        "REGRA DE ESCOPO: se o pedido for GRANDE (ex: 'um sistema tipo "
+        "YouTube', 'um app completo', 'uma plataforma'), NUNCA tente "
+        "descrever o sistema inteiro numa resposta. Em vez disso:\n"
+        "  1. Responda com o ESQUELETO do MVP: arquitetura em 3-5 linhas, "
+        "   modelo de dados central, e 4-6 FASES razoáveis para construir "
+        "   o MVP (cada fase = 1 artefato entregável).\n"
+        "  2. Diga que cada fase pode ser aprofundada sob pedido, e que "
+        "   /planejar transforma as fases em ToDos.\n"
+        "  3. NÃO liste dezenas de features — foque no MVP iterável.\n"
+        "Pedidos pequenos (uma pergunta, uma fase) responda direto.\n\n"
         f"--- CONTEXTO DO PROJETO ---\n{ctx}"
     )
     payload = {
@@ -372,7 +382,10 @@ def chat(project_id: str, message: str) -> str:
             {"role": "system", "content": system},
             {"role": "user", "content": message},
         ],
-        "max_tokens": 1024,
+        # output budget for planning answers (phases, steps, reasoning).
+        # 1024 was cutting long plans mid-response; the input context
+        # window is separate (1M) and unaffected.
+        "max_tokens": 8192,
         "temperature": 0.6,
     }
     req = urllib.request.Request(

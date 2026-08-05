@@ -280,3 +280,39 @@ def test_deep_think_uses_analysis_structure(monkeypatch):
     out = planner.deep_think(data)
     assert set(out.keys()) == {"modelo_dados", "perguntas_abertas",
                                "regras_negocio", "riscos", "criterios_aceite"}
+
+
+def test_deep_think_prompt_contains_mvp_scope_guard():
+    """Regressão: análise profunda de pedido grande deve focar no MVP,
+    não no sistema inteiro (quebra em fases razoáveis)."""
+    from laos.plan import planner
+    import inspect
+
+    src = inspect.getsource(planner.deep_think)
+    assert "SÓ o MVP" in src or "só o MVP" in src.lower()
+    assert "Não despeje o modelo do sistema inteiro" in src
+
+
+def test_build_plan_prompt_contains_mvp_iteration_rule():
+    """Regressão: build_plan deve planejar o MVP iterável (4-6 fases),
+    nunca o sistema inteiro de um pedido amplo."""
+    from laos.plan import planner
+    import inspect
+
+    src = inspect.getsource(planner.build_plan)
+    assert "MVP ITERÁVEL" in src
+    assert "fora do escopo desta iteração" in src
+    assert "fases do MVP" in src
+
+
+def test_console_system_prompt_contains_scope_rule():
+    """Regressão: o console deve conter respostas grandes (esqueleto MVP
+    + oferta de aprofundar) em vez de tentar despejar o sistema inteiro."""
+    from laos.chat import console
+    import inspect
+
+    src = inspect.getsource(console.chat)
+    assert "REGRA DE ESCOPO" in src
+    assert "ESQUELETO do MVP" in src
+    assert "aprofundada sob pedido" in src
+    assert "NUNCA tente" in src

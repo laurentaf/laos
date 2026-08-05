@@ -105,6 +105,8 @@ def test_chat_uses_moderate_temperature(con, monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", _fake_open)
     console.chat("p1", "pergunta criativa")
     assert captured["payload"]["temperature"] == 0.6
+    # output budget must NOT truncate planning answers
+    assert captured["payload"]["max_tokens"] >= 8192
 
 
 def test_planejar_creates_todos(tmp_path, monkeypatch, con):
