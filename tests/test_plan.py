@@ -294,15 +294,18 @@ def test_deep_think_prompt_contains_mvp_scope_guard():
 
 
 def test_build_plan_prompt_contains_mvp_iteration_rule():
-    """Regressão: build_plan deve planejar o MVP iterável (4-6 fases),
-    nunca o sistema inteiro de um pedido amplo."""
+    """Regressão: build_plan deve planejar o MVP iterável (3-8 fases),
+    nunca o sistema inteiro de um pedido amplo — e SEMPRE com a Fase 0
+    de fundação (yaml/SDD/harness/agentes)."""
     from laos.plan import planner
     import inspect
 
     src = inspect.getsource(planner.build_plan)
     assert "MVP ITERÁVEL" in src
     assert "fora do escopo desta iteração" in src
-    assert "fases do MVP" in src
+    assert "FASE 0 SEMPRE" in src
+    assert "fundação" in src.lower()
+    assert "PROJETO CURTO" in src
 
 
 def test_console_system_prompt_contains_scope_rule():
@@ -414,3 +417,165 @@ def test_chat_aborts_after_two_artifact_attempts(tmp_path, monkeypatch):
     assert "código duas vezes" in out
     assert "/planejar" in out
     assert "<html>" not in out
+
+
+def test_planejar_blocks_placeholder_brief(tmp_path, monkeypatch):
+    """Regressão: /planejar com brief '(preencher)' NÃO chama o planner —
+    responde explicando como escrever o brief (usuário leigo)."""
+    from laos.chat import console
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: (preencher)\nneeds: []\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(console, "_laos_root", lambda: root)
+    from laos.plan import planner as planner_mod
+    monkeypatch.setattr(planner_mod.needs_mod, "_find_laos_root", lambda: root)
+
+    # if planner were called, this would fail the test
+    monkeypatch.setattr(planner_mod, "deep_think",
+                        lambda d: (_ for _ in ()).throw(
+                            AssertionError("planner não deve rodar com brief placeholder")))
+    monkeypatch.setattr(planner_mod, "build_plan",
+                        lambda d, a: (_ for _ in ()).throw(
+                            AssertionError("planner não deve rodar com brief placeholder")))
+
+    out = console._cmd_planejar("cproj", "")
+    assert "não tem uma descrição" in out
+    assert "1-3 frases" in out
+    assert "planejar fases" in out
+
+
+def test_planejar_generates_todos_with_real_brief(tmp_path, monkeypatch):
+    """Regressão: com brief real, /planejar gera os ToDos e limpa os
+    antigos do plano."""
+    from laos.chat import console
+    import duckdb
+    from laos.db import schema as schema_mod
+    from laos.plan import planner as planner_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: app de limpeza com 3 abas\n"
+        "needs: [design]\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(console, "_laos_root", lambda: root)
+    monkeypatch.setattr(planner_mod.needs_mod, "_find_laos_root", lambda: root)
+
+    fake_analysis = {"modelo_dados": "x", "perguntas_abertas": [],
+                     "regras_negocio": [], "riscos": [], "criterios_aceite": []}
+    monkeypatch.setattr(planner_mod, "deep_think", lambda d: fake_analysis)
+    monkeypatch.setattr(planner_mod, "build_plan", lambda d, a: [
+        {"name": "Fase A", "spec": "spec a detalhada", "stage": 1},
+        {"name": "Fase B", "spec": "spec b", "stage": 2},
+    ])
+
+    out = console._cmd_planejar("cproj", "")
+    assert "PLANO GERADO" in out
+    rows = con.execute(
+        "SELECT text, source FROM todos WHERE project_id='cproj'").fetchall()
+    assert len(rows) == 2
+    assert all(r[1] == "plano" for r in rows)
+    assert "Fase A" in rows[0][0]
+
+
+def test_update_brief_route_persists_yaml(tmp_path, monkeypatch):
+    """Regressão: POST /projects/<id>/brief salva o brief no project.yaml
+    e devolve confirmação — o caminho do usuário leigo para preencher."""
+    from fastapi.testclient import TestClient
+    from laos.web.app import app
+    from laos.db import schema as schema_mod
+    import duckdb
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+    monkeypatch.setattr(schema_mod, "db_path", lambda: pathlib.Path(":memory:"))
+
+    from laos.web import portfolio
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: (preencher)\nneeds: []\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(portfolio.needs_mod, "_find_laos_root", lambda: root)
+    monkeypatch.setattr(portfolio.schema, "connect", lambda: con)
+
+    client = TestClient(app)
+    # texto com ':' e '#' — o caso real que quebrava YAML inline
+    r = client.post("/projects/cproj/brief",
+                    data={"brief": "app de limpeza: 3 abas: Necessidades, "
+                                   "Produtos, Dashboard #importante"})
+    assert r.status_code == 200
+    assert "brief salvo" in r.text
+    saved = (proj / "project.yaml").read_text(encoding="utf-8")
+    assert "app de limpeza: 3 abas" in saved
+    assert "(preencher)" not in saved
+    # yaml continua parseável (block scalar '|' — não inline)
+    import yaml
+    data = yaml.safe_load(saved)
+    assert "3 abas" in data["brief"]
+
+
+def test_console_send_planejar_returns_todos_oob(tmp_path, monkeypatch):
+    """Regressão: dropdown /planejar deve devolver OOB para #todos-panel
+    (o painel lateral atualiza), senão o usuário não vê nada mudar."""
+    from fastapi.testclient import TestClient
+    from laos.web.app import app
+    from laos.db import schema as schema_mod
+    import duckdb
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+    monkeypatch.setattr(schema_mod, "db_path", lambda: pathlib.Path(":memory:"))
+
+    from laos.web import portfolio
+    from laos.chat import console as chat_mod
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: app de limpeza\nneeds: [design]\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(portfolio.needs_mod, "_find_laos_root", lambda: root)
+    monkeypatch.setattr(portfolio.schema, "connect", lambda: con)
+    monkeypatch.setattr(chat_mod, "_laos_root", lambda: root)
+
+    # planejar inserts a todo (deterministic path via /todo, not LLM)
+    def _fake_planejar(pid, extra):
+        con.execute(
+            "INSERT INTO todos (project_id, todo_id, text, source) "
+            "VALUES ('cproj','t1','[Fase 1] Aba Produtos','plano')")
+        return "PLANO GERADO: 1 fases registradas como ToDos."
+
+    monkeypatch.setattr(chat_mod, "_cmd_planejar", _fake_planejar)
+
+    client = TestClient(app)
+    r = client.post("/projects/cproj/console/send",
+                    data={"message": "", "action": "/planejar"})
+    assert r.status_code == 200
+    assert "hx-swap-oob='true' id='todos-panel'" in r.text
+    assert "Aba Produtos" in r.text
+    assert "PLANO GERADO" in r.text

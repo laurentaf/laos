@@ -132,6 +132,11 @@ def _cmd_planejar(project_id: str, extra: str) -> str:
 
     O usuário confere a lista de ToDos faseados, remove/adiciona com
     /todo-del e /todo, e só então decide rodar (/run).
+
+    Antes de planejar, exige um brief REAL — um projeto recém-criado
+    tem brief placeholder ('(preencher)') e o LLM alucina um plano
+    genérico. O usuário leigo não sabe o que é 'brief'; a mensagem
+    explica em linguagem simples o que escrever.
     """
     from laos.plan import planner
 
@@ -143,6 +148,23 @@ def _cmd_planejar(project_id: str, extra: str) -> str:
         data = planner.load_contract(project_id)
     except Exception as e:  # noqa: BLE001
         return f"erro lendo contrato: {e}"
+
+    brief = (data.get("brief") or "").strip()
+    if _brief_placeholder(brief):
+        return (
+            "O projeto ainda não tem uma descrição do que deve fazer "
+            "(o 'brief' está vazio). Sem isso, eu não consigo planejar — "
+            "eu só inventaria um plano genérico.\n\n"
+            "Escreva, em 1-3 frases simples, o que você quer que o "
+            "projeto faça. Exemplos:\n"
+            "  - 'Um app para controlar os produtos de limpeza de casa: "
+            "cadastrar o que tem, avisar quando acabar e mostrar quanto "
+            "gastei no mês.'\n"
+            "  - 'Um site que lista meus vídeos favoritos e deixa eu "
+            "marcar quais já assisti.'\n\n"
+            "Depois de escrever, clique em 'planejar fases' de novo."
+        )
+
     try:
         analysis = planner.deep_think(data)
         phases = planner.build_plan(data, analysis)
@@ -175,6 +197,13 @@ def _cmd_planejar(project_id: str, extra: str) -> str:
         "/todos para ver a lista completa.",
     ]
     return "\n".join(out)
+
+
+def _brief_placeholder(brief: str) -> bool:
+    """True when the brief is empty or still the placeholder text."""
+    low = (brief or "").strip().lower()
+    return low in ("", "(preencher)", "preencher", "tbd", "todo",
+                   "a definir", "descrição pendente")
 
 
 def run_command(project_id: str, line: str) -> str:

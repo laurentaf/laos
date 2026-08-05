@@ -191,6 +191,30 @@ def console_send(request: Request, project_id: str,
         reply = chat_console.handle(project_id, message)
         chat_console.save_message(project_id, "assistant", reply)
 
+    # /planejar mutates the ToDos table — the response must ALSO refresh
+    # the sidebar panel via OOB, or the user sees nothing change.
+    if action == "/planejar":
+        from laos.db import schema
+
+        con = schema.connect()
+        thread_html = templates.TemplateResponse(
+            request=request,
+            name="console_thread.html",
+            context={"reply": reply, "display": display},
+        ).body.decode()
+        panel_html = templates.TemplateResponse(
+            request=request,
+            name="todos_panel.html",
+            context={"todos": _list_todos(con, project_id),
+                     "p": {"name": project_id}},
+        ).body.decode()
+        return HTMLResponse(
+            f"<div hx-swap-oob='true' id='todos-panel'>{panel_html}</div>"
+            f"<div hx-swap-oob='true' id='planejar-status' "
+            f"class='text-xs text-emerald-600 mt-1'>plano gerado — confira os ToDos acima</div>"
+            f"<div hx-swap-oob='true' id='thread'>{thread_html}</div>"
+        )
+
     return templates.TemplateResponse(
         request=request,
         name="console_thread.html",
@@ -214,6 +238,58 @@ def project_detail(request: Request, project_id: str) -> HTMLResponse:
         request=request,
         name="project.html",
         context={"p": detail},
+    )
+
+
+@app.post("/projects/{project_id}/brief", response_class=HTMLResponse)
+def update_brief(request: Request, project_id: str,
+                 brief: str = Form(...)) -> HTMLResponse:
+    """Editar o brief do projeto (o 'o que faz' em 1-3 frases).
+
+    Persiste no project.yaml e devolve o <p> atualizado — o form fica
+    na página do projeto, para usuário sem CLI.
+    """
+    from laos.web import portfolio
+
+    root = portfolio._find_laos_root()
+    py = root / "projects" / project_id / "project.yaml"
+    if not py.exists():
+        return HTMLResponse("project not found", status_code=404)
+
+    brief_text = brief.strip()
+    try:
+        text = py.read_text(encoding="utf-8")
+    except OSError:
+        text = ""
+    # YAML-safe: block scalar (|) — preserves the user's text verbatim
+    # (quotes, colons, #, etc.) without escaping hell. Inline would break
+    # on ':' or '#'. The '|' block needs the value on following lines,
+    # indented 2 spaces, and a trailing blank line before the next key.
+    import re
+
+    def _brief_block(txt: str) -> str:
+        lines = txt.splitlines() or [""]
+        indented = "\n".join("  " + ln for ln in lines)
+        return "brief: |\n" + indented + "\n"
+
+    if "brief:" in text:
+        # capture the WHOLE brief block (inline or multi-line) up to the
+        # next top-level key or the absolute end of the file (\Z).
+        text = re.sub(
+            r"(?ms)^brief:.*?(?=^[a-z_]+:|\Z)",
+            _brief_block(brief_text),
+            text,
+            count=1,
+        )
+    else:
+        text += "\n" + _brief_block(brief_text)
+    py.write_text(text, encoding="utf-8")
+
+    return HTMLResponse(
+        f"<p class='text-slate-600 text-sm whitespace-pre-wrap' id='brief-display'>"
+        f"{brief_text or '(vazio)'}</p>"
+        f"<p class='text-xs text-emerald-600 mt-2'>brief salvo ✓ — agora clique "
+        f"em 'console → planejar fases' para gerar o plano.</p>"
     )
 
 

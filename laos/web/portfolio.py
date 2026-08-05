@@ -151,6 +151,9 @@ def project_detail(project_id: str) -> dict[str, Any] | None:
         "name": name,
         "display": data.get("display_name", name),
         "brief": data.get("brief", ""),
+        "brief_placeholder": (data.get("brief") or "").strip().lower()
+        in ("", "(preencher)", "preencher", "tbd", "todo",
+            "a definir", "descrição pendente"),
         "status": prow[0] if prow else data.get("status", "not_started"),
         "ready_to_ship": bool(prow[1]) if prow else False,
         "needs": data.get("needs", []) or [],
