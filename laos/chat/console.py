@@ -347,35 +347,38 @@ def _cached_reply(project_id: str, message: str) -> str | None:
         return None
 
 
-def chat(project_id: str, message: str) -> str:
-    """Send a message to the LLM with the project context baked in.
+def _looks_like_artifact(text: str) -> bool:
+    """True if the LLM output looks like a GENERATED ARTIFACT (HTML/JS)
+    instead of a planning answer.
 
-    Deterministic: temperature 0 + exact-prompt cache. The same message
-    in the same project always returns the same answer.
+    The console is a text planning surface; it must NEVER return code.
+    When the model ignores the scope rule and emits an app, we detect it
+    mechanically here and force a corrective retry.
     """
-    cached = _cached_reply(project_id, message)
-    if cached is not None:
-        return cached
-    ctx = project_context(project_id)
-    system = (
-        "Você é o console de planejamento do LAOS. O usuário está "
-        "evoluindo este projeto e precisa de ajuda para decidir as "
-        "próximas fases, revisar erros e planejar. Use o contexto "
-        "real do projeto abaixo (NUNCA invente dados). Responda em "
-        "português, direto, com próximos passos concretos quando "
-        "aplicável.\n\n"
-        "REGRA DE ESCOPO: se o pedido for GRANDE (ex: 'um sistema tipo "
-        "YouTube', 'um app completo', 'uma plataforma'), NUNCA tente "
-        "descrever o sistema inteiro numa resposta. Em vez disso:\n"
-        "  1. Responda com o ESQUELETO do MVP: arquitetura em 3-5 linhas, "
-        "   modelo de dados central, e 4-6 FASES razoáveis para construir "
-        "   o MVP (cada fase = 1 artefato entregável).\n"
-        "  2. Diga que cada fase pode ser aprofundada sob pedido, e que "
-        "   /planejar transforma as fases em ToDos.\n"
-        "  3. NÃO liste dezenas de features — foque no MVP iterável.\n"
-        "Pedidos pequenos (uma pergunta, uma fase) responda direto.\n\n"
-        f"--- CONTEXTO DO PROJETO ---\n{ctx}"
-    )
+    t = text.strip()
+    if not t:
+        return False
+    low = t.lower()
+    # document/HTML signals
+    if low.startswith("<!doctype") or "<html" in low[:2000]:
+        return True
+    if "<!doctype html" in low or "<body" in low or "</body>" in low:
+        return True
+    if "<style" in low or "<script" in low or "<nav" in low:
+        return True
+    # fenced block in a code language we never emit from the console
+    for fence in ("```html", "```htm", "```js", "```javascript",
+                  "```css", "```tsx", "```jsx"):
+        if fence in low:
+            return True
+    # a large code block is almost certainly a generated file
+    if "```" in t and len(t) > 2000:
+        return True
+    return False
+
+
+def _chat_llm(system: str, message: str) -> str:
+    """One LLM round-trip to the console model."""
     payload = {
         "model": MODEL,
         "messages": [
@@ -394,12 +397,69 @@ def chat(project_id: str, message: str) -> str:
         headers={"Content-Type": "application/json",
                  "Authorization": f"Bearer {LITELLM_KEY}"},
     )
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        data = json.loads(resp.read())
+        return data["choices"][0]["message"]["content"].strip()
+
+
+def chat(project_id: str, message: str) -> str:
+    """Send a message to the LLM with the project context baked in.
+
+    Deterministic: exact-prompt cache + mechanical artifact guard.
+    The same message in the same project always returns the same answer
+    — unless the cached answer was a generated artifact (then we
+    regenerate, invalidating the polluted cache entry).
+    """
+    cached = _cached_reply(project_id, message)
+    if cached is not None and not _looks_like_artifact(cached):
+        return cached
+    ctx = project_context(project_id)
+    system = (
+        "Você é o console de planejamento do LAOS. O usuário está "
+        "evoluindo este projeto e precisa de ajuda para decidir as "
+        "próximas fases, revisar erros e planejar. Use o contexto "
+        "real do projeto abaixo (NUNCA invente dados). Responda em "
+        "português, direto, com próximos passos concretos quando "
+        "aplicável.\n\n"
+        "VOCÊ NUNCA GERA CÓDIGO. Este console é texto puro: resposta "
+        "planejada em markdown simples. Se o pedido pedir um artefato "
+        "(HTML, JS, dashboard, app), NÃO gere o artefato — descreva-o "
+        "como UMA FASE do plano (spec, artifacts path) e deixe a "
+        "geração para o pipeline de execução (/run).\n\n"
+        "REGRA DE ESCOPO: se o pedido for GRANDE (ex: 'um sistema tipo "
+        "YouTube', 'um app completo', 'uma plataforma'), NUNCA tente "
+        "descrever o sistema inteiro numa resposta. Em vez disso:\n"
+        "  1. Responda com o ESQUELETO do MVP: arquitetura em 3-5 linhas, "
+        "   modelo de dados central, e 4-6 FASES razoáveis para construir "
+        "   o MVP (cada fase = 1 artefato entregável).\n"
+        "  2. Diga que cada fase pode ser aprofundada sob pedido, e que "
+        "   /planejar transforma as fases em ToDos.\n"
+        "  3. NÃO liste dezenas de features — foque no MVP iterável.\n"
+        "Pedidos pequenos (uma pergunta, uma fase) responda direto.\n\n"
+        f"--- CONTEXTO DO PROJETO ---\n{ctx}"
+    )
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read())
-            return data["choices"][0]["message"]["content"].strip()
+        text = _chat_llm(system, message)
     except Exception as e:  # noqa: BLE001
         return f"ERRO ao chamar a LLM: {type(e).__name__}: {str(e)[:300]}"
+    if _looks_like_artifact(text):
+        # mechanical enforcement: the model ignored the guard. Retry with
+        # the artifact signal called out explicitly.
+        try:
+            text = _chat_llm(
+                system,
+                "IMPORTANTE: sua resposta anterior era um artefato de "
+                "código gerado, não um plano em texto. Este console NUNCA "
+                f"gera código. Responda NOVAMENTE em texto puro:\n{message}",
+            )
+        except Exception as e:  # noqa: BLE001
+            return (f"ERRO ao chamar a LLM: {type(e).__name__}: {str(e)[:300]}"
+                    f"\n\n(aviso: a primeira resposta era código e foi descartada)")
+    if _looks_like_artifact(text):
+        return ("Não foi possível planejar em texto — o modelo retornou "
+                "código duas vezes. As fases já podem ser geradas com "
+                "/planejar (determinístico, via pipeline).")
+    return text
 
 
 def handle(project_id: str, message: str) -> str:

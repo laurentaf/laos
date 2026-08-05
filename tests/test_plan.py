@@ -316,3 +316,101 @@ def test_console_system_prompt_contains_scope_rule():
     assert "ESQUELETO do MVP" in src
     assert "aprofundada sob pedido" in src
     assert "NUNCA tente" in src
+
+
+def test_chat_never_generates_code_rule_in_prompt():
+    """Regressão: o system prompt deve proibir explícitamente gerar
+    código/artefato no console (texto puro; artefato vira fase)."""
+    from laos.chat import console
+    import inspect
+
+    src = inspect.getsource(console.chat)
+    assert "VOCÊ NUNCA GERA CÓDIGO" in src
+    assert "NÃO gere o artefato" in src
+
+
+def test_looks_like_artifact_detects_html():
+    from laos.chat.console import _looks_like_artifact
+
+    assert _looks_like_artifact("<!DOCTYPE html><html><body>x</body></html>")
+    assert _looks_like_artifact("aqui está:\n<html><style>.x{}</style></html>")
+    assert _looks_like_artifact("<script>const a=1</script>")
+    assert _looks_like_artifact("```html\n<div>app</div>\n```" * 50)  # big code block
+    # plain planning text is NOT an artifact
+    assert not _looks_like_artifact(
+        "## Esqueleto do MVP\nArquitetura: 3 camadas.\nFase 1: telas.")
+    assert not _looks_like_artifact("Vou planejar o app em 4 fases.")
+
+
+def test_chat_ignores_polluted_html_cache(tmp_path, monkeypatch):
+    """Regressão: se o cache guarda uma resposta antiga com HTML gerado,
+    o chat IGNORA o cache e regenera — o guard mecânico não pode ser
+    enganado por cache sujo."""
+    from laos.chat import console
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+
+    # simulate a previous exchange whose assistant reply was HTML
+    con.execute(
+        "INSERT INTO chat_messages (project_id, msg_id, role, content, ts) "
+        "VALUES ('p','u1','user','planeja um youtube',current_timestamp)")
+    con.execute(
+        "INSERT INTO chat_messages (project_id, msg_id, role, content, ts) "
+        "VALUES ('p','a1','assistant','<!DOCTYPE html><html>...',current_timestamp)")
+
+    called = []
+    fake_plan = "## Esqueleto do MVP\nFase 1: telas. Fase 2: upload."
+    monkeypatch.setattr(console, "_chat_llm",
+                        lambda s, m: called.append(m) or fake_plan)
+    monkeypatch.setattr(console, "project_context", lambda pid: "ctx")
+
+    out = console.chat("p", "planeja um youtube")
+    assert out == fake_plan
+    # the polluted cache was ignored → LLM was called (not the HTML reply)
+    assert len(called) == 1
+
+
+def test_chat_retries_when_model_returns_artifact(tmp_path, monkeypatch):
+    """Regressão: se a LLM ignora o guard e devolve HTML, o chat faz
+    retry corretivo (2ª chamada com aviso explícito) e devolve texto."""
+    from laos.chat import console
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+    monkeypatch.setattr(console, "project_context", lambda pid: "ctx")
+
+    replies = [
+        "<html><body>app youtube completo</body></html>",  # 1ª: ignorou guard
+        "## Plano em texto\nFase 1..4.",                   # 2ª: corrigiu
+    ]
+    monkeypatch.setattr(console, "_chat_llm", lambda s, m: replies.pop(0))
+
+    out = console.chat("p", "planeja um youtube")
+    assert out == "## Plano em texto\nFase 1..4."
+
+
+def test_chat_aborts_after_two_artifact_attempts(tmp_path, monkeypatch):
+    """Regressão: duas respostas-artefato seguidas → aborta com mensagem
+    acionável (aponta para /planejar), não retorna o HTML."""
+    from laos.chat import console
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+    monkeypatch.setattr(console, "project_context", lambda pid: "ctx")
+    monkeypatch.setattr(console, "_chat_llm",
+                        lambda s, m: "<html><body>x</body></html>")
+
+    out = console.chat("p", "planeja um youtube")
+    assert "código duas vezes" in out
+    assert "/planejar" in out
+    assert "<html>" not in out
