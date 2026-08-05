@@ -27,6 +27,14 @@ memoria/
 
 # Archived scratch scripts
 scripts/_archive/
+scripts/_diag/
+
+# Projetos arquivados (deletados/abandonados)
+projects_archived/
+
+# Test output scratch
+.laos_v2_test.txt
+.laos_test_output.txt
 
 # Per-project artifacts
 projects/*/artifacts/
