@@ -213,6 +213,12 @@ def connect_readonly() -> duckdb.DuckDBPyConnection:
 
     The panel and other readers use this so they don't collide with the
     writer (pipeline). Reads never need the write lock.
+
+    IMPORTANT: when the run subprocess holds the write lock, read_only
+    open FAILS. We must NOT fall back to a write connection (that would
+    ute against the run and make the panel 500 during a run). Instead
+    return a degraded in-memory connection (empty tables) so the page
+    renders with "no data yet" instead of crashing.
     """
     path = db_path()
     if str(path) == ":memory:":
@@ -222,7 +228,10 @@ def connect_readonly() -> duckdb.DuckDBPyConnection:
     try:
         return duckdb.connect(str(path), read_only=True)
     except Exception:  # noqa: BLE001
-        return connect()
+        # writer holds the lock (run in progress) — degraded read
+        con = duckdb.connect(":memory:")
+        apply_schema(con)
+        return con
 
 
 def apply_schema(con: duckdb.DuckDBPyConnection) -> list[str]:

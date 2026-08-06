@@ -745,3 +745,29 @@ def test_close_all_writes_releases_registry(tmp_path, monkeypatch):
     n = schema_mod.close_all_writes()
     assert n >= 1
     assert len(schema_mod._open_writes) == 0
+
+
+def test_connect_readonly_degrades_not_crashes(tmp_path, monkeypatch):
+    """Regressão: quando o run subprocess segura o write lock, o painel
+    NÃO deve cair para write (500) — retorna leitura degradada vazia."""
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    # real file path that EXISTS, then simulate read_only failing
+    dbf = tmp_path / "locked.duckdb"
+    con0 = duckdb.connect(str(dbf))
+    con0.close()
+    monkeypatch.setattr(schema_mod, "db_path", lambda: dbf)
+
+    real_connect = schema_mod.duckdb.connect
+
+    def _fake_ro(path, *a, **k):
+        if k.get("read_only"):
+            raise duckdb.IOException("file already open by writer")
+        return real_connect(path, *a, **k)
+
+    monkeypatch.setattr(schema_mod.duckdb, "connect", _fake_ro)
+    con = schema_mod.connect_readonly()
+    # degraded: still a usable schema; no write connection tracked
+    assert con.execute("SELECT 1").fetchone() == (1,)
+    assert schema_mod._open_writes == set()
