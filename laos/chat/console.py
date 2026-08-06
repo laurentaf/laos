@@ -168,6 +168,9 @@ def _cmd_planejar(project_id: str, extra: str) -> str:
     try:
         analysis = planner.deep_think(data)
         phases = planner.build_plan(data, analysis)
+        # escreve as fases no project.yaml (deliverables) — o pipeline
+        # executa deliverables, não ToDos. Sem isso o /run roda vazio.
+        planner.apply_plan(data, phases, analysis)
     except Exception as e:  # noqa: BLE001
         return f"erro gerando plano: {type(e).__name__}: {e}"
 
@@ -190,6 +193,8 @@ def _cmd_planejar(project_id: str, extra: str) -> str:
 
     out = [
         f"PLANO GERADO: {len(added)} fases registradas como ToDos.",
+        f"Fases salvas em projects/{project_id}/project.yaml (deliverables) — "
+        "/run agora executa de verdade.",
         "",
         "Confira abaixo — remova com /todo-del <id>, adicione com /todo <texto>.",
         "Quando estiver bom, rode /run para executar em ordem.",

@@ -456,8 +456,9 @@ def test_planejar_blocks_placeholder_brief(tmp_path, monkeypatch):
 
 
 def test_planejar_generates_todos_with_real_brief(tmp_path, monkeypatch):
-    """Regressão: com brief real, /planejar gera os ToDos e limpa os
-    antigos do plano."""
+    """Regressão: com brief real, /planejar gera os ToDos E escreve os
+    deliverables no project.yaml (o pipeline executa deliverables, não
+    ToDos — sem isso o /run roda vazio)."""
     from laos.chat import console
     import duckdb
     from laos.db import schema as schema_mod
@@ -485,6 +486,12 @@ def test_planejar_generates_todos_with_real_brief(tmp_path, monkeypatch):
         {"name": "Fase A", "spec": "spec a detalhada", "stage": 1},
         {"name": "Fase B", "spec": "spec b", "stage": 2},
     ])
+    applied = {}
+    real_apply = planner_mod.apply_plan
+    monkeypatch.setattr(
+        planner_mod, "apply_plan",
+        lambda data, phases, analysis=None: applied.update(
+            data=data, phases=phases) or real_apply(data, phases, analysis))
 
     out = console._cmd_planejar("cproj", "")
     assert "PLANO GERADO" in out
@@ -493,6 +500,12 @@ def test_planejar_generates_todos_with_real_brief(tmp_path, monkeypatch):
     assert len(rows) == 2
     assert all(r[1] == "plano" for r in rows)
     assert "Fase A" in rows[0][0]
+    # apply_plan foi chamado e o yaml ganhou deliverables (o /run executa)
+    assert applied.get("phases")
+    import yaml
+    data = yaml.safe_load((proj / "project.yaml").read_text(encoding="utf-8"))
+    assert len(data.get("deliverables", [])) == 2
+    assert data["deliverables"][0]["name"] == "Fase A"
 
 
 def test_update_brief_route_persists_yaml(tmp_path, monkeypatch):
