@@ -182,9 +182,15 @@ def console_send(request: Request, project_id: str,
                                     "/erros", "/gaps", "/verify", "/run", "/planejar") \
             else f"{action} {message}".strip()
         display = action if not message else f"{action} {message}".strip()
-        chat_console.save_message(project_id, "user", display)
-        reply = chat_console.run_command(project_id, line)
-        chat_console.save_message(project_id, "assistant", reply)
+        # /run launches a SUBPROCESS that needs the DuckDB write lock.
+        # save_message opens a write connection — if left open here it
+        # blocks the run. So: no message persistence for /run.
+        if action == "/run":
+            reply = chat_console.run_command(project_id, "/run")
+        else:
+            chat_console.save_message(project_id, "user", display)
+            reply = chat_console.run_command(project_id, line)
+            chat_console.save_message(project_id, "assistant", reply)
     else:
         display = message
         chat_console.save_message(project_id, "user", message)
@@ -375,13 +381,13 @@ def planejar_route(request: Request, project_id: str) -> HTMLResponse:
     from laos.chat import console as chat_console
     from laos.db import schema
 
-    con = schema.connect()
     # run the planner (same logic as /planejar command), no chat message
     try:
         reply = chat_console._cmd_planejar(project_id, "")
     except Exception as e:  # noqa: BLE001
         reply = f"erro ao planejar: {type(e).__name__}: {e}"
     # show the reply in the thread AND the todos in the sidebar
+    con = schema.connect()
     thread_html = templates.TemplateResponse(
         request=request,
         name="console_thread.html",

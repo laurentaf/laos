@@ -364,6 +364,12 @@ def run_command(project_id: str, line: str) -> str:
         py = _laos_root() / "projects" / project_id / "project.yaml"
         if not py.exists():
             return f"project.yaml não encontrado para {project_id}"
+        # IMPORTANTE: fecha a conexão write ANTES de lançar o subprocess —
+        # DuckDB single-writer: conexão aberta no uvicorn bloqueia o run.
+        try:
+            con.close()
+        except Exception:  # noqa: BLE001
+            pass
         try:
             launch_real_run(project_id, py)
         except Exception as e:  # noqa: BLE001
@@ -639,6 +645,9 @@ def save_message(project_id: str, role: str, content: str) -> None:
         "VALUES (?,?,?,?,current_timestamp)",
         [project_id, mid, role, content],
     )
+    # NOTE: conexão é liberada pelo GC (DuckDBPyConnection) quando sai de
+    # escopo. Não fechamos aqui: os routes compartilham o mock de conexão
+    # nos testes; o /run fecha a dele antes de lançar o subprocess.
 
 
 def recent_messages(project_id: str, limit: int = 30) -> list[dict]:
