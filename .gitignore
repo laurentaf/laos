@@ -36,6 +36,8 @@ projects_archived/
 .laos_v2_test.txt
 .laos_test_output.txt
 .laos_probe_*.py
+.laos_*.py
+.laos_probe_*.txt
 
 # Per-project artifacts
 projects/*/artifacts/
