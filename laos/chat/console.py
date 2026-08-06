@@ -206,6 +206,45 @@ def _brief_placeholder(brief: str) -> bool:
                    "a definir", "descrição pendente")
 
 
+def _save_brief(project_id: str, brief_text: str) -> str:
+    """Persist the brief into project.yaml (YAML-safe block scalar).
+
+    Inline would break on ':' or '#' in the user's text; the '|' block
+    scalar preserves it verbatim. Mirrors the web route update_brief.
+    """
+    import re
+
+    root = _laos_root()
+    py = root / "projects" / project_id / "project.yaml"
+    if not py.exists():
+        return f"project.yaml não encontrado para {project_id}"
+
+    brief_text = brief_text.strip()
+    if not brief_text:
+        return "brief vazio — escreva a descrição depois do comando."
+
+    def _block(txt: str) -> str:
+        lines = txt.splitlines() or [""]
+        return "brief: |\n" + "\n".join("  " + ln for ln in lines) + "\n"
+
+    try:
+        text = py.read_text(encoding="utf-8")
+    except OSError:
+        text = ""
+    if "brief:" in text:
+        text = re.sub(
+            r"(?ms)^brief:.*?(?=^[a-z_]+:|\Z)",
+            _block(brief_text),
+            text,
+            count=1,
+        )
+    else:
+        text += "\n" + _block(brief_text)
+    py.write_text(text, encoding="utf-8")
+    return ("brief salvo ✓. Agora rode /planejar para transformar isso "
+            "em fases (ToDos).")
+
+
 def run_command(project_id: str, line: str) -> str:
     """Handle /slash commands. Returns response text."""
     parts = line.strip().split(" ", 1)
@@ -250,6 +289,12 @@ def run_command(project_id: str, line: str) -> str:
         return "\n".join(lines)
     if cmd == "/planejar":
         return _cmd_planejar(project_id, rest)
+    if cmd in ("/salvar-brief", "/brief"):
+        if not rest:
+            return ("uso: /salvar-brief <descrição do projeto em 1-3 frases>\n\n"
+                    "Guarda a descrição como o brief do projeto (o 'o que "
+                    "faz'). Depois rode /planejar para gerar as fases.")
+        return _save_brief(project_id, rest)
     if cmd == "/todos-limpar":
         n = con.execute(
             "DELETE FROM todos WHERE project_id=? AND source='plano'",
@@ -314,29 +359,69 @@ def run_command(project_id: str, line: str) -> str:
         py = _laos_root() / "projects" / project_id / "project.yaml"
         if not py.exists():
             return f"project.yaml não encontrado para {project_id}"
-        from laos.core import pipeline
-
-        def _bg():
-            try:
-                pipe = pipeline.RunPipeline(project_id, py,
-                                            runner=pipeline.costed_runner)
-                pipe.run(force_new=True)
-            except Exception:  # noqa: BLE001
-                pass
-
-        threading.Thread(target=_bg, daemon=True).start()
-        return "run iniciado em background — /fases em ~15s"
+        try:
+            launch_real_run(project_id, py)
+        except Exception as e:  # noqa: BLE001
+            return f"erro iniciando run: {type(e).__name__}: {e}"
+        return ("run REAL iniciado em processo separado — cada fase gera "
+                "o artefato via LLM. Veja /fases em ~30s ou a página do "
+                "projeto.")
     if cmd == "/help":
-        return ("comandos: /planejar · /todos · /todo <texto> · /todo-del <id> · "
-                "/todos-limpar · /fases · /erros · /gaps · /status <novo> · "
-                "/decidir <pergunta> · /verify · /run · /help\n\n"
+        return ("comandos: /planejar · /salvar-brief <descrição> · /todos · "
+                "/todo <texto> · /todo-del <id> · /todos-limpar · /fases · "
+                "/erros · /gaps · /status <novo> · /decidir <pergunta> · "
+                "/verify · /run · /help\n\n"
                 "/planejar: gera as fases do projeto como ToDos (confira, "
                 "edite com /todo-del e /todo, depois /run)\n"
+                "/salvar-brief <texto>: salva a descrição do projeto "
+                "(necessário antes do /planejar se o brief está vazio)\n"
                 "texto livre (sem /) vai para a LLM com o contexto do projeto")
     return f"comando desconhecido: {cmd} (/help para a lista)"
 
 
 # ─── LLM chat ────────────────────────────────────────────────────────
+
+
+def launch_real_run(project_id: str, py: pathlib.Path) -> None:
+    """Launch a REAL run in a SEPARATE process (subprocess).
+
+    DuckDB is single-writer: a thread inside uvicorn can't open the
+    write connection the server already holds. A subprocess gets a
+    clean connection and closes it when done. Each phase generates the
+    artifact via LLM (llm_app_runner / llm_artifact_runner).
+    """
+    root = _laos_root()
+    code = (
+        "import sys\n"
+        f"sys.path.insert(0, {str(root)!r})\n"
+        "from laos.core import pipeline, runners\n"
+        "import pathlib\n"
+        "LOG = pathlib.Path(%r)\n" % str(root / ".laos" / "server-run.log")
+        + "logf = open(LOG, 'a', encoding='utf-8')\n"
+        "sys.stdout = logf\n"
+        "sys.stderr = logf\n"
+        "print('=== run via console ===', flush=True)\n"
+        "py = pathlib.Path(%r)\n" % str(py) +
+        "def router(stage, ctx):\n"
+        "    if stage.get('name') in ('app-completo','app-completo-v2','index','integracao'):\n"
+        "        return runners.llm_app_runner(stage, ctx)\n"
+        "    return runners.llm_artifact_runner(stage, ctx)\n"
+        "pipe = pipeline.RunPipeline(%r, py, runner=router)\n" % project_id +
+        "try:\n"
+        "    run_id = pipe.run(force_new=True)\n"
+        "    print('RUN_DONE ' + str(run_id), flush=True)\n"
+        "    pipe.rs.con.close()\n"
+        "except Exception as e:\n"
+        "    import traceback\n"
+        "    print('RUN_ERR ' + type(e).__name__ + ': ' + str(e), flush=True)\n"
+        "    print(traceback.format_exc(), flush=True)\n"
+    )
+    subprocess.Popen(
+        [sys.executable, "-c", code],
+        cwd=str(root),
+        creationflags=CREATE_NO_WINDOW | 0x00000008,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
 
 
 def _cached_reply(project_id: str, message: str) -> str | None:
@@ -465,6 +550,11 @@ def chat(project_id: str, message: str) -> str:
         "   /planejar transforma as fases em ToDos.\n"
         "  3. NÃO liste dezenas de features — foque no MVP iterável.\n"
         "Pedidos pequenos (uma pergunta, uma fase) responda direto.\n\n"
+        "BRIEF VAZIO: se o projeto ainda não tem descrição (o contexto "
+        "abaixo mostra o brief vazio ou '(preencher)') e o usuário "
+        "descrever o que quer, diga: 'Quer que eu salve isso como o "
+        "brief do projeto? É só responder: /salvar-brief <sua "
+        "descrição>'. Depois /planejar gera as fases.\n\n"
         f"--- CONTEXTO DO PROJETO ---\n{ctx}"
     )
     try:
@@ -488,7 +578,36 @@ def chat(project_id: str, message: str) -> str:
         return ("Não foi possível planejar em texto — o modelo retornou "
                 "código duas vezes. As fases já podem ser geradas com "
                 "/planejar (determinístico, via pipeline).")
+
+    # BRIEF VAZIO: se o yaml ainda está placeholder e o usuário parece
+    # estar descrevendo o projeto (mensagem longa), anexa a oferta de
+    # salvar — mesmo que o modelo não tenha sugerido (enforcement
+    # mecânico, não só prompt).
+    brief = _load_brief(project_id)
+    if _brief_placeholder(brief) and len(message.strip()) > 40:
+        text += (
+            "\n\n---\n**Dica:** este projeto ainda não tem uma descrição "
+            "salva (o 'brief'). Se essa mensagem descreve o que você "
+            "quer, salve como brief e gere o plano:\n"
+            f"`/salvar-brief {message.strip()[:120]}...`\n"
+            "depois `/planejar` para virar fases."
+        )
     return text
+
+
+def _load_brief(project_id: str) -> str:
+    """Read the brief from project.yaml (best-effort)."""
+    try:
+        import yaml
+
+        root = _laos_root()
+        py = root / "projects" / project_id / "project.yaml"
+        if not py.exists():
+            return ""
+        return (yaml.safe_load(py.read_text(encoding="utf-8")) or {}).get(
+            "brief", "") or ""
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 def handle(project_id: str, message: str) -> str:

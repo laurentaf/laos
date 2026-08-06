@@ -579,3 +579,141 @@ def test_console_send_planejar_returns_todos_oob(tmp_path, monkeypatch):
     assert "hx-swap-oob='true' id='todos-panel'" in r.text
     assert "Aba Produtos" in r.text
     assert "PLANO GERADO" in r.text
+
+
+def test_salvar_brief_command_persists_yaml(tmp_path, monkeypatch):
+    """Regressão: /salvar-brief grava o brief no project.yaml de forma
+    YAML-safe (block scalar) — o caminho do usuário leigo que descreve
+    a ideia no chat."""
+    from laos.chat import console
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: (preencher)\nneeds: []\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(console, "_laos_root", lambda: root)
+
+    out = console._save_brief(
+        "cproj", "App de limpeza: 3 abas. Aba 1: necessidades. "
+        "Aba 2: produtos #estoque. Aba 3: dashboard.")
+    assert "brief salvo" in out
+    saved = (proj / "project.yaml").read_text(encoding="utf-8")
+    import yaml
+    data = yaml.safe_load(saved)
+    assert "3 abas" in data["brief"]
+    assert "(preencher)" not in saved
+
+
+def test_chat_offers_save_brief_when_placeholder(tmp_path, monkeypatch):
+    """Regressão: com brief placeholder e mensagem longa (descrição de
+    projeto), o chat anexa a oferta de /salvar-brief — enforcement
+    mecânico, mesmo que o modelo não sugira."""
+    from laos.chat import console
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: (preencher)\nneeds: []\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(console, "_laos_root", lambda: root)
+    monkeypatch.setattr(console, "project_context", lambda pid: "ctx")
+    monkeypatch.setattr(console, "_chat_llm",
+                        lambda s, m: "Entendi, vamos planejar o app.")
+
+    out = console.chat("cproj", "Quero um app HTML de gestão de limpeza: "
+                       "cadastrar produtos, marcar uso, ver dashboard de "
+                       "gastos do mês.")
+    assert "/salvar-brief" in out
+    assert "brief" in out.lower()
+
+
+def test_chat_does_not_offer_brief_when_filled(tmp_path, monkeypatch):
+    """Regressão: com brief real, o chat NÃO anexa a oferta de salvar."""
+    from laos.chat import console
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: app de limpeza com 3 abas\n"
+        "needs: [design]\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(console, "_laos_root", lambda: root)
+    monkeypatch.setattr(console, "project_context", lambda pid: "ctx")
+    monkeypatch.setattr(console, "_chat_llm",
+                        lambda s, m: "Entendi, vamos planejar o app.")
+
+    out = console.chat("cproj", "Como está o projeto hoje?")
+    assert "/salvar-brief" not in out
+
+
+def test_run_command_uses_real_runner_not_demo(tmp_path, monkeypatch):
+    """Regressão: /run deve lançar o runner REAL (subprocess com
+    llm_artifact_runner), NÃO o costed_runner de demonstração que só
+    reporta custo sem executar nada."""
+    from laos.chat import console
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+
+    root = tmp_path
+    (root / "AGENTS.md").write_text("x", encoding="utf-8")
+    proj = root / "projects" / "cproj"
+    proj.mkdir(parents=True)
+    (proj / "project.yaml").write_text(
+        "project_name: cproj\nbrief: app de limpeza\nneeds: [design]\ndeliverables: []\n",
+        encoding="utf-8")
+    monkeypatch.setattr(console, "_laos_root", lambda: root)
+
+    launched = {}
+    monkeypatch.setattr(console, "launch_real_run",
+                        lambda pid, py: launched.update(pid=pid, py=py))
+    out = console.run_command("cproj", "/run")
+    assert "run REAL iniciado" in out
+    assert launched.get("pid") == "cproj"
+
+    # o código do console não deve mais referenciar costed_runner no /run
+    import inspect
+    src = inspect.getsource(console.run_command)
+    assert "costed_runner" not in src
+    assert "launch_real_run" in src
+
+
+def test_help_lists_salvar_brief(tmp_path, monkeypatch):
+    """Regressão: /help deve documentar o /salvar-brief."""
+    from laos.chat import console
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    monkeypatch.setattr(schema_mod, "connect", lambda: con)
+    out = console.run_command("x", "/help")
+    assert "/salvar-brief" in out
