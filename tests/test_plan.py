@@ -730,3 +730,18 @@ def test_help_lists_salvar_brief(tmp_path, monkeypatch):
     monkeypatch.setattr(schema_mod, "connect", lambda: con)
     out = console.run_command("x", "/help")
     assert "/salvar-brief" in out
+
+
+def test_close_all_writes_releases_registry(tmp_path, monkeypatch):
+    """Regressão: launch_real_run fecha TODAS as conexões write do
+    servidor antes do subprocess (DuckDB single-process-writer)."""
+    import duckdb
+    from laos.db import schema as schema_mod
+
+    con = duckdb.connect(":memory:")
+    schema_mod.apply_schema(con)
+    # conexão real (tracked) + mock (não tracked)
+    schema_mod._open_writes.add(con)
+    n = schema_mod.close_all_writes()
+    assert n >= 1
+    assert len(schema_mod._open_writes) == 0

@@ -364,12 +364,9 @@ def run_command(project_id: str, line: str) -> str:
         py = _laos_root() / "projects" / project_id / "project.yaml"
         if not py.exists():
             return f"project.yaml não encontrado para {project_id}"
-        # IMPORTANTE: fecha a conexão write ANTES de lançar o subprocess —
-        # DuckDB single-writer: conexão aberta no uvicorn bloqueia o run.
-        try:
-            con.close()
-        except Exception:  # noqa: BLE001
-            pass
+        # launch_real_run chama schema.close_all_writes() ANTES do
+        # subprocess — DuckDB single-process-writer: qualquer conexão
+        # write aberta no uvicorn bloquearia o run.
         try:
             launch_real_run(project_id, py)
         except Exception as e:  # noqa: BLE001
@@ -396,11 +393,17 @@ def run_command(project_id: str, line: str) -> str:
 def launch_real_run(project_id: str, py: pathlib.Path) -> None:
     """Launch a REAL run in a SEPARATE process (subprocess).
 
-    DuckDB is single-writer: a thread inside uvicorn can't open the
-    write connection the server already holds. A subprocess gets a
-    clean connection and closes it when done. Each phase generates the
-    artifact via LLM (llm_app_runner / llm_artifact_runner).
+    DuckDB is single-process-writer: while the server holds ANY open
+    write connection, this subprocess can't open the file. So we close
+    ALL tracked write connections first (close_all_writes). The
+    subprocess then gets a clean connection and closes it when done.
+    Each phase generates the artifact via LLM.
     """
+    # libera o write lock: fecha todas as conexões write do servidor
+    from laos.db import schema as _schema
+
+    _schema.close_all_writes()
+
     root = _laos_root()
     code = (
         "import sys\n"

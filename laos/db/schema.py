@@ -171,7 +171,41 @@ def connect() -> duckdb.DuckDBPyConnection:
         path.parent.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(str(path))
     apply_schema(con)
+    _track_write(con)
     return con
+
+
+# ─── write-connection registry ─────────────────────────────────────────
+# DuckDB is single-process-writer: while the server holds ANY open write
+# connection, a run subprocess (separate process) can't open the file.
+# We track every write connection so /run can close them all before
+# launching the subprocess. Reads use connect_readonly (no registry).
+
+_open_writes: set[duckdb.DuckDBPyConnection] = set()
+
+
+def _track_write(con: duckdb.DuckDBPyConnection) -> None:
+    try:
+        _open_writes.add(con)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def close_all_writes() -> int:
+    """Close every tracked write connection. Returns count closed.
+
+    Call BEFORE launching a run subprocess so it can open the file.
+    Idempotent; untracked connections (test mocks) are untouched.
+    """
+    n = 0
+    for con in list(_open_writes):
+        try:
+            con.close()
+            n += 1
+        except Exception:  # noqa: BLE001
+            pass
+        _open_writes.discard(con)
+    return n
 
 
 def connect_readonly() -> duckdb.DuckDBPyConnection:

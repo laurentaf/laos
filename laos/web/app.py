@@ -486,12 +486,15 @@ def project_action(project_id: str, action: str = Form(...)) -> HTMLResponse:
         )
     if action == "run":
         # Run in a SEPARATE process (subprocess), NOT a thread.
-        # DuckDB is single-writer: a thread inside uvicorn can't open the
-        # write connection the server already holds. A subprocess gets a
-        # clean connection and closes it when done.
+        # DuckDB is single-process-writer: the server's open write
+        # connections must ALL be closed before the subprocess can open
+        # the file. close_all_writes handles that.
         import subprocess
         import sys as _sys
         import json as _json
+        from laos.db import schema as _schema
+
+        closed = _schema.close_all_writes()
 
         py = portfolio._find_laos_root() / "projects" / project_id / "project.yaml"
         code = (
